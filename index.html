@@ -482,7 +482,6 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 <div id="menu">
   <canvas id="menuCv"></canvas>
   <div class="mItems">
-    <span class="mItem" id="miCust">CONDERE&nbsp;<i>·</i>&nbsp;自定義開局</span>
     <span class="mItem" id="miMiss">MISSIONES&nbsp;<i>·</i>&nbsp;選開局</span>
     <span class="mItem" id="miOrac">ORACVLVM&nbsp;<i>·</i>&nbsp;連接AI</span>
     <span class="mItem" id="miArch">ARCHIVVM&nbsp;<i>·</i>&nbsp;存檔</span>
@@ -2381,7 +2380,6 @@ ebEl.addEventListener('pointerup',function(e){if(e.target===ebEl)ebClose();});
 psEl.addEventListener('pointerup',function(e){if(e.target===psEl)psClose();});
 
 $('#miMiss').addEventListener('pointerup',function(e){e.stopPropagation();menuExit();});
-$('#miCust').addEventListener('pointerup',function(e){e.stopPropagation();ebShow('year');});
 $('#miOrac').addEventListener('pointerup',function(e){e.stopPropagation();apiOpen();});
 $('#miArch').addEventListener('pointerup',function(e){e.stopPropagation();
   $('#lkTitle').textContent='ARCHIVVM — 存檔';
@@ -2390,7 +2388,8 @@ $('#miArch').addEventListener('pointerup',function(e){e.stopPropagation();
 });
 
 /* ================= game stage: Ghost layout in ROME dress ================ */
-var GAME={on:false,mapOpen:false,armOpen:false,place:null,lon:15*Math.PI/180,vel:0,drag:false,
+var BUILD=61;
+var GAME={on:false,mapOpen:false,armOpen:false,place:null,dest:null,lon:15*Math.PI/180,vel:0,drag:false,
           lx:0,moved:0,mx:-1e4,my:-1e4,hit:[]};
 var gEl=$('#game'),gmCv=$('#gmapCv'),gmc=gmCv.getContext('2d');
 var gmW=0,gmH=0;
@@ -2419,6 +2418,7 @@ function gameShow(){
   mOv.classList.add('show','gbg');          /* 画布留下：地球在毛玻璃后面转 */
   if(!ERA.act.length)ERA.act=buildActs((ERA.year==null?117:ERA.year));
   GAME.on=true;gEl.classList.add('show');gEl.setAttribute('data-pg','narr');
+  var gb=$('#game .gBrand');if(gb&&gb.textContent.indexOf('·B')<0)gb.textContent+='  ·B'+BUILD;
   $('#stage').style.display='none';$('#rail').style.display='none';$('#mission').style.display='none';
   setTimeout(gmapSize,80);
 }
@@ -2504,8 +2504,17 @@ function gmapDraw(){
     gmc.fillStyle=hov?'rgba(255,222,150,1)':'rgba(240,208,132,.95)';
     var ms=(hov?4.4:3.2)*DPR;
     gmc.fillRect(mx2-ms/2,my2-ms/2,ms,ms);
-    gmc.strokeStyle=hov?'rgba(255,208,104,.9)':'rgba(212,166,72,.5)';gmc.lineWidth=1;
-    gmc.beginPath();gmc.arc(mx2,my2,(hov?11:8)*DPR,0,Math.PI*2);gmc.stroke();
+    var isDest=GAME.dest===st2.n;
+    if(isDest){
+      var pu=1+.18*Math.sin(performance.now()*.004);
+      gmc.strokeStyle='rgba(255,208,104,.95)';gmc.lineWidth=1.6*DPR;
+      gmc.beginPath();gmc.arc(mx2,my2,12*DPR*pu,0,Math.PI*2);gmc.stroke();
+      gmc.strokeStyle='rgba(212,166,72,.5)';gmc.lineWidth=1;
+      gmc.beginPath();gmc.arc(mx2,my2,17*DPR*pu,0,Math.PI*2);gmc.stroke();
+    }else{
+      gmc.strokeStyle=hov?'rgba(255,208,104,.9)':'rgba(212,166,72,.5)';gmc.lineWidth=1;
+      gmc.beginPath();gmc.arc(mx2,my2,(hov?11:8)*DPR,0,Math.PI*2);gmc.stroke();
+    }
     gmc.font=(9*DPR)+'px ui-monospace,Menlo,monospace';
     var lw=gmc.measureText(st2.n).width;
     var bx={x0:mx2+9*DPR,y0:my2-9*DPR,x1:mx2+15*DPR+lw,y1:my2+16*DPR};
@@ -2563,12 +2572,7 @@ gmCv.addEventListener('pointerup',function(e){
       $('#gLoc').innerHTML=(y<0?(-y)+'&nbsp;A.C.N.':'A.D.&nbsp;'+y)+
         '&nbsp;<i>·</i>&nbsp;'+s.n+'&nbsp;<i>·</i>&nbsp;'+s.cn;
       narrAdd('sys','【ITER·移動】啟程前往&nbsp;'+esc2(s.cn)+'&nbsp;·&nbsp;'+esc2(s.n));
-      GAME.mapOpen=false;gEl.classList.remove('mapOpen');
-      if(gEl.getAttribute('data-pg')==='map'){
-        gEl.setAttribute('data-pg','narr');
-        document.querySelectorAll('.gNav span').forEach(function(sp){
-          sp.classList.toggle('on',sp.getAttribute('data-pg')==='narr');});
-      }
+      GAME.dest=s.n;GAME.destT=performance.now();   /* 地圖不收起：目的地亮環確認 */
     }
   }
 });
