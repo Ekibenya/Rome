@@ -1684,9 +1684,13 @@ function menuSize(){DPR=Math.min(devicePixelRatio||1,2);
   mW=mCv.width=w;mH=mCv.height=h;menuText();}
 addEventListener('resize',menuSize);
 menuSize();
-function menuEnter(){MENU.gen=(MENU.gen||0)+1;MENU.exiting=false;MENU.on=true;MENU.t0=performance.now();menuScatter();mOv.classList.add('show');}
+function menuEnter(){MENU.gen=(MENU.gen||0)+1;MENU.exiting=false;MENU.on=true;MENU.t0=performance.now();menuScatter();
+  /* 菜單期間把選局環 DOM 全部收起：淡入過程不再透出殘留畫面 */
+  $('#stage').style.display='none';$('#rail').style.display='none';$('#mission').style.display='none';
+  mOv.classList.add('show');}
 function menuExit(){
   if(MENU.exiting)return;MENU.exiting=true;
+  $('#stage').style.display='';$('#rail').style.display='';$('#mission').style.display='';
   mOv.classList.remove('show');
   lastSel=-1;                                  /* front column re-assembles on reveal */
   var g=(MENU.gen=(MENU.gen||0)+1);
