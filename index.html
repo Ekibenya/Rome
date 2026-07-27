@@ -876,6 +876,18 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   </div>
 </div>
 
+<div class="gDlg" id="dlgIter" style="z-index:88">
+  <div class="box" style="max-width:460px">
+    <span class="tag">ITER</span>
+    <h2 id="itTitle"></h2>
+    <div class="sub" id="itBrief" style="font-size:11px;line-height:2.2;letter-spacing:.08em;color:#c8c8c2;margin-top:14px"></div>
+    <div style="display:flex;gap:14px;margin-top:26px">
+      <span class="eBtn" id="itGo" style="margin-top:0;flex:1;text-align:center">PROFICISCI&nbsp;·&nbsp;確認前往&nbsp;⏎</span>
+      <span class="eBtn" id="itNo" style="margin-top:0">取消</span>
+    </div>
+    <div class="esc2">ESC&nbsp;//&nbsp;RETVRN</div>
+  </div>
+</div>
 <div class="gDlg" id="dlgOpen" style="z-index:88">
   <div class="box" style="max-width:480px">
     <span class="tag">INITIVM</span>
@@ -1349,6 +1361,11 @@ addEventListener('keydown',function(e){
     return;
   }
   if(GAME.on){
+    if($('#dlgIter').style.display==='flex'){
+      if(e.key==='Enter'){if(PENDSITE&&performance.now()-PENDSITE.t<250)return;iterGo();}
+      else if(e.key==='Escape'){$('#dlgIter').style.display='none';PENDSITE=null;}
+      return;
+    }
     if(e.key==='Escape'){
       var gds=['#dlgCfg','#dlgBook','#dlgSave','#dlgExit','#dlgApi','#dlgVoc'],ghit=false;
       for(var gi=0;gi<gds.length;gi++){var ge2=$(gds[gi]);
@@ -2388,7 +2405,7 @@ $('#miArch').addEventListener('pointerup',function(e){e.stopPropagation();
 });
 
 /* ================= game stage: Ghost layout in ROME dress ================ */
-var BUILD=61;
+var BUILD=62;
 var GAME={on:false,mapOpen:false,armOpen:false,place:null,dest:null,lon:15*Math.PI/180,vel:0,drag:false,
           lx:0,moved:0,mx:-1e4,my:-1e4,hit:[]};
 var gEl=$('#game'),gmCv=$('#gmapCv'),gmc=gmCv.getContext('2d');
@@ -2566,16 +2583,58 @@ gmCv.addEventListener('pointerup',function(e){
       if(h.b&&px>=h.b.x0&&px<=h.b.x1&&py>=h.b.y0&&py<=h.b.y1){best=h.i;break;}
       var d=Math.hypot(px-h.x,py-h.y);
       if(d<bd){bd=d;best=h.i;}}
-    if(best>=0){var s=ERA.act[best];ERA.sel=s;
-      var y=(ERA.year==null?117:ERA.year);
-      GAME.place={n:s.n,cn:s.cn};
-      $('#gLoc').innerHTML=(y<0?(-y)+'&nbsp;A.C.N.':'A.D.&nbsp;'+y)+
-        '&nbsp;<i>·</i>&nbsp;'+s.n+'&nbsp;<i>·</i>&nbsp;'+s.cn;
-      narrAdd('sys','【ITER·移動】啟程前往&nbsp;'+esc2(s.cn)+'&nbsp;·&nbsp;'+esc2(s.n));
-      GAME.dest=s.n;GAME.destT=performance.now();   /* 地圖不收起：目的地亮環確認 */
-    }
+    if(best>=0)iterAsk(ERA.act[best]);
   }
 });
+/* —— ITER：地點介紹 + 確認前往（前往即推進一輪） —— */
+var PENDSITE=null;
+function siteIntro(s){
+  /* 先查世界書有無此地條目，無則按區域/年代拼一段 */
+  try{
+    var lb=(CARDS[ACTIVE]&&CARDS[ACTIVE].lorebook)||[];
+    for(var i=0;i<lb.length;i++){var e=lb[i];
+      if(!e||e.on===false||!e.keys)continue;
+      for(var k=0;k<e.keys.length;k++){
+        var kk=e.keys[k];
+        if(kk&&kk.length>1&&(kk===s.cn||kk===s.n||(s.cn&&s.cn.indexOf(kk)>=0&&kk.length>=2))){
+          var c=e.content||'';
+          if(c.length>30)return c.slice(0,150)+(c.length>150?'……':'');
+        }
+      }
+    }
+  }catch(_){}
+  var y=(ERA.year==null?117:ERA.year);
+  var rg=(typeof regionAt==='function')?regionAt(s.la,(s.lo0!=null?s.lo0:s.lo)):null;
+  return s.cn+'（'+s.n+'）。'
+    +(rg?('屬'+rg.cn+'地界。'):'')
+    +(y<0?('前'+(-y)+'年'):(y+'年'))+'的此地，道路與傳聞都通向它。前往需途中數日，途中之事由神諭裁定。';
+}
+function iterAsk(s){
+  PENDSITE={s:s,t:performance.now()};
+  $('#itTitle').textContent=s.n+' · '+s.cn;
+  $('#itBrief').textContent=siteIntro(s);
+  $('#dlgIter').style.display='flex';
+}
+function iterGo(){
+  if(!PENDSITE)return;
+  var s=PENDSITE.s;$('#dlgIter').style.display='none';PENDSITE=null;
+  ERA.sel=s;
+  var y=(ERA.year==null?117:ERA.year);
+  GAME.place={n:s.n,cn:s.cn};
+  $('#gLoc').innerHTML=(y<0?(-y)+'&nbsp;A.C.N.':'A.D.&nbsp;'+y)+
+    '&nbsp;<i>·</i>&nbsp;'+s.n+'&nbsp;<i>·</i>&nbsp;'+s.cn;
+  GAME.dest=s.n;GAME.destT=performance.now();      /* 地圖不收起：目的地亮環 */
+  /* 前往直接視作推進一輪 */
+  if(BUSY){narrAdd('sys','神諭尚在沉吟，稍候再啟程',null);return;}
+  var idx=TURNI++;
+  TURNS.push({role:'user',content:'【ITER】啟程前往'+s.cn+'（'+s.n+'）。',t:idx});
+  narrAdd('me','▌ITER&nbsp;&nbsp;啟程前往&nbsp;'+esc2(s.cn)+'&nbsp;·&nbsp;'+esc2(s.n),idx);
+  if(apiReady())askOracle();
+  else narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;旅程已記錄（頂欄&nbsp;ORACVLVM&nbsp;可配置&nbsp;AI）…',idx);
+}
+$('#itGo').addEventListener('pointerup',function(e){e.stopPropagation();iterGo();});
+$('#itNo').addEventListener('pointerup',function(e){e.stopPropagation();$('#dlgIter').style.display='none';PENDSITE=null;});
+$('#dlgIter').addEventListener('pointerup',function(e){if(e.target.id==='dlgIter'){this.style.display='none';PENDSITE=null;}});
 /* arrows / panels */
 $('#arrMap').addEventListener('click',function(){
   GAME.mapOpen=!GAME.mapOpen;
