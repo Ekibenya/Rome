@@ -2405,7 +2405,7 @@ $('#miArch').addEventListener('pointerup',function(e){e.stopPropagation();
 });
 
 /* ================= game stage: Ghost layout in ROME dress ================ */
-var BUILD=62;
+var BUILD=63;
 var GAME={on:false,mapOpen:false,armOpen:false,place:null,dest:null,lon:15*Math.PI/180,vel:0,drag:false,
           lx:0,moved:0,mx:-1e4,my:-1e4,hit:[]};
 var gEl=$('#game'),gmCv=$('#gmapCv'),gmc=gmCv.getContext('2d');
@@ -2960,6 +2960,7 @@ function sysPrompt(){
     '【叙事者】'+(G.personality||''),
     '【场景】'+(G.scenario||''),
     gearLine(),
+    (typeof nexDigest==='function'?nexDigest():''),
     mems.length?('【长程记忆】\n'+mems.join('\n')):'',
     '【世界书·激活条目】\n'+loreFor(recent),
     '【每回自查】'+(G.post_history_instructions||''),
@@ -4335,7 +4336,131 @@ function renderMvu(panel){
     });
     h+='</div>';
   }
+  /* —— NEXVS：關係連線圖譜（Ghost 蛛網的 ROME 版）+ MEMORIA：記憶 —— */
+  GAME.lastPanel=panel;
+  var nx=nexStats(panel);
+  h+='<div class="mSec"><div class="mHead"><i>◆</i>&nbsp;'
+    +(ACTIVE==='roma'?'NEXVS&nbsp;·&nbsp;關係圖譜':'牽絲譜&nbsp;·&nbsp;人物關係')
+    +'</div><canvas id="nexCv" style="width:100%;display:block"></canvas></div>';
+  h+='<div class="mSec"><div class="mHead"><i>◆</i>&nbsp;'
+    +(ACTIVE==='roma'?'MEMORIA&nbsp;·&nbsp;記憶':'起居·記憶')+'</div>';
+  var memRows=nx.list.filter(function(o){return o.favor!=null;}).slice(-8);
+  if(memRows.length){
+    memRows.forEach(function(o){
+      h+='<div class="mRow"><span>'+esc2(o.name)+'</span><b>'+o.favor+'</b></div>'
+        +(o.state?'<div class="nLine" style="margin:2px 0 8px">'+esc2(String(o.state).slice(0,26))+'</div>':'');
+    });
+  }
+  var memL=(typeof SET!=='undefined'?(SET.mems||[]):[]).filter(function(m){return m.on!==false;}).slice(-4);
+  memL.forEach(function(m){
+    h+='<div class="mLead" style="margin-bottom:8px">『'+esc2(String(m.text).slice(0,60))+(String(m.text).length>60?'…':'')+'』</div>';
+  });
+  if(!memRows.length&&!memL.length)
+    h+='<div class="mLead" style="color:var(--mut)">尚無記憶入冊——與眾人相逢、或在設置·忆中寫下長程記憶</div>';
+  h+='</div>';
   document.querySelector('#game .gMfd').innerHTML=h;
+  nexDraw(nx);
+}
+/* —— 關係聚合：歷輪面板中的人物出場/好感/同場連線（Ghost npcStats/npcPairs 同源邏輯） —— */
+function nexKey(n){return String(n||'').replace(/[\s\u3000]+/g,'').replace(/[（(【\[][^）)】\]]*[）)】\]]?\s*$/,'');}
+function nexStats(panel){
+  var map={},order=[],pairs={};
+  function eat(npcArr){
+    var names=[];
+    (npcArr||[]).forEach(function(n){
+      var disp=String(n[0]||'').trim();if(!disp)return;
+      var k=nexKey(disp)||disp;
+      if(!map[k]){map[k]={name:disp,n:0};order.push(k);}
+      var o=map[k];o.n++;
+      if(disp.length<o.name.length)o.name=disp;
+      var fv=parseInt(n[2],10);if(!isNaN(fv))o.favor=Math.max(0,Math.min(100,fv));
+      if(n[1])o.state=n[1];if(n[4])o.role=n[4];
+      if(names.indexOf(k)<0)names.push(k);
+    });
+    for(var i=0;i<names.length;i++)for(var j=i+1;j<names.length;j++){
+      var a=names[i],b=names[j],kk=a<b?a+'\u0001'+b:b+'\u0001'+a;pairs[kk]=(pairs[kk]||0)+1;}
+    return names;
+  }
+  var cur={};
+  TURNS.forEach(function(tn){
+    if(tn.role!=='assistant')return;
+    var p=tn._p;
+    if(p===undefined){p=parseMvu(tn.content);tn._p=p||null;}
+    if(p&&p.npc)eat(p.npc);
+  });
+  if(panel&&panel.npc)eat(panel.npc).forEach(function(k){cur[k]=1;});
+  return {list:order.map(function(k){return map[k];}),keys:order,map:map,pairs:pairs,cur:cur};
+}
+/* 好感記憶摘要（Ghost npcFavorDigest）：離場人物不得健忘 */
+function nexDigest(){
+  var nx=nexStats(GAME.lastPanel);
+  var rows=nx.list.filter(function(o){return o.favor!=null;}).slice(-30).map(function(o){
+    return '· '+o.name+'：好感 '+o.favor+(o.state?('（近況：'+String(o.state).slice(0,24)+'）'):'');
+  });
+  return rows.length?('【人物好感記憶】\n'+rows.join('\n')
+    +'\n（人物即使暫離場也不得健忘：再登場須自上值續演，不得憑空重置或亂跳）'):'';
+}
+function nexDraw(nx){
+  var cv=document.getElementById('nexCv');if(!cv)return;
+  if(!nx)nx=nexStats(GAME.lastPanel);
+  var W=cv.clientWidth||280,ns=nx.list.slice(-14);
+  var Hh=ns.length?Math.max(190,120+ns.length*13):120;
+  cv.style.height=Hh+'px';
+  cv.width=Math.round(W*DPR);cv.height=Math.round(Hh*DPR);
+  var g=cv.getContext('2d'),cx=cv.width/2,cy=cv.height/2;
+  g.clearRect(0,0,cv.width,cv.height);
+  var selfName=ACTIVE==='roma'?'贝罗娜':'姬瑶';
+  g.textAlign='center';g.textBaseline='alphabetic';
+  if(!ns.length){
+    g.fillStyle='rgba(107,107,102,.9)';g.font=(8.5*DPR)+'px ui-monospace,Menlo,monospace';
+    g.fillText('尚無人物入譜',cx,cy);g.textAlign='left';return;
+  }
+  var R=Math.min(cx,cy)-30*DPR;
+  var pos={};
+  ns.forEach(function(o,i){
+    var a=-Math.PI/2+i*Math.PI*2/ns.length;
+    pos[nexKey(o.name)]={x:cx+Math.cos(a)*R,y:cy+Math.sin(a)*R,o:o};
+  });
+  /* NPC-NPC 連線：同場次數越多線越實 */
+  Object.keys(nx.pairs).forEach(function(k){
+    var ab=k.split('\u0001'),A=pos[ab[0]],B=pos[ab[1]];if(!A||!B)return;
+    var w=nx.pairs[k];
+    g.strokeStyle='rgba(212,166,72,'+Math.min(.55,.10+w*.09).toFixed(2)+')';
+    g.lineWidth=Math.min(2.2,.6+w*.3)*DPR;
+    g.beginPath();g.moveTo(A.x,A.y);g.lineTo(B.x,B.y);g.stroke();
+  });
+  /* SELF-NPC 連線：好感越高越亮 */
+  ns.forEach(function(o){
+    var P=pos[nexKey(o.name)],fv=o.favor;
+    var al=fv==null?.14:(.12+fv/100*.5);
+    g.strokeStyle=(fv!=null&&fv<40)?('rgba(200,64,46,'+al.toFixed(2)+')')
+                                   :('rgba(212,166,72,'+al.toFixed(2)+')');
+    g.lineWidth=1*DPR;
+    g.beginPath();g.moveTo(cx,cy);g.lineTo(P.x,P.y);g.stroke();
+  });
+  /* SELF 節點 */
+  g.fillStyle='rgba(236,200,120,1)';
+  g.fillRect(cx-3.2*DPR,cy-3.2*DPR,6.4*DPR,6.4*DPR);
+  g.strokeStyle='rgba(236,200,120,.5)';g.lineWidth=1*DPR;
+  g.beginPath();g.arc(cx,cy,7.5*DPR,0,Math.PI*2);g.stroke();
+  g.font=(8*DPR)+'px ui-monospace,Menlo,monospace';
+  g.fillStyle='rgba(236,236,232,.95)';
+  g.fillText(selfName,cx,cy+16*DPR);
+  /* NPC 節點：好感色燈 + 在場者亮環 */
+  ns.forEach(function(o){
+    var k=nexKey(o.name),P=pos[k],fv=o.favor;
+    var col=fv==null?'rgba(107,107,102,.95)':fv>=70?'rgba(236,200,120,1)':fv>=40?'rgba(212,166,72,1)':'rgba(200,64,46,1)';
+    g.fillStyle=col;
+    g.fillRect(P.x-2.6*DPR,P.y-2.6*DPR,5.2*DPR,5.2*DPR);
+    if(nx.cur[k]){
+      g.strokeStyle='rgba(255,222,150,.85)';g.lineWidth=1*DPR;
+      g.beginPath();g.arc(P.x,P.y,6.5*DPR,0,Math.PI*2);g.stroke();
+    }
+    g.fillStyle='rgba(217,217,212,.92)';
+    g.fillText(o.name.slice(0,6),P.x,P.y+14*DPR);
+    if(fv!=null){g.fillStyle=col;g.fillText(String(fv),P.x,P.y-9*DPR);}
+  });
+  g.textAlign='left';
 }
 
 /* ============ opening loader: fill narrative + MFD from a card opening ============ */
@@ -4417,6 +4542,8 @@ function svLoad(v){
   TURNS=v.turns||[];TURNI=TURNS.length?(Math.max.apply(null,TURNS.map(function(t){return t.t||0;}))+1):0;
   if(v.inv&&v.inv.eq&&v.inv.bag){INV=v.inv;invStore();}
   GAME.place=v.place||null;INVSEL=null;invRender();
+  GAME.lastPanel=null;
+  setTimeout(function(){try{nexDraw(null);}catch(_){}},80);
   $('#dlgSave').style.display='none';
   if(!GAME.on)gameShow();
 }
