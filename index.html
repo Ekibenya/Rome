@@ -955,6 +955,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
 "use strict";
 /* ================= data: 14 openings (titles only — story modules not mounted) ================ */
 var OPS=[
+ {id:'custom', cn:"自定義開局", code:"CONDERE", d:"ANNO LIBERO", era:"自選年代 · 自選之地"},
  {id:0, cn:"两千年后的举牌", code:"A.D. 2026", d:"2026", era:"2026年，纽约"},
  {id:1, cn:"最后一夜", code:"511 A.C.N.", d:"AVC 242", era:"前511年，科拉提亚"},
  {id:2, cn:"复苏", code:"510 A.C.N.", d:"AVC 243", era:"前510年，台伯河下游"},
@@ -1057,9 +1058,9 @@ function terrainDraw(t){
 var track=$('#track'),cards=[];
 
 /* ---- particle columns: 14 classical orders, one per opening ---- */
-var ORDERS=['DORIC','IONIC','CORINTHIAN','TUSCAN','COMPOSITE','SOLOMONIC','TRAJAN','RUIN',
+var ORDERS=['CONDITOR','DORIC','IONIC','CORINTHIAN','TUSCAN','COMPOSITE','SOLOMONIC','TRAJAN','RUIN',
             'MINOAN','OBELISK','PROTO-DORIC','LOTUS','PAPYRUS','PALM','ATTIC','AEOLIC'];
-var FAM   =['GREEK','GREEK','GREEK','ROMAN','ROMAN','ROMAN','ROMAN','GREEK',
+var FAM   =['LIBERA','GREEK','GREEK','GREEK','ROMAN','ROMAN','ROMAN','ROMAN','GREEK',
             'GREEK','EGYPTIAN','EGYPTIAN','EGYPTIAN','EGYPTIAN','EGYPTIAN','GREEK','GREEK'];
 /* deterministic RNG per column so layouts are stable across sessions */
 function colPts(i){
@@ -1095,6 +1096,16 @@ function colPts(i){
   function base(){for(var k=0;k<90;k++)sq(rnd()*.05,.115);ring(60,.075,.095);}
   var R=.072,k;
   switch(ORDERS[i]){
+    case 'CONDITOR':                /* 未建成之柱：柱身半立，餘石懸浮待壘——己手起造 */
+      base();
+      shaft(430,.10,.52,R+.006,R-.004,20,.10);
+      ring(56,.535,.084);
+      for(k=0;k<170;k++){
+        var yf=.56+rnd()*.36,rf=.03+rnd()*.115,af=rnd()*Math.PI*2;
+        push(rf*Math.cos(af)*1.5,yf,rf*Math.sin(af)*1.5,rnd()<.16);
+      }
+      for(k=0;k<80;k++)sq(.905+rnd()*.05,.05+rnd()*.05);
+      break;
     case 'ATTIC':
     case 'DORIC':      base();shaft(650,.10,.84,R+.008,R-.010,20,.10);bell(120,.84,.90,R-.01,.10);for(k=0;k<130;k++)sq(.90+rnd()*.08,.112);break;
     case 'AEOLIC':
@@ -1146,12 +1157,12 @@ function buildCards(){
     el.innerHTML=
       '<div class="cframe">'+
         '<span class="ftag">'+FAM[i]+' ORDER // '+ORDERS[i]+'</span>'+
-        '<span class="fnum">SIG_'+pad(i+1)+'/'+pad(N)+'</span>'+
+        '<span class="fnum">'+(i===0?'SIG_LIBERA':'SIG_'+pad(i-1)+'/'+pad(N-2))+'</span>'+
         '<canvas></canvas>'+
       '</div>'+
       '<div class="ghost">'+
-        '<span class="lbl">'+(i===0?'OPENING':'次局 // '+pad(i+1))+'</span>'+
-        '<div class="num">'+pad(i+1)+'</div>'+
+        '<span class="lbl">'+(i===0?'CONDERE':(i===1?'OPENING':'次局 // '+pad(i-1)))+'</span>'+
+        '<div class="num">'+(i===0?'✦':pad(i-1))+'</div>'+
         '<div class="name"></div>'+
       '</div>';
     el.querySelector('.ghost .name').textContent=o.code;
@@ -1249,7 +1260,7 @@ function railDraw(){
     var x2=m+span*i/(N-1);
     var cur=i===mod(Math.round(pos),N);
     rg.fillStyle=cur?'rgba(236,200,120,.95)':'rgba(107,107,102,.9)';
-    rg.fillText(pad(i+1),x2,y+16*DPR);
+    rg.fillText(i===0?'✦':pad(i-1),x2,y+16*DPR);
   }
   var fp=mod(pos,N);var nx=m+span*Math.min(fp/(N-1),1);
   rg.beginPath();rg.arc(nx,y,11*DPR,0,Math.PI*2);
@@ -1258,7 +1269,8 @@ function railDraw(){
   rg.beginPath();rg.arc(nx,y,14.5*DPR,0,Math.PI*2);
   rg.strokeStyle='rgba(201,155,63,.55)';rg.stroke();
   rg.fillStyle='#ecece8';
-  rg.fillText(pad(mod(Math.round(pos),N)+1),nx,y+3.5*DPR);
+  var selR=mod(Math.round(pos),N);
+  rg.fillText(selR===0?'✦':pad(selR-1),nx,y+3.5*DPR);
 }
 function railGeom(){var W=rc.width/DPR,m=W*.09;return{m:m,span:W-2*m};}
 
@@ -1413,12 +1425,13 @@ function engageGo(){
 var RING_LINE='roma';
 function opsFromCard(line){
   var src=(CARDS&&CARDS[line]&&CARDS[line].openings)||[];
-  return src.map(function(o){
+  return [{id:'custom',cn:'自定義開局',code:'CONDERE',d:'ANNO LIBERO',era:'自選年代 · 自選之地'}]
+  .concat(src.map(function(o){
     var y=o.year||0;
     return {id:o.id,cn:o.scene,
       code:(y<0?(-y)+' A.C.N.':(y>=1000?'A.D. '+y:'A.D. '+y)),
       d:(y<0?('AVC '+(753+y)):String(y)),era:o.era};
-  });
+  }));
 }
 function rebuildRing(line){
   var no=opsFromCard(line);
@@ -1430,6 +1443,11 @@ function rebuildRing(line){
 function engage(){
   if(linked)return;
   var i=mod(Math.round(pos),N),o=OPS[i];
+  if(o.id==='custom'){                 /* 自定義開局：年份 → 地球選地 → 人物 */
+    menuEnter();
+    setTimeout(function(){ebShow('year');},60);
+    return;
+  }
   /* ring → 简介确认弹窗，再入局 */
   var ops=(CARDS&&CARDS[RING_LINE]&&CARDS[RING_LINE].openings)||[];
   for(var k=0;k<ops.length;k++)if(ops[k].id===o.id){
@@ -4403,7 +4421,7 @@ function loop(t){
   if(!drag&&Math.abs(pos-Math.round(pos))<.02&&sel!==lastSel){
     scatterCard(cards[sel]);lastSel=sel;
     var o=OPS[sel];
-    $('#msNum').textContent=pad(sel+1);
+    $('#msNum').textContent=(sel===0?'✦':pad(sel-1));
     var tt=$('#msTtl').children;tt[0].textContent=o.code;tt[1].textContent=o.cn;
     $('#msDate').textContent='▚ '+o.d+' · '+ORDERS[sel];
     $('#msEra').textContent=o.era;
