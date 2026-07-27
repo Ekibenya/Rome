@@ -2428,7 +2428,7 @@ function gameExit(){
 /* half-globe map: the sphere hangs off the panel's left edge; drag to roll it */
 function gmapDraw(){
   if(gmW<4){gmapSize();if(gmW<4)return;}
-  if(!GAME.drag){GAME.lon+=GAME.vel+(REDUCED?0:.00022);GAME.vel*=.94;}
+  if(!GAME.drag){GAME.lon+=GAME.vel+((REDUCED||GAME.hov)?0:.00022);GAME.vel*=.94;}
   var cx=gmW*.04,cy=gmH*.5,R=Math.min(gmH*.72,gmW*.98)*(GAME.zoom||1);
   var lonC=GAME.lon,tilt=(GAME.tilt==null?.42:GAME.tilt),ctl=Math.cos(tilt),stl=Math.sin(tilt);
   var cs=Math.cos(lonC),sn=Math.sin(lonC);
@@ -2499,6 +2499,9 @@ function gmapDraw(){
       gmc.font=(8*DPR)+'px ui-monospace,Menlo,monospace';
       gmc.fillText(st2.cn,mx2+13*DPR,my2+10*DPR);
       shown[st2.n]=1;
+      GAME.hit.push({x:mx2/DPR,y:my2/DPR,i:V.i,
+        b:{x0:bx.x0/DPR-4,y0:bx.y0/DPR-2,x1:bx.x1/DPR+4,y1:bx.y1/DPR+2}});
+      continue;
     }
     GAME.hit.push({x:mx2/DPR,y:my2/DPR,i:V.i});
   }
@@ -2506,28 +2509,35 @@ function gmapDraw(){
   try{window.__MAPHIT=GAME.hit;}catch(_){}   /* 可觀測：測試用命中表 */
 }
 gmCv.addEventListener('pointerdown',function(e){
-  GAME.drag=true;GAME.moved=0;GAME.lx=e.clientX;GAME.ly=e.clientY;
+  GAME.drag=true;GAME.moved=0;GAME.lx=e.clientX;GAME.ly=e.clientY;GAME.lt=performance.now();
   if(gmCv.setPointerCapture)try{gmCv.setPointerCapture(e.pointerId);}catch(_){}
 });
+gmCv.addEventListener('pointerleave',function(){GAME.hov=false;GAME.mx=-1e4;GAME.my=-1e4;});
 gmCv.addEventListener('wheel',function(e){
   e.preventDefault();e.stopPropagation();
   GAME.zoom=Math.max(.7,Math.min(4,(GAME.zoom||1)*Math.exp(-e.deltaY*.0012)));
 },{passive:false});
 gmCv.addEventListener('pointermove',function(e){
   var r=gmCv.getBoundingClientRect();
-  GAME.mx=e.clientX-r.left;GAME.my=e.clientY-r.top;
+  GAME.mx=e.clientX-r.left;GAME.my=e.clientY-r.top;GAME.hov=true;
   if(!GAME.drag)return;
   var dx=e.clientX-GAME.lx;GAME.lx=e.clientX;
   var dy=e.clientY-(GAME.ly==null?e.clientY:GAME.ly);GAME.ly=e.clientY;
-  GAME.lon-=dx*.005/(GAME.zoom||1);GAME.vel=-dx*.005/(GAME.zoom||1);
+  var nowT=performance.now(),dtT=nowT-(GAME.lt||nowT);GAME.lt=nowT;
+  GAME.lon-=dx*.005/(GAME.zoom||1);
+  var vRaw=(-dx*.005/(GAME.zoom||1))*(16.7/Math.max(dtT,8));
+  GAME.vel=Math.max(-.02,Math.min(.02,vRaw));
   GAME.tilt=Math.max(-1.25,Math.min(1.35,(GAME.tilt==null?.42:GAME.tilt)+dy*.0035/(GAME.zoom||1)));
   GAME.moved+=Math.abs(dx)+Math.abs(dy);
 });
 gmCv.addEventListener('pointerup',function(e){
   if(!GAME.drag)return;GAME.drag=false;
   if(GAME.moved<5){
+    GAME.vel=0;                                   /* 純點擊不留甩動慣性 */
     var r=gmCv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top,best=-1,bd=26;
-    for(var i=0;i<GAME.hit.length;i++){var h=GAME.hit[i],d=Math.hypot(px-h.x,py-h.y);
+    for(var i=0;i<GAME.hit.length;i++){var h=GAME.hit[i];
+      if(h.b&&px>=h.b.x0&&px<=h.b.x1&&py>=h.b.y0&&py<=h.b.y1){best=h.i;break;}
+      var d=Math.hypot(px-h.x,py-h.y);
       if(d<bd){bd=d;best=h.i;}}
     if(best>=0){var s=ERA.act[best];ERA.sel=s;
       var y=(ERA.year==null?117:ERA.year);
