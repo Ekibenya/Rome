@@ -3955,32 +3955,32 @@
       });
     }
     CATALOG = [
-      { tab: '市井', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') < 0 || /_Env_Stall_/.test(n); }) },
-      { tab: '王室', items: pack2items('historic', function (n) { return n.indexOf('_Env_') < 0; }) },
-      { tab: '家具', items: pack2items('interior', function () { return true; }) },
+      { tab: '市井', lab: 'VICVS·市坊', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') < 0 || /_Env_Stall_/.test(n); }) },
+      { tab: '王室', lab: 'REGIA·殿宇', items: pack2items('historic', function (n) { return n.indexOf('_Env_') < 0; }) },
+      { tab: '家具', lab: 'SVPELLEX·家什', items: pack2items('interior', function () { return true; }) },
       {
-        tab: '构件', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') >= 0 && !/_Env_Stall_/.test(n); })
+        tab: '构件', lab: 'OPVS·构件', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') >= 0 && !/_Env_Stall_/.test(n); })
           .concat(pack2items('historic', function (n) { return n.indexOf('_Env_') >= 0; }))
       },
       {
-        tab: '道路', items: Object.keys(ROADS).map(function (k) {
+        tab: '道路', lab: 'VIA·道路', items: Object.keys(ROADS).map(function (k) {
           return { kind: 'road', name: k, disp: ROADS[k].disp, price: ROADS[k].price };
         })
       },
       {
-        tab: '草木', items: Object.keys(FLORA).map(function (k) {
+        tab: '草木', lab: 'SILVA·草木', items: Object.keys(FLORA).map(function (k) {
           return { kind: 'flora', name: k, disp: FLORA[k].disp, price: FLORA[k].price };
         }).concat(pack2items('nature', function () { return true; }))
       },
       {
-        tab: '人物', items: Object.keys(NPC_TYPES).map(function (k) {
+        tab: '人物', lab: 'POPVLVS·人物', items: Object.keys(NPC_TYPES).map(function (k) {
           return { kind: 'npc', name: k, disp: NPC_TYPES[k].disp, price: NPC_TYPES[k].price };
         }).concat(Object.keys(HIST).map(function (k) {
           return { kind: 'npc', name: k, disp: HIST[k].disp, price: HIST[k].price };
         }))
       },
       {
-        tab: '军旅', items: Object.keys(TROOPS).map(function (k) {
+        tab: '军旅', lab: 'LEGIO·军团', items: Object.keys(TROOPS).map(function (k) {
           return { kind: 'unit', name: k, disp: TROOPS[k].disp + '·' + TROOPS[k].count + '人', price: TROOPS[k].price };
         })
       }
@@ -4626,7 +4626,7 @@
     bHud.tabsEl.innerHTML = '';
     cats.forEach(function (c, i) {
       var t = document.createElement('div');
-      t.textContent = c.tab;
+      t.textContent = c.lab || c.tab;
       t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '11px' : '12.5px') + ';letter-spacing:.16em;border-radius:9px 2px 0 0;' +
         (i === bHud.tab ? 'background:rgba(201,160,99,.28);color:#f0d8a8;border:1px solid rgba(224,190,130,.5);border-bottom:none' : 'color:#9d8c6b;border:1px solid transparent');
       t.onclick = function () { bHud.tab = i; fillTray(); };
@@ -5008,26 +5008,26 @@
 
   /* ---------------- 人物类别（那个时代的百业众生） ---------------- */
   var NPC_TYPES = {
-    shi: { disp: '士人', cat: '士', price: 90, cfg: { robe: 0x3e6e8e, band: 0x2c3844, hat: 'flat', prop: 'slip' }, desc: '佩简游学，言必称先王' },
-    nong: { disp: '农人', cat: '农', price: 30, cfg: { robe: 0x8a6a3a, band: 0x6a4a24, hat: 'cone', prop: 'hoe' }, desc: '面朝黄土，岁望有年' },
+    shi: { disp: '哲人', cat: '哲', price: 90, cfg: { robe: 0x3e6e8e, band: 0x2c3844, hat: 'flat', prop: 'slip' }, desc: '从游柱廊之下，言必称先贤' },
+    nong: { disp: '农人', cat: '农', price: 30, cfg: { robe: 0x8a6a3a, band: 0x6a4a24, hat: 'cone', prop: 'hoe' }, desc: '躬耕陇亩，岁望丰穰' },
     gong: { disp: '匠人', cat: '工', price: 55, cfg: { robe: 0x5e6e78, band: 0x3e4a52, hat: 'scarf', prop: 'axe' }, desc: '斧凿在手，营造天下' },
-    shang: { disp: '商贾', cat: '商', price: 110, cfg: { robe: 0x7e4e8e, band: 0xc9a063, hat: 'scarf', prop: 'bundle' }, desc: '通有无于四方，蚁鼻钱叮当' },
-    guan: { disp: '官吏', cat: '官', price: 220, cfg: { robe: 0x2c2836, band: 0xc9a063, hat: 'flat', prop: 'slip' }, desc: '簪笔奉册，趋走于公门' },
+    shang: { disp: '商贾', cat: '商', price: 110, cfg: { robe: 0x7e4e8e, band: 0xc9a063, hat: 'scarf', prop: 'bundle' }, desc: '通有无于列海，第纳里叮当' },
+    guan: { disp: '文吏', cat: '吏', price: 220, cfg: { robe: 0x2c2836, band: 0xc9a063, hat: 'flat', prop: 'slip' }, desc: '执牍奉册，趋走于会堂' },
     jiang: { disp: '将军', cat: '将', price: 480, cfg: { robe: 0x5e2e2a, band: 0x8a6a48, hat: 'plume', prop: 'sword' }, desc: '甲胄在身，不拜' },
-    fangshi: { disp: '方士', cat: '方技', price: 150, cfg: { robe: 0xe8e2d4, band: 0x9a8a6a, hat: 'bun', prop: 'staff' }, desc: '言不死之药在海上三山' },
-    yueshi: { disp: '乐师', cat: '乐', price: 120, cfg: { robe: 0x4e7e6e, band: 0x2e5e4e, hat: 'bun', prop: 'qin' }, desc: '抚琴击磬，乐与政通' },
+    fangshi: { disp: '星士', cat: '星占', price: 150, cfg: { robe: 0xe8e2d4, band: 0x9a8a6a, hat: 'bun', prop: 'staff' }, desc: '夜观星象，言命数悬于天球' },
+    yueshi: { disp: '乐师', cat: '乐', price: 120, cfg: { robe: 0x4e7e6e, band: 0x2e5e4e, hat: 'bun', prop: 'qin' }, desc: '抚琴吹笛，乐与政通' },
     shiguan: { disp: '史官', cat: '史', price: 180, cfg: { robe: 0x3a3a44, band: 0x9d8c6b, hat: 'flat', prop: 'slip' }, desc: '秉笔直书，君举必书' },
-    wuzhu: { disp: '巫祝', cat: '祝', price: 140, cfg: { robe: 0x6e3e7e, band: 0xc9a063, hat: 'bun', prop: 'staff' }, desc: '事鬼神，掌祝号' },
-    youxia: { disp: '游侠', cat: '侠', price: 200, cfg: { robe: 0x4a4a52, band: 0xa63b26, hat: 'scarf', prop: 'sword' }, desc: '其言必信，其行必果' },
-    rusheng: { disp: '儒生', cat: '儒', price: 100, cfg: { robe: 0x6e8ea8, band: 0x3e5e78, hat: 'flat', prop: 'slip' }, desc: '诵诗三百，习礼大树下' },
-    mozhe: { disp: '墨者', cat: '墨', price: 100, cfg: { robe: 0x3a3a32, band: 0x5a5a4a, hat: 'scarf', prop: 'staff' }, desc: '短褐草鞋，兼爱非攻' },
-    shuike: { disp: '说客', cat: '纵横', price: 260, cfg: { robe: 0x8e6e3e, band: 0xc9a063, hat: 'flat', prop: 'fan' }, desc: '一言纵横列国，谈笑可弭刀兵' },
+    wuzhu: { disp: '祭司', cat: '祭', price: 140, cfg: { robe: 0x6e3e7e, band: 0xc9a063, hat: 'bun', prop: 'staff' }, desc: '司香火牺牲，占鸟飞之兆' },
+    youxia: { disp: '角斗士', cat: '斗', price: 200, cfg: { robe: 0x4a4a52, band: 0xa63b26, hat: 'scarf', prop: 'sword' }, desc: '生死一掷，观者如堵' },
+    rusheng: { disp: '修辞生', cat: '辩', price: 100, cfg: { robe: 0x6e8ea8, band: 0x3e5e78, hat: 'flat', prop: 'slip' }, desc: '习修辞于广场，出口成章' },
+    mozhe: { disp: '犬儒', cat: '犬儒', price: 100, cfg: { robe: 0x3a3a32, band: 0x5a5a4a, hat: 'scarf', prop: 'staff' }, desc: '一袍一杖，白昼提灯寻真人' },
+    shuike: { disp: '辩士', cat: '雄辩', price: 260, cfg: { robe: 0x8e6e3e, band: 0xc9a063, hat: 'flat', prop: 'fan' }, desc: '一言纵横列国，谈笑可弭刀兵' },
     yizhe: { disp: '医者', cat: '医', price: 160, cfg: { robe: 0x5e7e5e, band: 0x3e5e3e, hat: 'scarf', prop: 'bundle', bundleC: 0x8ec455 }, desc: '望闻问切，起死人肉白骨' },
-    buzhe: { disp: '卜者', cat: '卜', price: 130, cfg: { robe: 0x7e7e6e, band: 0x5e5e4e, hat: 'bun', prop: 'slip' }, desc: '灼龟观兆，蓍草在袖' },
-    yufu: { disp: '渔父', cat: '渔', price: 40, cfg: { robe: 0x4e6e7e, band: 0x3e5a66, hat: 'cone', prop: 'rod' }, desc: '沧浪之水清兮，可以濯吾缨' },
-    qiaofu: { disp: '樵夫', cat: '樵', price: 40, cfg: { robe: 0x6a5a3a, band: 0x4a3e28, hat: 'cone', prop: 'axe' }, desc: '担柴唱晚，不知有汉' },
-    muren: { disp: '牧童', cat: '牧', price: 35, cfg: { robe: 0x7e9e5e, band: 0x5e7e44, hat: 'cone', prop: 'staff', s: 0.8 }, desc: '骑牛遥指杏花村' },
-    paoren: { disp: '庖人', cat: '庖', price: 60, cfg: { robe: 0x9e7e5e, band: 0x7e5e3e, hat: 'scarf', prop: 'none' }, desc: '游刃有余，进乎技矣' },
+    buzhe: { disp: '肠卜官', cat: '卜', price: 130, cfg: { robe: 0x7e7e6e, band: 0x5e5e4e, hat: 'bun', prop: 'slip' }, desc: '剖读牺牲，鸟飞定吉凶' },
+    yufu: { disp: '渔父', cat: '渔', price: 40, cfg: { robe: 0x4e6e7e, band: 0x3e5a66, hat: 'cone', prop: 'rod' }, desc: '撒网海湾，鱼汛即天时' },
+    qiaofu: { disp: '樵夫', cat: '樵', price: 40, cfg: { robe: 0x6a5a3a, band: 0x4a3e28, hat: 'cone', prop: 'axe' }, desc: '担柴唱晚，不问城中事' },
+    muren: { disp: '牧童', cat: '牧', price: 35, cfg: { robe: 0x7e9e5e, band: 0x5e7e44, hat: 'cone', prop: 'staff', s: 0.8 }, desc: '驱羊过丘，芦笛自吹' },
+    paoren: { disp: '庖人', cat: '庖', price: 60, cfg: { robe: 0x9e7e5e, band: 0x7e5e3e, hat: 'scarf', prop: 'none' }, desc: '鱼酱蜜酒，宴客如仪' },
     zhinu: { disp: '织女', cat: '织', price: 60, cfg: { robe: 0xc88aa8, band: 0xa86a88, hat: 'bun', prop: 'none' }, desc: '机杼声声，锦成文章' },
     yinshi: { disp: '隐士', cat: '隐', price: 150, cfg: { robe: 0x8e9e8e, band: 0x6e7e6e, hat: 'cone', prop: 'staff' }, desc: '凤兮凤兮，何德之衰' },
     dizi: { disp: '弟子', cat: '学', price: 50, cfg: { robe: 0x9eb0c0, band: 0x6e8ea8, hat: 'bun', prop: 'slip', s: 0.9 }, desc: '负笈从师，问道于途' },
@@ -5035,24 +5035,24 @@
   };
   /* 历史人物（可招纳 + 各城常驻） */
   var HIST = {
-    laodan: { disp: '老聃', cat: '守藏室史', price: 1500, cfg: { robe: 0xe8e2d4, band: 0x9a8a6a, hat: 'bun', prop: 'staff' }, desc: '周守藏室之史，言道德五千言' },
-    gongshu: { disp: '公输班', cat: '天下巧匠', price: 1200, cfg: { robe: 0x5e6e78, band: 0xc9a063, hat: 'scarf', prop: 'axe' }, desc: '削竹为鹊，成而飞之，三日不下' },
-    kongzi: { disp: '孔仲尼', cat: '儒家之宗', price: 1500, cfg: { robe: 0x6e8ea8, band: 0x3e5e78, hat: 'flat', prop: 'slip', s: 1.1 }, desc: '知其不可而为之者' },
-    yanhui: { disp: '颜回', cat: '孔门高弟', price: 600, cfg: { robe: 0x9eb0c0, band: 0x6e8ea8, hat: 'bun', prop: 'slip' }, desc: '一箪食一瓢饮，不改其乐' },
-    zilu: { disp: '子路', cat: '孔门之勇', price: 600, cfg: { robe: 0x5e4e3e, band: 0xa63b26, hat: 'scarf', prop: 'sword' }, desc: '君子死，冠不免' },
-    changhong: { disp: '苌弘', cat: '周室乐官', price: 800, cfg: { robe: 0x4e7e6e, band: 0xc9a063, hat: 'flat', prop: 'qin' }, desc: '碧血三年，乐通天地' },
-    yinxi: { disp: '尹喜', cat: '函谷关令', price: 700, cfg: { robe: 0x3e6e8e, band: 0x9d8c6b, hat: 'flat', prop: 'slip' }, desc: '望紫气东来，强留著书' },
-    shangyang: { disp: '商鞅', cat: '变法者', price: 1200, cfg: { robe: 0x2c2836, band: 0xc9a063, hat: 'flat', prop: 'slip' }, desc: '徙木立信，作法自毙' },
-    baiqi: { disp: '白起', cat: '秦之杀神', price: 1500, cfg: { robe: 0x2a2a32, band: 0x8a6a48, hat: 'plume', prop: 'sword' }, desc: '料敌合变，出奇无穷' },
-    lianpo: { disp: '廉颇', cat: '赵之良将', price: 1200, cfg: { robe: 0x5e2e2a, band: 0x8a6a48, hat: 'plume', prop: 'spear' }, desc: '一饭斗米，尚能饭否' },
-    linxiangru: { disp: '蔺相如', cat: '完璧之臣', price: 1000, cfg: { robe: 0x8e6e3e, band: 0xc9a063, hat: 'flat', prop: 'slip' }, desc: '先国家之急而后私仇' },
-    yanying: { disp: '晏婴', cat: '齐之贤相', price: 1000, cfg: { robe: 0x2c2836, band: 0x9d8c6b, hat: 'flat', prop: 'fan', s: 0.85 }, desc: '橘生淮南则为橘' },
-    zouyan: { disp: '邹衍', cat: '阴阳家', price: 900, cfg: { robe: 0x6e3e7e, band: 0x9a8a6a, hat: 'flat', prop: 'slip' }, desc: '谈天衍，五德终始' },
-    yueyi: { disp: '乐毅', cat: '燕之名将', price: 1200, cfg: { robe: 0x33528f, band: 0x8a6a48, hat: 'plume', prop: 'sword' }, desc: '下齐七十余城' },
-    jingke: { disp: '荆轲', cat: '刺客', price: 1300, cfg: { robe: 0x4a4a52, band: 0xa63b26, hat: 'scarf', prop: 'sword' }, desc: '风萧萧兮易水寒' },
-    xinlingjun: { disp: '信陵君', cat: '魏公子', price: 1200, cfg: { robe: 0x3a8f86, band: 0xc9a063, hat: 'flat', prop: 'fan' }, desc: '窃符救赵，食客三千' },
-    hanfei: { disp: '韩非', cat: '法家集成', price: 1200, cfg: { robe: 0x3f7d4e, band: 0x2c3844, hat: 'flat', prop: 'slip' }, desc: '口吃而善著书，说难孤愤' },
-    quyuan: { disp: '屈原', cat: '楚之三闾', price: 1300, cfg: { robe: 0xa63b26, band: 0x6e3e7e, hat: 'flat', prop: 'slip' }, desc: '举世皆浊我独清' },
+    laodan: { disp: '苏格拉底', cat: '雅典哲人', price: 1500, cfg: { robe: 0xe8e2d4, band: 0x9a8a6a, hat: 'bun', prop: 'staff' }, desc: '自知其无知，饮鸩而不悔' },
+    gongshu: { disp: '阿基米德', cat: '天下巧匠', price: 1200, cfg: { robe: 0x5e6e78, band: 0xc9a063, hat: 'scarf', prop: 'axe' }, desc: '予我一支点，可撬动大地' },
+    kongzi: { disp: '亚里士多德', cat: '学园之宗', price: 1500, cfg: { robe: 0x6e8ea8, band: 0x3e5e78, hat: 'flat', prop: 'slip', s: 1.1 }, desc: '吾爱吾师，吾更爱真理' },
+    yanhui: { disp: '毕达哥拉斯', cat: '数之宗师', price: 600, cfg: { robe: 0x9eb0c0, band: 0x6e8ea8, hat: 'bun', prop: 'slip' }, desc: '万物皆数，琴弦有理' },
+    zilu: { disp: '列奥尼达', cat: '温泉关王', price: 600, cfg: { robe: 0x5e4e3e, band: 0xa63b26, hat: 'scarf', prop: 'sword' }, desc: '带盾归来，或卧盾上' },
+    changhong: { disp: '品达', cat: '竖琴诗宗', price: 800, cfg: { robe: 0x4e7e6e, band: 0xc9a063, hat: 'flat', prop: 'qin' }, desc: '颂歌献给竞技的胜者' },
+    yinxi: { disp: '希罗多德', cat: '史学之父', price: 700, cfg: { robe: 0x3e6e8e, band: 0x9d8c6b, hat: 'flat', prop: 'slip' }, desc: '行万里路，录万邦事' },
+    shangyang: { disp: '梭伦', cat: '立法者', price: 1200, cfg: { robe: 0x2c2836, band: 0xc9a063, hat: 'flat', prop: 'slip' }, desc: '立法而后周游，十年不改一字' },
+    baiqi: { disp: '汉尼拔', cat: '迦太基战神', price: 1500, cfg: { robe: 0x2a2a32, band: 0x8a6a48, hat: 'plume', prop: 'sword' }, desc: '翻越阿尔卑斯，罗马为之震怖' },
+    lianpo: { disp: '大西庇阿', cat: '罗马良将', price: 1200, cfg: { robe: 0x5e2e2a, band: 0x8a6a48, hat: 'plume', prop: 'spear' }, desc: '扎马一战，雪坎尼之耻' },
+    linxiangru: { disp: '西塞罗', cat: '共和之舌', price: 1000, cfg: { robe: 0x8e6e3e, band: 0xc9a063, hat: 'flat', prop: 'slip' }, desc: '一篇雄辩，可抵一军' },
+    yanying: { disp: '伊索', cat: '寓言家', price: 1000, cfg: { robe: 0x2c2836, band: 0x9d8c6b, hat: 'flat', prop: 'fan', s: 0.85 }, desc: '狐狸与葡萄，尽在寓中' },
+    zouyan: { disp: '泰勒斯', cat: '米利都智者', price: 900, cfg: { robe: 0x6e3e7e, band: 0x9a8a6a, hat: 'flat', prop: 'slip' }, desc: '预言日食，言万物源于水' },
+    yueyi: { disp: '亚历山大', cat: '征服者', price: 1200, cfg: { robe: 0x33528f, band: 0x8a6a48, hat: 'plume', prop: 'sword' }, desc: '至世界尽头而泣，无地可征' },
+    jingke: { disp: '布鲁图斯', cat: '弑君者', price: 1300, cfg: { robe: 0x4a4a52, band: 0xa63b26, hat: 'scarf', prop: 'sword' }, desc: '这一击，为了共和' },
+    xinlingjun: { disp: '伯里克利', cat: '雅典第一人', price: 1200, cfg: { robe: 0x3a8f86, band: 0xc9a063, hat: 'flat', prop: 'fan' }, desc: '我们的城邦，是全希腊的学校' },
+    hanfei: { disp: '修昔底德', cat: '严谨史家', price: 1200, cfg: { robe: 0x3f7d4e, band: 0x2c3844, hat: 'flat', prop: 'slip' }, desc: '强者行其所能，弱者忍其所必忍' },
+    quyuan: { disp: '荷马', cat: '盲游吟者', price: 1300, cfg: { robe: 0xa63b26, band: 0x6e3e7e, hat: 'flat', prop: 'slip' }, desc: '歌阿喀琉斯之怒，吟奥德修斯之归' },
     yangyouji: { disp: '养由基', cat: '楚之神射', price: 900, cfg: { robe: 0x8a4a3a, band: 0x5e2e2a, hat: 'scarf', prop: 'spear' }, desc: '百步穿杨' },
     sunwu: { disp: '孙武', cat: '兵圣', price: 1500, cfg: { robe: 0x3a3a44, band: 0x8a6a48, hat: 'flat', prop: 'slip' }, desc: '兵者，国之大事' },
     wuzixu: { disp: '伍子胥', cat: '吴之柱石', price: 1200, cfg: { robe: 0x4e6e7e, band: 0x8a6a48, hat: 'plume', prop: 'sword' }, desc: '悬目东门，以观越师' },
@@ -5083,13 +5083,13 @@
   };
   /* 军旅编制 */
   var TROOPS = {
-    zu: { disp: '甲士', count: 1, price: 60, cols: 1 },
-    wu: { disp: '一伍', count: 5, price: 260, cols: 5 },
-    ying: { disp: '一营', count: 20, price: 950, cols: 5 },
-    jun: { disp: '一军', count: 48, price: 2100, cols: 8 }
+    zu: { disp: '军团兵', count: 1, price: 60, cols: 1 },
+    wu: { disp: '一什', count: 5, price: 260, cols: 5 },
+    ying: { disp: '百人队', count: 20, price: 950, cols: 5 },
+    jun: { disp: '一大队', count: 48, price: 2100, cols: 8 }
   };
   var SOLDIER_CFG = { robe: 0x3a3a42, band: 0x8a6a48, chest: 0x4a4a52, hat: 'plume', hatC: 0x3a3a42, prop: 'spear' };
-  var NAME_POOL = ['伯', '仲', '叔', '季', '石', '禾', '桑', '陶', '革', '车', '骨', '弓', '灶', '井', '柳', '梅'];
+  var NAME_POOL = ['盖乌斯', '卢修斯', '马库斯', '提图斯', '昆图斯', '塞克图', '普布利', '格奈乌', '奥卢斯', '曼利乌', '德基乌', '弗拉维', '尤利乌', '瓦莱里', '科尔涅', '霍拉提'];
 
   function unitFormation(count, cols) {
     var pts = [];
@@ -5932,7 +5932,7 @@
     m = /^(?:找|寻访?|召见|见)\s*(.+)$/.exec(raw); if (m) return cmdFind(m[1]);
     m = /^(?:去|往|移步|行至|到)\s*(.+)$/.exec(raw); if (m) return cmdGo(m[1]);
     m = /(?:盖|修建|建造|营建|兴建|新建|起|造|修|铺设|铺|植|种|建)\s*(.+)$/.exec(raw); if (m) return cmdBuild(m[1], raw);
-    return { ok: false, report: '未能辨识敕令。可用句式：起马厩×2 ／ 拆酒楼 ／ 攻打粮仓 ／ 寻老聃 ／ 去城南 ／ 移驾斯巴达（列国都邑）' };
+    return { ok: false, report: '未能辨识敕令。可用句式：起马厩×2 ／ 拆酒楼 ／ 攻打粮仓 ／ 寻苏格拉底 ／ 去城南 ／ 移驾斯巴达（列国都邑）' };
   };
 
   /* ---------------- public hooks ---------------- */
