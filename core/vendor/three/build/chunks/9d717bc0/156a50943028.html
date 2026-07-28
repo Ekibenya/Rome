@@ -379,6 +379,16 @@ canvas{display:block}
 .aRow .itm em{font-style:normal;font-size:9px;color:var(--mut);margin-left:8px;letter-spacing:.12em}
 .aRow .cond{width:62px;flex:none}
 /* game dialogs */
+.genBar{display:flex;align-items:center;gap:10px;margin:2px 0 16px}
+.genBar .gbTrack{position:relative;flex:1;height:22px;overflow:hidden;
+  border:1px solid rgba(236,236,232,.22);background:rgba(236,236,232,.03)}
+.genBar .gbTrack i{position:absolute;left:0;top:0;bottom:0;width:0;
+  background:linear-gradient(90deg,rgba(201,155,63,.16),rgba(201,155,63,.34));transition:width .25s linear}
+.genBar .gbTrack span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:9.5px;letter-spacing:.14em;color:var(--gold-hi);white-space:nowrap}
+.genBar .gbStop{flex:none;cursor:pointer;font-size:9px;letter-spacing:.18em;padding:5px 11px;
+  border:1px solid rgba(200,64,46,.45);color:#c8402e}
+.genBar .gbStop:hover{border-color:#c8402e;box-shadow:0 0 9px rgba(200,64,46,.3)}
 .gDlg{position:fixed;inset:0;z-index:86;display:none;align-items:center;justify-content:center;
       background:rgba(4,4,4,.86)}
 .gDlg .box{border:1px solid rgba(236,236,232,.4);background:var(--ink);padding:34px 42px;
@@ -2836,13 +2846,24 @@ function gameEnter(){
     narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;此为程序化开局；接入&nbsp;AI&nbsp;后自定义开局将由神谕现场铸写&nbsp;…',null);
     return;
   }
-  BUSY=true;
-  var busy=narrAdd('sys','…&nbsp;神谕正在为你铸此开局&nbsp;·&nbsp;'+esc2(yl+' · '+cn)+'&nbsp;…',null);
+  BUSY=true;genOpen('forge');
+  var fLive=null;
+  function fDelta(full){
+    genFirstToken();GEN.chars=full.length;
+    var bd=stripMvuLive(full);if(!bd)return;
+    if(!fLive){var nr=$('#gNarr');fLive=document.createElement('div');fLive.className='liveWrap';
+      nr.insertBefore(fLive,GEN.el||nr.querySelector('.gEot'));}
+    fLive.innerHTML=bd.split(/\n{2,}/).map(function(par){
+      return /^【/.test(par.trim())?('<p class="sys">'+fmtBody(par)+'</p>'):('<p>'+fmtBody(par)+'</p>');
+    }).join('');
+    var n2=$('#gNarr');n2.scrollTop=n2.scrollHeight;
+  }
   oracleCall(
     [{role:'system',content:condereSys(line,yl+' '+cn+' '+nm)},
      {role:'user',content:condereAsk(line,y,nm,cn)}],
     function(reply){
-      BUSY=false;try{busy.remove();}catch(_){}
+      BUSY=false;genClose();
+      if(fLive){try{fLive.remove();}catch(_){}fLive=null;}
       var txt=String(reply||'').trim();
       if(!/<mvu_panel>/.test(txt)){        /* 神谕漏了面板：补上底稿的面板，保证情报台不空 */
         var mv=(String(draft.text).match(/<mvu_panel>[\s\S]*<\/mvu_panel>/)||[''])[0];
@@ -2851,10 +2872,11 @@ function gameEnter(){
       loadOpening(line,{id:'custom',year:y,era:yl,scene:cn,text:txt},loc);
     },
     function(msg){
-      BUSY=false;try{busy.remove();}catch(_){}
+      BUSY=false;genClose();
+      if(fLive){try{fLive.remove();}catch(_){}fLive=null;}
       narrAdd('sys','⚠&nbsp;铸局失败：'+esc2(msg)+'&nbsp;——&nbsp;已回退为程序化开局，可在顶栏&nbsp;↻&nbsp;重演重试',null);
     },
-    {max_tokens:3200}                      /* 开场长文需要更大篇幅 */
+    {max_tokens:3200,onDelta:fDelta}       /* 开场长文需要更大篇幅 */
   );
 }
 function gameExit(){
@@ -3307,8 +3329,8 @@ function fmtBody(par){
     .replace(/「([^」]*)」/g,'「<span class="q">$1</span>」');
 }
 var TYPE_GEN=0;   /* 代际令牌：换开局/读档/重演时旧打字链立刻失效 */
-function typeParas(paras,tIdx,done){
-  var gen=TYPE_GEN,speed=VELOMAP[CFGS.velo];
+function typeParas(paras,tIdx,done,instant){
+  var gen=TYPE_GEN,speed=instant?0:VELOMAP[CFGS.velo];
   if(!paras.length){done&&done();return;}
   var par=paras.shift(),html=fmtBody(par);
   if(/^【/.test(par.trim())){narrAdd('sys',html,tIdx);typeParas(paras,tIdx,done);return;}
@@ -3345,7 +3367,7 @@ $('#gNarr').addEventListener('click',function(e){
     speakText(txt||$('#gNarr').textContent.slice(0,1200));
   }
 });
-function renderReply(text,tIdx){
+function renderReply(text,tIdx,instant){
   var panel=parseMvu(text);
   var body=stripMvu(text);
   if(typeof rxApply==='function')body=rxApply(body,false);   /* 正则·仅显示 */
@@ -3354,11 +3376,68 @@ function renderReply(text,tIdx){
       if(tIdx!=null)turnOps(tIdx,finalText);
       if(typeof SET!=='undefined'&&SET.tts.auto===1)speakText(finalText);
       if(typeof SET!=='undefined'&&SET.img.on===1&&SET.img.auto===1)drawScene();
-    });
+    },instant);
     if(panel)renderMvu(panel);
   };
   if(typeof jsPipeline==='function')jsPipeline(body,after);  /* 脚本管线（沙箱） */
   else after(body);
+}
+/* ── 生成等待·启发式进度条（Ghost 移植）───────────────────────────
+   接口吐第一个字之前不给任何进度信号，故以【本机最近 8 轮首字耗时中位数】为预估，
+   进度按指数渐近爬升、封顶 94%，真正出字才冲满——绝不虚报 100%。 */
+var GEN={t0:0,est:0,active:false,mode:'',chars:0,el:null,fill:null,txt:null,tmr:null,
+  samples:(function(){try{var a=JSON.parse(localStorage.getItem('rome_ttft_v1')||'[]');
+    return Array.isArray(a)?a.slice(-8):[];}catch(e){return [];}})()};
+var GENAC=null;                                    /* 本轮请求的 AbortController，供「中断」用 */
+function ttftMedian(){var a=GEN.samples.slice().sort(function(x,y){return x-y;});
+  return a.length<1?0:a[Math.floor(a.length/2)];}
+function genPct(){
+  if(GEN.chars>0)return Math.min(99,60+Math.min(39,GEN.chars/28));   /* 已出字：按字数推进 */
+  var el=Date.now()-GEN.t0,est=GEN.est||9000;
+  return Math.min(94,Math.max(4,(1-Math.exp(-el/(est*0.55)))*100));
+}
+function genBlocks(pct){var n=Math.round(Math.max(0,Math.min(100,pct))/10),o='';
+  for(var i=0;i<10;i++)o+=(i<n?'\u2593':'\u2591');return o;}
+function genLabel(){
+  var el=Date.now()-GEN.t0,sec=(el/1000).toFixed(el<10000?1:0),bar=genBlocks(genPct());
+  if(GEN.mode==='forge')return 'ORACVLVM · 铸局中…… '+bar+' '+sec+'s';
+  if(GEN.chars>0)return 'ORACVLVM · 神谕落笔…… '+bar+' '+GEN.chars+' 字';
+  if(GEN.est&&el>GEN.est*1.6)return 'ORACVLVM · 建立链路…… '+bar+' '+sec+'s · 回线拥堵';
+  return 'ORACVLVM · 建立链路…… '+bar+' '+(GEN.est?(Math.round(genPct())+'%'):(sec+'s'));
+}
+function genOpen(mode){
+  genClose(true);
+  GEN.active=true;GEN.mode=mode||'gen';GEN.t0=Date.now();GEN.est=ttftMedian();GEN.chars=0;
+  var nr=$('#gNarr'),d=document.createElement('div');
+  d.className='genBar';
+  d.innerHTML='<div class="gbTrack"><i id="genFill"></i><span id="genTxt"></span></div>'
+    +'<span class="gbStop" data-act="genStop">✕ 中断</span>';
+  nr.insertBefore(d,nr.querySelector('.gEot'));
+  GEN.el=d;GEN.fill=d.querySelector('#genFill');GEN.txt=d.querySelector('#genTxt');
+  d.querySelector('.gbStop').addEventListener('click',function(){
+    try{if(GENAC)GENAC.abort();}catch(_){}
+  });
+  nr.scrollTop=nr.scrollHeight;
+  genPulse();
+}
+function genPulse(){
+  if(!GEN.active){GEN.tmr=null;return;}
+  var pc=genPct();
+  if(GEN.fill)GEN.fill.style.width=pc.toFixed(1)+'%';
+  if(GEN.txt)GEN.txt.textContent=genLabel();
+  GEN.tmr=setTimeout(genPulse,180);
+}
+function genFirstToken(){                          /* 首字抵达：记一次 TTFT 样本 */
+  if(GEN.mode!=='gen'||GEN._ttft)return;GEN._ttft=1;
+  var dt=Date.now()-GEN.t0;
+  if(dt>=250&&dt<=90000){GEN.samples.push(dt);
+    if(GEN.samples.length>8)GEN.samples=GEN.samples.slice(-8);
+    try{localStorage.setItem('rome_ttft_v1',JSON.stringify(GEN.samples));}catch(_){}}
+}
+function genClose(){
+  GEN.active=false;GEN._ttft=0;GEN.chars=0;
+  if(GEN.tmr){clearTimeout(GEN.tmr);GEN.tmr=null;}
+  if(GEN.el){try{GEN.el.remove();}catch(_){}GEN.el=null;GEN.fill=null;GEN.txt=null;}
 }
 /* —— 神谕（AI）接入 —— */
 var API={base:'',key:'',model:'',img:''};
@@ -3419,44 +3498,120 @@ function sysPrompt(){
   ].filter(Boolean).join('\n\n');
 }
 function oracleCall(messages,cb,err,opt){
-  var body={model:API.model,messages:messages,
-    temperature:(typeof SET!=='undefined'&&SET.samp.temp!=='')?+SET.samp.temp:.9,
-    max_tokens:(typeof SET!=='undefined'&&SET.samp.maxt!=='')?+SET.samp.maxt:2200};
-  if(opt)for(var ok in opt)body[ok]=opt[ok];   /* 逐次覆蓋（如鑄局加長） */
-  if(typeof SET!=='undefined'){
-    if(SET.samp.topp!=='')body.top_p=+SET.samp.topp;
-    if(SET.samp.reason)body.reasoning_effort=['','low','medium','high'][SET.samp.reason];
+  opt=opt||{};
+  var onDelta=opt.onDelta;delete opt.onDelta;
+  var noStream=opt.noStream;delete opt.noStream;
+  function mkBody(stream){
+    var body={model:API.model,messages:messages,
+      temperature:(typeof SET!=='undefined'&&SET.samp.temp!=='')?+SET.samp.temp:.9,
+      max_tokens:(typeof SET!=='undefined'&&SET.samp.maxt!=='')?+SET.samp.maxt:2200};
+    for(var ok in opt)body[ok]=opt[ok];        /* 逐次覆盖（如铸局加长） */
+    if(typeof SET!=='undefined'){
+      if(SET.samp.topp!=='')body.top_p=+SET.samp.topp;
+      if(SET.samp.reason)body.reasoning_effort=['','low','medium','high'][SET.samp.reason];
+    }
+    if(stream)body.stream=true;
+    return body;
   }
-  var ac=window.AbortController?new AbortController():null;
-  var to=ac?setTimeout(function(){ac.abort();},120000):null;
-  fetch(API.base.replace(/\/+$/,'')+'/chat/completions',{method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+API.key},
-    body:JSON.stringify(body),signal:ac?ac.signal:undefined})
-  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-  .then(function(d){
-    if(to)clearTimeout(to);
-    var c=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
-    if(!c)throw new Error('神谕沉默（空回复）');cb(c);
-  }).catch(function(e){if(to)clearTimeout(to);
-    err(e&&e.name==='AbortError'?'超时（120s）':(e&&e.message||'未知错误'));});
+  var url=API.base.replace(/\/+$/,'')+'/chat/completions';
+  var hdr={'Content-Type':'application/json','Authorization':'Bearer '+API.key};
+  var streamOn=(!noStream)&&(typeof SET==='undefined'||SET.stream!==0)&&!!window.ReadableStream;
+  /* 整段生成（流式不可用或失败时的回退路径） */
+  function whole(){
+    var ac=window.AbortController?new AbortController():null;GENAC=ac;
+    var to=ac?setTimeout(function(){ac.abort();},120000):null;
+    fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(mkBody(false)),
+      signal:ac?ac.signal:undefined})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){
+      if(to)clearTimeout(to);
+      var c=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
+      if(!c)throw new Error('神谕沉默（空回复）');cb(c);
+    }).catch(function(e){if(to)clearTimeout(to);
+      err(e&&e.name==='AbortError'?'已中断':(e&&e.message||'未知错误'));});
+  }
+  if(!streamOn){whole();return;}
+  /* 流式：SSE 增量。首块之前失败则静默回退整段；已出字后失败则按已收到的内容收场。 */
+  var ac2=window.AbortController?new AbortController():null;GENAC=ac2;
+  var to2=ac2?setTimeout(function(){ac2.abort();},180000):null;
+  var got=false,full='';
+  fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(mkBody(true)),
+    signal:ac2?ac2.signal:undefined})
+  .then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(!r.body||!r.body.getReader)throw new Error('流式不可用');
+    var rd=r.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
+    function pump(){
+      return rd.read().then(function(x){
+        if(x.done)return full;
+        buf+=dec.decode(x.value,{stream:true});
+        var parts=buf.split('\n');buf=parts.pop();
+        parts.forEach(function(ln){
+          ln=ln.replace(/^data:\s?/,'').trim();
+          if(!ln||ln==='[DONE]')return;
+          try{
+            var j=JSON.parse(ln);
+            var ch=j.choices&&j.choices[0];
+            var d2=(ch&&ch.delta&&ch.delta.content)||'';
+            if(d2){got=true;full+=d2;try{onDelta&&onDelta(full);}catch(_){}}
+          }catch(_){}
+        });
+        /* 复读掐断：末尾 1-12 字模式连刷 ≥30 次即停拉流，止损 token */
+        if(full.length>200&&/([\s\S]{1,12}?)\1{29,}$/.test(full)){try{rd.cancel();}catch(_){}return full;}
+        return pump();
+      });
+    }
+    return pump();
+  })
+  .then(function(txt){
+    if(to2)clearTimeout(to2);
+    if(!String(txt||'').trim()){if(!got){whole();return;}throw new Error('神谕沉默（空回复）');}
+    cb(txt);
+  })
+  .catch(function(e){
+    if(to2)clearTimeout(to2);
+    var aborted=e&&e.name==='AbortError';
+    if(aborted&&got){cb(full);return;}          /* 中断但已出字：保留已写的部分 */
+    if(aborted){err('已中断');return;}
+    if(!got){whole();return;}                    /* 首块前失败：静默回退整段 */
+    err(e&&e.message||'未知错误');
+  });
 }
 function askOracle(){
-  var busy=narrAdd('sys','…&nbsp;神谕沉吟中&nbsp;…',null);BUSY=true;
+  BUSY=true;genOpen('gen');
   var msgs=[{role:'system',content:sysPrompt()}]
     .concat(TURNS.slice(-16).map(function(t){
       var c=t.content;
       if(t.role==='assistant'&&typeof rxApply==='function')c=rxApply(c,true);  /* 正则·显示并发送 */
       return{role:t.role,content:c};
     }));
+  var live=null,gen0=TYPE_GEN;
+  function onDelta(full){
+    if(gen0!==TYPE_GEN)return;                     /* 换局/读档/重演：旧流作废 */
+    genFirstToken();GEN.chars=full.length;
+    var body=stripMvuLive(full);
+    if(!body)return;
+    if(!live){
+      var nr=$('#gNarr');live=document.createElement('div');live.className='liveWrap';
+      nr.insertBefore(live,GEN.el||nr.querySelector('.gEot'));
+    }
+    live.innerHTML=body.split(/\n{2,}/).map(function(par){
+      return /^【/.test(par.trim())?('<p class="sys">'+fmtBody(par)+'</p>'):('<p>'+fmtBody(par)+'</p>');
+    }).join('');
+    var nr2=$('#gNarr');nr2.scrollTop=nr2.scrollHeight;
+  }
   oracleCall(msgs,function(reply){
-    busy.remove();BUSY=false;
+    genClose();BUSY=false;
+    var streamed=!!live;
+    if(live){try{live.remove();}catch(_){}live=null;}
     var idx=TURNI++;
     TURNS.push({role:'assistant',content:reply,t:idx});
-    renderReply(reply,idx);
+    renderReply(reply,idx,streamed);               /* 已流式出过字：跳过打字机，直接落定 */
   },function(msg){
-    busy.remove();BUSY=false;
+    genClose();BUSY=false;
+    if(live){try{live.remove();}catch(_){}live=null;}
     narrAdd('sys','⚠&nbsp;神谕断连：'+esc2(msg)+'&nbsp;——&nbsp;检查&nbsp;ORACVLVM&nbsp;配置',null);
-  });
+  },{onDelta:onDelta});
 }
 (function(){
   var gms=gEl.querySelectorAll('.gm'),gIn=$('#gIn');
@@ -5000,6 +5155,14 @@ function bookRender(){
 
 /* ============ mvu_panel: parse + render into the MFD (panelSpec-driven) ============ */
 function stripMvu(text){return String(text).replace(/<mvu_panel>[\s\S]*?<\/mvu_panel>/g,'').trim();}
+/* 流式期剥离：面板可能只吐了一半（无闭合标签），从首个 <mvu_panel> 起一律截掉，
+   免得半截状态栏标记漏进正文。 */
+function stripMvuLive(text){
+  var t=String(text||'').replace(/<mvu_panel>[\s\S]*?<\/mvu_panel>/g,'');
+  var i=t.indexOf('<mvu_panel>');
+  if(i>=0)t=t.slice(0,i);
+  return t.trim();
+}
 function parseMvu(text){
   var m=String(text).match(/<mvu_panel>([\s\S]*?)<\/mvu_panel>/);if(!m)return null;
   var p={ch:[],npc:[],wd:[]},sec=null;
