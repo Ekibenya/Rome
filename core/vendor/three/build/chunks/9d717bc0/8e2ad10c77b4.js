@@ -51,7 +51,11 @@
     chipText: '', eraText: '',
     owns: function () { return this.ready && !this.failed; }
   };
-  try { Z.expanded = localStorage.getItem('med3d_expand') === '1'; } catch (e) { }
+  try {
+    var _tv = localStorage.getItem('med3d_tier');
+    Z.tier = _tv != null ? (Math.abs(+_tv) % 3) : (localStorage.getItem('med3d_expand') === '1' ? 2 : 0);
+  } catch (e) { Z.tier = 0; }
+  Z.expanded = Z.tier > 0;
 
   /* ---------------- seeded rng ---------------- */
   function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -3254,7 +3258,7 @@
     if (Z.loading) { loadEl.style.display = 'flex'; loadEl.textContent = 'ROMA.SYS · 资材加载 ' + Math.round(Z.prog * 100) + '%'; }
     else if (Z.failed) { loadEl.style.display = 'flex'; loadEl.textContent = '3D资材加载失败 · 转纯文字模式'; }
     else loadEl.style.display = 'none';
-    expBtn.textContent = Z.expanded ? 'CLAVDE·收起' : 'OPVS·建造'; // 展开默认即营造；游历是营造内的切换项
+    expBtn.textContent = Z.tier === 0 ? 'OPVS·建造' : (Z.tier === 1 ? 'MAIOR·放大' : 'CLAVDE·收起'); // 展开默认即营造；游历是营造内的切换项
     if (Z._xBtn) {
       Z._xBtn.style.display = Z.expanded ? 'none' : 'block';
       expBtn.style.right = !Z.expanded ? '44px' : '10px';
@@ -3442,6 +3446,10 @@
   var _ray = new T.Raycaster();
   function tick() {
     requestAnimationFrame(tick);
+    if (Z.asleep) { /* 收起即休眠：停渲染停演算；久睡释放场景显存，唤醒自动重建 */
+      if (!Z._torn && Z.scene && performance.now() - Z._sleptAt > 90000) { disposeScene(); Z._torn = true; }
+      return;
+    }
     if (!Z.scene || !Z.rnd || !Z.cv.isConnected) return;
     if (isTouch()) { // 手机：操作中全速，静止或低配 30fps；打字时 ~8fps 让键盘丝滑
       var nowT = performance.now();
@@ -5941,17 +5949,25 @@
 
   /* ---------------- public hooks ---------------- */
   Z.toggleExpand = function () {
-    Z.expanded = !Z.expanded;
-    try { localStorage.setItem('med3d_expand', Z.expanded ? '1' : '0'); } catch (e) { }
+    Z.tier = ((Z.tier || 0) + 1) % 3;                       /* 三档：默认条→中景→大景→默认条 */
+    Z.expanded = Z.tier > 0;
+    try { localStorage.setItem('med3d_tier', String(Z.tier)); localStorage.setItem('med3d_expand', Z.expanded ? '1' : '0'); } catch (e) { }
     Z.camDist = Z.mode === 'interior' ? 7 : 12;
     if (window.ZJ3D_onExpand) window.ZJ3D_onExpand();
     updateHud(); if (bHud.wrap) updateBuildHud();
+  };
+  Z.sleep = function () { if (Z.asleep) return; Z.asleep = true; Z._sleptAt = performance.now(); };
+  Z.wake = function () {
+    if (!Z.asleep) return;
+    Z.asleep = false;
+    if (Z._torn) { Z._torn = false; Z.cityKey = null; } /* 强制下帧重建当前城 */
   };
   Z.setLow = function (on) { PERF.low = !!on; perfSave(); applyPerf(); if (Z._lowBtn) Z._lowBtn(); };
   Z.isLow = function () { return PERF.low; };
   Z.paneH = function (mob) {
     if (!Z.owns()) return mob ? 140 : 186;
-    if (Z.expanded) return Math.round(window.innerHeight * (mob ? 0.52 : 0.58));
+    if (Z.tier === 2) return Math.round(window.innerHeight * (mob ? 0.52 : 0.58));
+    if (Z.tier === 1) return Math.round(window.innerHeight * (mob ? 0.4 : 0.42));
     return mob ? 150 : 200;
   };
   Z.onRender = function (locName, night) {
