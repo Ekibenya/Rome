@@ -327,6 +327,8 @@
   }
 
   function addGround(st, R, paths, plazas, water) {
+    var inf = new T.Mesh(new T.PlaneGeometry(4200, 4200), new T.MeshLambertMaterial({ color: new T.Color(st.grass || 0x93a760).multiplyScalar(0.97) }));
+    inf.rotation.x = -Math.PI / 2; inf.position.y = -0.09; Z.scene.add(inf);
     Z.grassC = st.grass; // 山脚草坡取当前国色，与地面无缝衔接
     var m = new T.Mesh(new T.PlaneGeometry(R * 2, R * 2), new T.MeshLambertMaterial({ map: groundTex(st, R, paths, plazas || [], water || []) }));
     m.rotation.x = -Math.PI / 2; m.receiveShadow = true; Z.scene.add(m);
@@ -1871,6 +1873,12 @@
     ];
     addGround(st, R, paths, [{ x: 4, z: 16, rx: 20, rz: 14, stone: true }], []);
     mountainRing(R, seed, [0, 30]);
+    /* 特米斯托克利城墙：不规则环三门 + 长墙双道下海通港 */
+    cityWall([[0, -92], [52, -74], [86, -38], [92, 20], [64, 58], [20, 84], [-40, 88], [-88, 60], [-104, 8], [-96, -44], [-56, -80]], {
+      gates: [{ x: 6, z: 85, ry: 0 }, { x: 90.5, z: 22, ry: 1.62 }, { x: -101, z: 17, ry: -1.55 }], gateS: .8, gateGap: 6.5, towerEvery: 26
+    });
+    cityWall([[-2, 88], [-22, 112], [-20.5, 113.2], [-0.5, 89.2]], { towers: false, h: 4.5, th: 1.6, gates: [] });
+    cityWall([[14, 88], [6, 112], [7.5, 112.8], [15.5, 88.8]], { towers: false, h: 4.5, th: 1.6, gates: [] });
 
     /* 海：北面爱琴海 + 商船 */
     seaField(0, 175, 340, 130, 0x2a89b4);
@@ -1883,12 +1891,12 @@
 
     /* ACROPOLIS：三层岩台 + 帕特农 + 雅典娜 + 山门阶 */
     var h = rockTerrace(-48, -46, 54, 42, 3, 2.2, seed + 'ac');
-    mput('parthenon', -50, -52, 0.1, { y: h, s: 1.15 });
-    mput('temple2', -26, -40, -Math.PI / 2, { y: h, s: .85 });
-    mput('athena', -48, -30, Math.PI, { y: h, autodoor: false, s: 1.2 });
+    mput('parthenon', -50, -52, 0.1, { y: h, s: .3 });
+    mput('temple2', -26, -40, -Math.PI / 2, { y: h, s: .6 });
+    mput('athena', -48, -28, Math.PI, { y: h, autodoor: false, s: 1.2 });
     mput('stairs', -40, -22, Math.PI, { solid: false, autodoor: false, s: 2.0 });
     mcol('colCor', -70, -26, -26, -26, 5, { y: h, solid: false, autodoor: false });
-    mput('colossus', -74, -60, 0.6, { y: h, autodoor: false, s: .55 });
+    mput('colossus', -74, -60, 0.6, { y: h, autodoor: false, s: .16 });
 
     /* AGORA：市集广场 · 柱廊 · 圆形讲堂 · 神像 */
     mcol('colPlain', -16, 30, 24, 30, 4.4, { solid: false, autodoor: false });
@@ -1910,6 +1918,10 @@
     mblock(hs, 26, 40, 4, 3, 13, 12, seed + 'h1');
     mblock(hs, -80, 20, 3, 4, 13, 12, seed + 'h2');
     mblock(hs, -70, 74, 4, 2, 13, 12, seed + 'h3');
+    mblock(hs, 22, -44, 4, 2, 5.5, 5.5, seed + 'h4');
+    mblock(hs, -20, 40, 4, 3, 5.5, 5.5, seed + 'h5');
+    mblock(hs, -70, -16, 3, 3, 5.5, 5.5, seed + 'h6');
+    mblock(hs, 60, 0, 3, 4, 5.5, 5.5, seed + 'h7');
     mput('forge', 44, 40, Math.PI);
     mput('potter', 30, 58, 0.4, { solid: false, autodoor: false });
     mput('well', 12, 44, 0, { solid: false, autodoor: false });
@@ -1932,9 +1944,15 @@
     ];
     addGround(st, R, paths, [{ x: 0, z: -4, rx: 22, rz: 15 }], []);
     mountainRing(R, seed, [90]);
-    /* 欧罗塔斯河（东） */
-    seaField(112, 0, 34, 250, 0x3d86a0);
-    shipRoute('rowboat2', [[106, -80], [110, 0], [114, 80], [108, 10]], 2.0);
+    /* 欧罗塔斯河：样条活水自北而南，桥连东岸 */
+    riverSpline([[74, -160], [64, -95], [56, -30], [60, 35], [70, 95], [62, 160]], 9, {});
+    riverBridge(0.48, { s: .85 });
+    riverShip('rowboat2', 0.4, 0.012, 1, { s: .35 });
+    riverShip('fishboat', 0.62, 0.01, -1, { s: .4 });
+    /* 泰格特斯山：西侧连峰雄峙 */
+    mountain(-152, -44, 26, 62, seed + 'tg1');
+    mountain(-166, 22, 24, 56, seed + 'tg2');
+    mountain(-148, 86, 22, 48, seed + 'tg3');
 
     /* 校场：训练桩、方阵石、火堆 —— 没有神庙群，没有巨像 */
     mput('barracks', -26, -26, Math.PI / 2, { door: { side: 0, dist: 10, interior: 'storeroom', label: 'SYSSITIA 共餐所' } });
@@ -1946,20 +1964,20 @@
     mput('campfire', 10, -8, 0, { solid: false, autodoor: false });
     for (var i = 0; i < 6; i++) mput('tentSm', -44 + i * 17, 46, 0.2 * i, { solid: false, autodoor: false });
     mput('ballista', -14, -44, 0.2); mput('catapult', 16, -46, -0.2);
-    mput('trojan', 52, -54, 0.5, { s: .35, autodoor: false });
+    mput('trojan', 40, -56, 0.5, { s: .35, autodoor: false });
     mput('temple3', 0, -62, 0, { s: .8 });   // 阿尔忒弥斯·奥尔提亚小庙（简朴）
     mput('altarStone', 0, -50, 0, { solid: false, autodoor: false });
 
     /* 村落式聚居：斯巴达是五村合一，不设街区 */
     var hs = ['house', 'house3', 'houseSlope'];
     mblock(hs, -74, -8, 2, 3, 14, 15, seed + 'v1');
-    mblock(hs, 44, 44, 3, 2, 14, 15, seed + 'v2');
+    mblock(hs, 22, 44, 3, 2, 14, 15, seed + 'v2');
     mblock(hs, -60, 66, 3, 2, 14, 15, seed + 'v3');
     mput('farm', -80, 60, 0.3); mput('vineyard', 70, -80, -0.3);
     mput('well', -6, 30, 0, { solid: false, autodoor: false });
     mput('stable', 40, 6, -Math.PI / 2);
     oliveGrove(-92, 20, 34, 14, seed + 'o', ['olive', 'pine']);
-    oliveGrove(76, 76, 30, 12, seed + 'o2', ['olive', 'olive', 'pine2']);
+    oliveGrove(94, 70, 22, 12, seed + 'o2', ['olive', 'olive', 'pine2']);
     placePlayer(0, 34, Math.PI);
     hudCity(st, 'SPARTA');
   }
@@ -1971,25 +1989,35 @@
     var paths = [
       { w: 7, pts: [[0, R * .85], [0, 30], [-6, -10], [-14, -50], [-20, -R * .8]] },
       { w: 5, pts: [[-R * .8, 6], [-20, 2], [30, 8], [R * .8, 16]] },
-      { w: 4, pts: [[0, 60], [22, 74], [30, 96]] }
+      { w: 4, pts: [[0, 60], [-18, 78], [-26, 100]] }
     ];
     addGround(st, R, paths, [{ x: -12, z: -26, rx: 16, rz: 12, stone: true }], []);
     mountainRing(R, seed, [0, 340]);
+    /* 三重陆墙（北面陆侧）各设一门 + 长引水道接卫城 */
+    cityWall([[-95, -70], [95, -70], [95, -68.4], [-95, -68.4]], { h: 6.5, th: 2.2, towerEvery: 30, gateS: .8, gateGap: 6, gates: [{ x: -16, z: -69, ry: 3.04 }] });
+    cityWall([[-88, -82], [88, -82], [88, -80.6], [-88, -80.6]], { h: 5.2, th: 1.9, towerEvery: 34, gateS: .7, gateGap: 5.5, gates: [{ x: -17.5, z: -81, ry: 3.04 }] });
+    cityWall([[-80, -94], [80, -94], [80, -92.8], [-80, -92.8]], { h: 4.2, th: 1.6, towers: false, gateS: .62, gateGap: 5, gates: [{ x: -19, z: -93, ry: 3.04 }] });
+    aqueductRun(-150, -108, -38, -54, 8);
     /* 地中海在北：外港 + 圆形军港（科同）*/
     seaField(0, 176, 360, 140, 0x2f8fb8);
     shoreLine(114, -180, 180, seed);
-    /* COTHON：内圆港——环形码头与战船辐射停泊 */
-    var cx = 26, cz = 92;
-    var basin = new T.Mesh(new T.CircleGeometry(26, 26), new T.MeshLambertMaterial({ color: 0x2a7ea3, flatShading: true }));
+    /* COTHON：巨型圆形军港——中岛提督府 · 二十战船辐辏 · 柱环码头 · 北口通海 */
+    var cx = 26, cz = 88, cr = 36;
+    var basin = new T.Mesh(new T.CircleGeometry(cr, 34), new T.MeshLambertMaterial({ color: 0x2a7ea3, flatShading: true }));
     basin.rotation.x = -Math.PI / 2; basin.position.set(cx, 0.08, cz); Z.scene.add(basin);
-    var isl = new T.Mesh(new T.CylinderGeometry(8, 8.6, 1.1, 16), nmat(0xc8b78a));
-    isl.position.set(cx, 0.5, cz); Z.scene.add(isl);
-    mput('temple3', cx, cz, 0, { y: 1.05, s: .6, autodoor: false });
-    for (var a = 0; a < 6.28; a += 0.5) {
-      mput(a % 1 < .5 ? 'trireme2' : 'trireme3', cx + Math.cos(a) * 19, cz + Math.sin(a) * 19, a + Math.PI / 2,
+    var isl = new T.Mesh(new T.CylinderGeometry(13, 14, 1.2, 20), nmat(0xc8b78a));
+    isl.position.set(cx, 0.55, cz); Z.scene.add(isl);
+    Z.colliders.push({ x: cx, z: cz, hw: 13, hd: 13, ry: 0, cx: 0, cz: 0 });
+    mput('temple3', cx, cz, 0, { y: 1.15, s: .8, autodoor: false });
+    mput('walltower', cx + 8, cz - 6, 0.6, { y: 1.15, s: .8, autodoor: false });
+    for (var a = 0; a < 6.283; a += 0.317) {
+      mput((a * 10 | 0) % 2 ? 'trireme2' : 'trireme3', cx + Math.cos(a) * (cr - 10), cz + Math.sin(a) * (cr - 10), a + Math.PI / 2,
         { solid: false, autodoor: false, shadow: false, s: .8 });
     }
-    mcol('colPlain', cx - 27, cz - 26, cx + 27, cz - 26, 7, { solid: false, autodoor: false });
+    for (var a2 = 0.35; a2 < 6.283; a2 += 0.44) {
+      if (Math.abs(a2 - 1.57) < 0.5) continue; /* 北口通海 */
+      mput('colPlain', cx + Math.cos(a2) * (cr + 2.5), cz + Math.sin(a2) * (cr + 2.5), a2, { solid: false, autodoor: false });
+    }
     mput('dock', -40, 116, 0, { autodoor: false }); mput('dock', -14, 118, 0, { autodoor: false });
     shipRoute('trireme', [[-140, 150], [-40, 136], [60, 142], [150, 158], [40, 172], [-90, 166]], 3.8);
     shipRoute('sail3', [[130, 132], [20, 146], [-100, 134], [-150, 156], [-20, 174]], 2.8);
@@ -2009,10 +2037,15 @@
     mput('forge', -44, 20, Math.PI / 2);
     var hs = ['house3', 'house4', 'house5', 'house2f', 'houseLong'];
     mblock(hs, -80, 30, 3, 3, 14, 13, seed + 'h1');
-    mblock(hs, 60, 60, 3, 2, 14, 13, seed + 'h2');
     mblock(hs, -74, -18, 2, 3, 14, 13, seed + 'h3');
+    mblock(hs, -46, 42, 4, 3, 5, 5, seed + 'h4');
+    mblock(hs, 56, -24, 3, 4, 5, 5.5, seed + 'h5');
+    mblock(hs, -24, 66, 3, 3, 5, 5, seed + 'h6');
+    mblock(hs, 12, -50, 4, 3, 5.5, 5, seed + 'h7');
+    mblock(hs, -52, -40, 2, 3, 5.5, 5, seed + 'h8');
+    mblock(hs, 34, 30, 3, 3, 5.5, 5, seed + 'h9');
     palmRow(-60, 96, 13, 2, 7, seed + 'p1');
-    palmRow(64, 100, 12, -3, 6, seed + 'p2');
+    palmRow(74, 102, 12, -3, 5, seed + 'p2');
     oliveGrove(90, -46, 36, 14, seed + 'o', ['palm', 'olive', 'palm2']);
     mput('warElephant', -70, 74, 0.8, { autodoor: false });
     placePlayer(0, 56, Math.PI);
@@ -2033,14 +2066,20 @@
     ];
     addGround(st, R, paths, [{ x: -6, z: -10, rx: 22, rz: 14, stone: true }], []);
     mountainRing(R, seed, [0, 20, 340]);
+    /* 托勒密城墙：矩形环抱棋盘城 · 各干道皆设门 */
+    cityWall([[-120, -64], [0, -72], [110, -64], [124, -10], [110, 52], [60, 86], [-60, 86], [-110, 52], [-124, -10]], {
+      gates: [{ x: -123.8, z: -13, ry: -1.55 }, { x: 122.8, z: -13, ry: 1.55 }, { x: -5, z: -71.6, ry: 3.14 }, { x: -64, z: -67.7, ry: 3.14 }, { x: 52, z: -68.5, ry: 3.14 }, { x: -6, z: 86, ry: 0 }, { x: -64, z: 83.3, ry: 0 }, { x: 52, z: 86, ry: 0 }], gateS: .8, gateGap: 6.5, towerEvery: 28
+    });
     /* 大港：北面 + 法罗斯岛灯塔 */
     seaField(0, 180, 380, 150, 0x2a94c0);
     shoreLine(112, -190, 190, seed);
     var isl = new T.Mesh(new T.CylinderGeometry(17, 20, 1.6, 12), nmat(0xcabb8c));
     isl.position.set(-64, 0.7, 132); Z.scene.add(isl);
     Z.colliders.push({ x: -64, z: 132, hw: 17, hd: 17, ry: 0, cx: 0, cz: 0 });
-    mput('colossus', -64, 132, 0, { y: 1.5, s: 1.0, autodoor: false });   // PHAROS
-    mput('torchMon', -64, 118, 0, { y: 1.5, solid: false, autodoor: false });
+    mput('walltower', -64, 132, 0, { y: 1.5, s: 2.4, autodoor: false });   /* PHAROS 灯塔 */
+    mput('torch', -64, 132, 0, { y: 29, s: 1.6, solid: false, autodoor: false });
+    mput('colossus', -54, 124, 0.6, { y: 1.5, s: .14, autodoor: false });
+    mput('bridge', -64, 116, 0, { s: .9, solid: false });                  /* HEPTASTADION 七星堤 */
     mput('dock', -20, 116, 0, { autodoor: false }); mput('dock', 16, 118, 0, { autodoor: false }); mput('dock', 50, 116, 0, { autodoor: false });
     shipRoute('sail2', [[-150, 146], [-40, 134], [70, 140], [160, 156], [40, 170], [-100, 162]], 3.2);
     shipRoute('trireme3', [[140, 130], [20, 144], [-110, 132], [-160, 154], [-10, 172]], 3.0);
@@ -2049,11 +2088,12 @@
     /* MOVSEION 大图书馆 + 王宫区（东北） */
     mput('univ', 30, 40, Math.PI, { s: 1.15, door: { side: 0, dist: 13, interior: 'study', label: 'BIBLIOTHECA 大图书馆' } });
     mcol('colCor', 6, 58, 56, 58, 5, { solid: false, autodoor: false });
-    mput('palace', -40, 46, 0, { s: 1.05, door: { side: 0, dist: 13, interior: 'throne', label: 'BASILEIA 王宫' } });
+    mput('palace', -40, 46, 0, { s: 2, door: { side: 0, dist: 13, interior: 'throne', label: 'BASILEIA 王宫' } });
     godRow(['hermes', 'athena', 'demeter', 'hades'], 4, 26, 12, 0, Math.PI);
 
     /* SEMA 陵园 + 神庙（塞拉皮斯） */
-    mput('temple', -34, -50, 0, { s: 1.0 });
+    var hSer = rockTerrace(-34, -52, 20, 14, 2, 2, seed + 'se');
+    mput('temple', -34, -54, 0, { y: hSer, s: .7 });
     mput('temple2', 34, -52, 0, { s: .9 });
     mput('altarStone', 0, -40, 0, { solid: false, autodoor: false });
     mput('amphi', 74, -30, -Math.PI / 2, { s: .95 });
@@ -2062,8 +2102,12 @@
     var hs = ['house4', 'house5', 'house6', 'house2f', 'houseLong', 'houseSlope'];
     mblock(hs, -108, -34, 3, 3, 15, 14, seed + 'b1');
     mblock(hs, -108, 30, 3, 2, 15, 14, seed + 'b2');
-    mblock(hs, 66, -76, 3, 3, 15, 14, seed + 'b3');
-    mblock(hs, -30, -84, 4, 2, 15, 14, seed + 'b4');
+    mblock(hs, -76, -64, 3, 2, 15, 14, seed + 'b3');
+    mblock(hs, -28, -62, 4, 1, 14, 13, seed + 'b4');
+    mblock(hs, -96, 4, 4, 4, 5.5, 5.5, seed + 'b5');
+    mblock(hs, 70, 8, 4, 4, 5.5, 5.5, seed + 'b6');
+    mblock(hs, -44, -36, 4, 3, 5.5, 5.5, seed + 'b7');
+    mblock(hs, 14, -58, 3, 2, 5.5, 5.5, seed + 'b8');
     agoraStalls(-6, -6, 20, 22, seed + 'ag');
     mput('granary', -76, 74, 0.2); mput('silo', -54, 76, 0.2);
     mput('forge', 60, 4, Math.PI / 2);
@@ -2089,32 +2133,37 @@
     /* 三面环海：北金角湾、东博斯普鲁斯 */
     seaField(0, 168, 340, 130, 0x2b83ac);
     shoreLine(106, -170, 170, seed + 'n');
-    var east = new T.Mesh(new T.PlaneGeometry(120, 300, 14, 30), new T.MeshLambertMaterial({ color: 0x2b83ac, flatShading: true }));
-    east.rotation.x = -Math.PI / 2; east.position.set(168, 0.05, 0); Z.scene.add(east);
-    Z.colliders.push({ x: 178, z: 0, hw: 60, hd: 150, ry: 0, cx: 0, cz: 0 });
+    var east = new T.Mesh(new T.PlaneGeometry(2400, 5200), new T.MeshLambertMaterial({ color: 0x226f96 }));
+    east.rotation.x = -Math.PI / 2; east.position.set(1318, 0.03, 0); Z.scene.add(east);
+    AQUA.push({ kind: 'half', ax: 'x', sgn: 1, edge: 118 });
+    for (var ei = 0; ei < 8; ei++) Z.colliders.push({ x: 124, z: -140 + ei * 40, hw: 8, hd: 22, ry: 0, cx: 0, cz: 0 });
     shipRoute('sail', [[-120, 136], [-20, 126], [80, 132], [150, 120], [130, 40], [140, -60], [90, 140]], 3.4);
     shipRoute('trireme', [[140, -80], [150, 20], [120, 120], [10, 138], [-90, 130], [30, 150]], 3.0);
     mput('dock', -30, 110, 0, { autodoor: false }); mput('dock', 30, 112, 0, { autodoor: false });
 
-    /* 海墙与塔（君士坦丁堡以城墙闻名） */
-    for (var i = 0; i < 7; i++) mput('gate', -96 + i * 32, 96, 0, { solid: false, autodoor: false, s: 1.2 });
-    mput('walltower', -96, 92, 0); mput('walltower', -16, 92, 0); mput('walltower', 64, 92, 0);
-    mput('watchtower', 112, 40, 0); mput('watchtower', 112, -40, 0);
+    /* 狄奥多西式双重陆墙横锁地峡（西） + 海角灯塔 */
+    cityWall([[-108, -88], [-104, 92], [-102.4, 92], [-106.4, -88]], { h: 7, th: 2.4, towerEvery: 22, gateS: .85, gateGap: 6.5, gates: [{ x: -106, z: -19.4, ry: -1.58 }] });
+    cityWall([[-94, -90], [-90, 94], [-88.6, 94], [-92.6, -90]], { h: 4.6, th: 1.7, towers: false, gateS: .7, gateGap: 6, gates: [{ x: -92, z: -18.8, ry: -1.58 }] });
+    mput('walltower', 106, 76, 0, { s: 1.7, autodoor: false });
+    mput('torch', 106, 76, 0, { y: 20, s: 1.3, solid: false, autodoor: false });
 
     /* HIPPODROMOS + 大宫 + 主教座堂位（大神庙） */
-    mput('circus', 30, -46, 0.1, { s: 1.1 });
-    mput('palace', 62, -20, -Math.PI / 2, { s: 1.05, door: { side: 0, dist: 13, interior: 'throne', label: 'PALATIVM 大宫' } });
-    mput('parthenon', -8, -34, 0, { s: 1.0 });
-    mput('arch', 6, 6, 0, { s: .9 });
+    mput('circus', 30, -46, 0.1, { s: .8 });
+    mput('palace', 62, -20, -Math.PI / 2, { s: 2, door: { side: 0, dist: 13, interior: 'throne', label: 'PALATIVM 大宫' } });
+    mput('parthenon', -8, -34, 0, { s: .28 });
+    mput('arch', 6, 6, 0, { s: .4 });
     mput('senate', -34, -12, Math.PI / 2, { door: { side: 0, dist: 11, interior: 'hall', label: 'SENATVS' } });
     godRow(['zeus', 'hera', 'artemis'], -22, 14, 12, 0, Math.PI);
     agoraStalls(4, 18, 18, 18, seed + 'ag');
     mput('fountain', 20, 24, 0, { autodoor: false });
 
     var hs = ['house2f', 'house1', 'house6', 'houseSlope', 'houseLong'];
-    mblock(hs, -100, 22, 3, 3, 14, 13, seed + 'h1');
-    mblock(hs, -96, -70, 3, 2, 14, 13, seed + 'h2');
+    mblock(hs, -80, 22, 3, 3, 12, 12, seed + 'h1');
+    mblock(hs, -78, -70, 3, 2, 12, 12, seed + 'h2');
     mblock(hs, 52, 42, 3, 2, 14, 13, seed + 'h3');
+    mblock(hs, -40, 30, 4, 3, 5.5, 5, seed + 'h4');
+    mblock(hs, 6, 36, 4, 2, 5.5, 5, seed + 'h5');
+    mblock(hs, 40, 20, 3, 3, 5.5, 5, seed + 'h6');
     mput('forge', -50, 40, 0); mput('granary', -70, -34, Math.PI / 2);
     oliveGrove(-118, 70, 30, 12, seed + 'o', ['pine', 'olive']);
     oliveGrove(80, -90, 34, 14, seed + 'o2', ['pine2', 'olive', 'tree']);
@@ -2133,19 +2182,25 @@
     ];
     addGround(st, R, paths, [{ x: 0, z: 6, rx: 19, rz: 13, stone: true }], []);
     mountainRing(R, seed, [0, 180]);
+    /* 城墙环四门 · 阿克罗科林斯巨岩为背 */
+    cityWall([[-30, -88], [30, -80], [70, -52], [88, -6], [72, 44], [30, 72], [-24, 80], [-72, 58], [-92, 8], [-84, -46]], {
+      gates: [{ x: 2, z: 76, ry: 0 }, { x: -1.5, z: -84.2, ry: 3.14 }, { x: 84.8, z: 4, ry: 1.6 }, { x: -91.9, z: 7, ry: -1.6 }], gateS: .8, gateGap: 6.5, towerEvery: 26
+    });
+    mountain(-64, -108, 22, 52, seed + 'acr');
     /* 北：科林斯湾；南：萨罗尼克湾 —— 双海双港 */
     seaField(0, 164, 320, 120, 0x2d8ab2);
     shoreLine(106, -160, 160, seed + 'n');
-    var south = new T.Mesh(new T.PlaneGeometry(320, 110, 30, 12), new T.MeshLambertMaterial({ color: 0x2d8ab2, flatShading: true }));
-    south.rotation.x = -Math.PI / 2; south.position.set(0, 0.05, -160); Z.scene.add(south);
-    Z.colliders.push({ x: 0, z: -172, hw: 160, hd: 60, ry: 0, cx: 0, cz: 0 });
+    var south = new T.Mesh(new T.PlaneGeometry(5200, 2400), new T.MeshLambertMaterial({ color: 0x24718f }));
+    south.rotation.x = -Math.PI / 2; south.position.set(0, 0.03, -1312); Z.scene.add(south);
+    AQUA.push({ kind: 'half', ax: 'z', sgn: -1, edge: -112 });
+    for (var si = 0; si < 8; si++) Z.colliders.push({ x: -140 + si * 40, z: -118, hw: 22, hd: 8, ry: 0, cx: 0, cz: 0 });
     mput('dock', -22, 110, 0, { autodoor: false }); mput('dock', 26, 112, 0, { autodoor: false });
     mput('dock', -18, -110, Math.PI, { autodoor: false }); mput('dock', 24, -112, Math.PI, { autodoor: false });
     shipRoute('sail3', [[-120, 132], [-20, 124], [80, 130], [140, 142], [20, 152], [-90, 146]], 3.0);
     shipRoute('trireme2', [[-110, -136], [0, -126], [110, -134], [40, -150], [-70, -148]], 2.8);
     /* 陆运滑道 DIOLKOS：拖船越地峡的石道 */
-    for (var i = 0; i < 9; i++) mput('cobble', 44, -96 + i * 24, 0, { solid: false, autodoor: false, s: 1.4 });
-    mput('rowboat', 44, 12, 0, { solid: false, autodoor: false, shadow: false });
+    for (var i = 0; i < 9; i++) mput('cobble', 100, -96 + i * 24, 0, { solid: false, autodoor: false, s: 1.4 });
+    mput('rowboat', 100, 12, 0, { s: .5, solid: false, autodoor: false, shadow: false });
 
     /* ACROCORINTH：陡峭卫城 */
     var h = rockTerrace(-58, -60, 46, 36, 4, 2.4, seed + 'ak');
@@ -2161,9 +2216,12 @@
     agoraStalls(0, 8, 18, 20, seed + 'ag');
     godRow(['poseidon', 'hercules', 'athena'], -14, 26, 13, 0, Math.PI);
     var hs = ['house', 'house2', 'house5', 'houseGarden', 'house2f'];
-    mblock(hs, -96, 26, 3, 3, 14, 13, seed + 'h1');
-    mblock(hs, 56, 30, 3, 3, 14, 13, seed + 'h2');
+    mblock(hs, -78, 22, 3, 3, 12, 12, seed + 'h1');
+    mblock(hs, 50, 26, 3, 3, 12, 12, seed + 'h2');
     mblock(hs, -30, 52, 4, 2, 14, 13, seed + 'h3');
+    mblock(hs, -28, -56, 3, 3, 5.5, 5, seed + 'h4');
+    mblock(hs, 26, -52, 3, 2, 5.5, 5, seed + 'h5');
+    mblock(hs, -52, 34, 3, 3, 5.5, 5, seed + 'h6');
     mput('forge', 34, 40, Math.PI); mput('potter', -40, 44, 0.3, { solid: false, autodoor: false });
     oliveGrove(96, -70, 32, 14, seed + 'o', ['olive', 'pine']);
     oliveGrove(-100, 74, 30, 12, seed + 'o2', ['olive', 'pine2']);
@@ -2183,6 +2241,14 @@
     ];
     addGround(st, R, paths, [{ x: 0, z: -10, rx: 18, rz: 13, stone: true }], []);
     mountainRing(R, seed, [0, 340]);
+    /* 狄奥尼修斯长城：环高原四门 */
+    cityWall([[-40, -92], [30, -84], [78, -50], [96, 0], [80, 48], [40, 76], [-30, 84], [-80, 60], [-100, 10], [-88, -52]], {
+      gates: [{ x: 4.5, z: -87, ry: 3.1 }, { x: -6, z: 81.3, ry: 0 }, { x: 93, z: -8, ry: 1.6 }, { x: -95, z: -16, ry: -1.6 }], gateS: .8, gateGap: 6.5, towerEvery: 26
+    });
+    /* 拉托米亚采石场（耳朵洞） */
+    var hQ = rockTerrace(-108, -64, 20, 12, 3, 2.4, seed + 'lq');
+    mput('colRuin', -96, -54, 0.5, { solid: false, autodoor: false });
+    mput('colRuin2', -104, -52, -0.4, { solid: false, autodoor: false });
     /* 大港在北，奥提伽岛横亘港口 */
     seaField(0, 172, 340, 140, 0x2b8fbc);
     shoreLine(110, -170, 170, seed);
@@ -2198,9 +2264,9 @@
     shipRoute('sail', [[120, 120], [60, 116], [-50, 118], [-120, 132], [-20, 146]], 2.6);
 
     /* 希腊大剧场（依山凿建）+ 祭坛 */
-    mput('amphi', -52, -58, Math.PI * 0.15, { s: 1.2 });
+    mput('amphi', -52, -58, Math.PI * 0.15, { s: .8 });
     mput('altarStone', -30, -44, 0, { solid: false, autodoor: false, s: 1.4 });
-    mput('temple', 8, -34, 0, { s: 1.0 });
+    mput('temple', 8, -34, 0, { s: .85 });
     mcol('colCor', -12, -22, 26, -22, 4.6, { solid: false, autodoor: false });
     mput('senate', -30, 4, Math.PI / 2);
     mput('univ', 34, 8, -Math.PI / 2, { door: { side: 0, dist: 12, interior: 'study', label: 'ARCHIMEDES 学堂' } });
@@ -2209,9 +2275,12 @@
     agoraStalls(0, 0, 18, 18, seed + 'ag');
     godRow(['athena', 'artemis', 'hermes'], -16, 18, 13, 0, Math.PI);
     var hs = ['house1', 'house3', 'house6', 'houseSlope', 'house2f'];
-    mblock(hs, -100, 20, 3, 3, 14, 13, seed + 'h1');
-    mblock(hs, 52, 52, 3, 2, 14, 13, seed + 'h2');
+    mblock(hs, -72, 16, 3, 3, 12, 12, seed + 'h1');
+    mblock(hs, 36, 48, 3, 2, 12, 12, seed + 'h2');
     mblock(hs, -70, -30, 3, 2, 14, 13, seed + 'h3');
+    mblock(hs, -40, 26, 4, 3, 5.5, 5, seed + 'h4');
+    mblock(hs, 14, 24, 4, 3, 5.5, 5, seed + 'h5');
+    mblock(hs, -52, 46, 3, 2, 5.5, 5, seed + 'h6');
     mput('forge', 40, -34, Math.PI); mput('granary', -80, 62, 0.2);
     oliveGrove(94, -60, 34, 14, seed + 'o', ['olive', 'pine']);
     oliveGrove(-104, 70, 30, 12, seed + 'o2', ['olive', 'fruitTree']);
@@ -2234,16 +2303,19 @@
     /* 层层台地：圣域依山而上 */
     var t1 = rockTerrace(0, -14, 62, 26, 1, 1.8, seed + 't1');
     var t2 = rockTerrace(0, -40, 46, 22, 2, 2.0, seed + 't2');
-    mput('oracle', 0, -44, 0, { y: t2, s: 1.15 });              // 阿波罗神庙·神谕所
+    mput('oracle', 0, -44, 0, { y: t2, s: .5 });               // 阿波罗神庙·神谕所
     mput('omphalos', 0, -30, 0, { y: t2, solid: false, autodoor: false });  // 大地肚脐
     mput('altarStone', -12, -30, 0, { y: t2, solid: false, autodoor: false });
     mput('stairs', 0, -22, Math.PI, { y: t1, solid: false, autodoor: false, s: 1.7 });
     /* 圣道两侧的城邦宝库与还愿像 */
     mput('temple2', -22, -12, 0.3, { y: t1, s: .55 });
     mput('temple3', 22, -12, -0.3, { y: t1, s: .55 });
+    mput('temple2', -14, 4, 0.25, { s: .38 });
+    mput('temple3', 14, 2, -0.25, { s: .4 });
+    pondOrganic(34, -18, 5, 4, seed + 'cs', { lotus: false, lantern: false });
     godRow(['apollo' in MDL ? 'apollo' : 'hermes', 'athena', 'artemis', 'hercules'], -20, 4, 13, 0, Math.PI);
     mput('base2', 0, 12, 0, { solid: false, autodoor: false });
-    mput('colossus', 0, 12, 0, { s: .32, autodoor: false });
+    mput('colossus', 0, 12, 0, { s: .2, autodoor: false });
     mcol('colRuin', -26, 20, 26, 20, 5, { solid: false, autodoor: false });
     /* 剧场与体育场（德尔斐竞技会） */
     mput('amphi', -34, -62, 0.4, { y: t2, s: .8 });
@@ -2648,7 +2720,7 @@
     opts = opts || {};
     /* 两端顺势蜿蜒续出雾外，河不再戛然而止 */
     if (opts.extend !== false) {
-      var ext = ptsXZ.slice(), K = 7, step = 150;
+      var ext = ptsXZ.slice(), K = 5, step = 120;
       var h0 = hash('rvx' + ptsXZ.length + width);
       var stretch = function (pA, pB, push) {
         var ang = Math.atan2(pA[0] - pB[0], pA[1] - pB[1]);
