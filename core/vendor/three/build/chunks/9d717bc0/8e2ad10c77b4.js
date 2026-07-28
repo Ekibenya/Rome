@@ -335,7 +335,9 @@
     var inf = new T.Mesh(new T.PlaneGeometry(4200, 4200), new T.MeshLambertMaterial({ color: new T.Color(st.grass || 0x93a760).multiplyScalar(0.97) }));
     inf.rotation.x = -Math.PI / 2; inf.position.y = -0.09; Z.scene.add(inf);
     Z.grassC = st.grass; // 山脚草坡取当前国色，与地面无缝衔接
-    var m = new T.Mesh(new T.PlaneGeometry(R * 2, R * 2), new T.MeshLambertMaterial({ map: groundTex(st, R, paths, plazas || [], water || []) }));
+    /* polygonOffset 把地面推离深度面：建筑底面与地平共面时不再闪烁（Z-fighting） */
+    var gm = new T.MeshLambertMaterial({ map: groundTex(st, R, paths, plazas || [], water || []), polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
+    var m = new T.Mesh(new T.PlaneGeometry(R * 2, R * 2), gm);
     m.rotation.x = -Math.PI / 2; m.receiveShadow = true; Z.scene.add(m);
     return m;
   }
@@ -1643,7 +1645,7 @@
     geo.rotateX(-Math.PI / 2);
     var mat = new T.MeshLambertMaterial({ color: color || 0x2e86ad, flatShading: true, transparent: true, opacity: 0.94 });
     var m = new T.Mesh(geo, mat);
-    m.position.set(cx, 0.42, cz); /* 抬底：波谷不再沉入地面破洞 */
+    m.position.set(cx, 0.12, cz); /* 海面贴地：浪幅同步收小，波谷不破地 */
     m.receiveShadow = false;
     Z.scene.add(m);
     /* 深海底衬：远处不透光，海面透出层次 */
@@ -1660,7 +1662,7 @@
       var edge = cc - sgn * W2 * 0.48;
       var sk = new T.Mesh(new T.PlaneGeometry(ax === 'z' ? 5200 : 2400, ax === 'z' ? 2400 : 5200), skirtMat);
       sk.rotation.x = -Math.PI / 2;
-      sk.position.set(ax === 'z' ? cx : edge + sgn * 1200, 0.03, ax === 'z' ? edge + sgn * 1200 : cz);
+      sk.position.set(ax === 'z' ? cx : edge + sgn * 1200, 0.08, ax === 'z' ? edge + sgn * 1200 : cz);
       Z.scene.add(sk);
       AQUA.push({ kind: 'half', ax: ax, sgn: sgn, edge: edge });
     } else {
@@ -1668,7 +1670,7 @@
       var cc2 = ax2 === 'x' ? cx : cz;
       var sk2 = new T.Mesh(new T.PlaneGeometry(ax2 === 'x' ? W2 : 5200, ax2 === 'x' ? 5200 : W2), skirtMat);
       sk2.rotation.x = -Math.PI / 2;
-      sk2.position.set(ax2 === 'x' ? cx : 0, 0.03, ax2 === 'x' ? 0 : cz);
+      sk2.position.set(ax2 === 'x' ? cx : 0, 0.08, ax2 === 'x' ? 0 : cz);
       Z.scene.add(sk2);
       AQUA.push({ kind: 'strip', ax: ax2, c: cc2, hw: W2 * 0.46 });
       var Lh = Math.max(w, d) / 2;
@@ -1682,7 +1684,7 @@
   }
   function seaY(x, z) {
     if (!SEA) return 0; var t = SEA.t;
-    return 0.42 + Math.sin(x * 0.075 + t * 1.15) * 0.155 + Math.sin(z * 0.1 - t * 0.85) * 0.12 + Math.sin((x + z) * 0.045 + t * 0.6) * 0.09;
+    return 0.12 + Math.sin(x * 0.075 + t * 1.15) * 0.05 + Math.sin(z * 0.1 - t * 0.85) * 0.038 + Math.sin((x + z) * 0.045 + t * 0.6) * 0.027;
   }
   /* 岸线：沙滩带 + 碎浪石 + 挡住玩家不下海 */
   function shoreLine(z0, x0, x1, seed) {
@@ -1705,7 +1707,7 @@
     var p = SEA.geo.attributes.position, t = SEA.t, i;
     for (i = 0; i < p.count; i++) {
       var x = p.getX(i), z = p.getZ(i);
-      p.setY(i, Math.sin(x * 0.075 + t * 1.15) * 0.155 + Math.sin(z * 0.1 - t * 0.85) * 0.12 + Math.sin((x + z) * 0.045 + t * 0.6) * 0.09);
+      p.setY(i, Math.sin(x * 0.075 + t * 1.15) * 0.05 + Math.sin(z * 0.1 - t * 0.85) * 0.038 + Math.sin((x + z) * 0.045 + t * 0.6) * 0.027);
     }
     p.needsUpdate = true; SEA.geo.computeVertexNormals();
     for (i = 0; i < SHIPS.length; i++) {
@@ -1718,7 +1720,7 @@
         dx = b[0] - a[0]; dz = b[1] - a[1]; L = Math.hypot(dx, dz) || 1;
       }
       var px = a[0] + dx * s.u, pz = a[1] + dz * s.u;
-      s.g.position.set(px, seaY(px, pz) - 0.3, pz);
+      s.g.position.set(px, seaY(px, pz) - 0.1, pz);
       s.g.rotation.y = Math.atan2(dx, dz);
       s.g.rotation.z = Math.sin(t * 1.5 + s.ph) * 0.04;
       s.g.rotation.x = Math.sin(t * 1.1 + s.ph) * 0.03;
@@ -2785,16 +2787,17 @@
     var curve = new T.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
     var N = PERF.low ? 120 : 220;
     /* 沙岸（最宽 · 最贴地） */
+    /* 河贴地嵌槽：沙岸-深色河床-水面逐层微升，水面几与地平齐，不再浮成一条高台 */
     var bank = new T.Mesh(ribbonGeo(curve, width * 1.5, N), nmat(opts.sand || 0xd3c396));
-    bank.position.y = 0.04; Z.scene.add(bank);
-    /* 深色河床（防波谷透绿） */
+    bank.position.y = 0.02; Z.scene.add(bank);
+    /* 深色河床（比水面宽出一圈＝下切的暗岸沿） */
     var bed = new T.Mesh(ribbonGeo(curve, width * 1.18, N), nmat(opts.bed || 0x1d4a60));
-    bed.position.y = 0.09; Z.scene.add(bed);
+    bed.position.y = 0.045; Z.scene.add(bed);
     /* 活水层：flat shading + 顶点波动（振幅小于层距，永不破面） */
     var wgeo = ribbonGeo(curve, width, N);
     var wat = new T.Mesh(wgeo, new T.MeshLambertMaterial({ color: opts.color || 0x3b86a6, flatShading: true, transparent: true, opacity: 0.93 }));
-    wat.position.y = 0.34; Z.scene.add(wat);
-    RIVER = { curve: curve, geo: wgeo, mesh: wat, t: 0, width: width, amp: opts.amp || 0.16, t0: opts._t0 || 0, t1: opts._t1 != null ? opts._t1 : 1 };
+    wat.position.y = 0.11; Z.scene.add(wat);
+    RIVER = { curve: curve, geo: wgeo, mesh: wat, t: 0, width: width, amp: opts.amp || 0.055, t0: opts._t0 || 0, t1: opts._t1 != null ? opts._t1 : 1 };
     /* 走不进河：全河稀布 + 城中原段加密 */
     for (var i = 0; i <= 88; i++) {
       var p = curve.getPointAt(i / 88);
@@ -2842,7 +2845,7 @@
       s.t += s.sp * dt;
       if (s.t > 0.985) s.t = 0.015; if (s.t < 0.015) s.t = 0.985;
       var p = RIVER.curve.getPointAt(s.t), tan = RIVER.curve.getTangentAt(s.t);
-      s.g.position.set(p.x, 0.42 + Math.sin(t * 1.4 + s.ph) * 0.06, p.z);
+      s.g.position.set(p.x, 0.16 + Math.sin(t * 1.4 + s.ph) * 0.035, p.z);
       s.g.rotation.y = Math.atan2(tan.x, tan.z) + (s.sp < 0 ? Math.PI : 0);
       s.g.rotation.z = Math.sin(t * 1.5 + s.ph) * 0.035;
     });
