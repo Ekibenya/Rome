@@ -1004,7 +1004,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div id="imgcGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;max-height:240px;overflow-y:auto"></div>
       <div style="display:flex;gap:12px;margin-top:12px"><span class="eBtn" id="imgcClear" style="margin-top:0">一键清空（双击）</span><span class="sub" id="imgcMsg"></span></div>
     </div>
-    <div class="esc2">ESC&nbsp;//&nbsp;RETVRN（自动保存）</div>
+    <div class="esc2">ESC&nbsp;//&nbsp;RETVRN（自动保存）&nbsp;&nbsp;·&nbsp;&nbsp;<span id="buildStamp" style="opacity:.55"></span></div>
   </div>
 </div>
 <div class="gDlg" id="dlgBook">
@@ -1224,7 +1224,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.7.1';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
+  var ZJ3D_VER='1.7.2';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -6567,6 +6567,8 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){});}catch(_){}
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
+/* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.7.2';}catch(_){}
 })();
 </script>
 </body>

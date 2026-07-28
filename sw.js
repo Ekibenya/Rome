@@ -1,7 +1,7 @@
 /* ROMA.SYS · service worker
    壳层预缓存 + 其余按需缓存。素材总量近 200MB（三维包与乐曲），一次性全预下载既慢又
    会撑爆配额，所以只预存「打得开」所需的那几个档，其余用过哪个存哪个。 */
-var V = 'roma-v1';
+var V = 'roma-v2';
 var SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -56,7 +56,24 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  /* 素材：缓存优先、后台回源刷新（stale-while-revalidate） */
+  /* 代码类（脚本／清单／JSON）一律网络优先：它们带版本号也挡不住各种中间缓存，
+     一旦拿到旧脚本，页面看着是新的、行为是旧的，最难查。断网时才回落缓存。 */
+  if (/\.(js|mjs|json|webmanifest)$/i.test(u.pathname)) {
+    e.respondWith(
+      fetch(r).then(function (res) {
+        if (res && res.ok && res.type === 'basic') {
+          var cp = res.clone();
+          caches.open(V).then(function (c) { c.put(r, cp).catch(function () {}); });
+        }
+        return res;
+      }).catch(function () {
+        return caches.match(r).then(function (m) { return m || Response.error(); });
+      })
+    );
+    return;
+  }
+
+  /* 其余素材（.dat／图片／字体）：缓存优先、后台回源刷新（stale-while-revalidate） */
   e.respondWith(
     caches.match(r).then(function (hit) {
       var net = fetch(r).then(function (res) {
