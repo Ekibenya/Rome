@@ -170,7 +170,7 @@
     o.traverse(function (ch) { if (ch.isMesh) { ch.material = mat; ch.castShadow = !!opts.shadow; ch.receiveShadow = true; } });
     var g = new T.Group();
     g.add(o);
-    o.position.y = -inf.minY; // pivot to ground
+    o.position.y = -inf.minY + 0.018; // pivot to ground（微抬 1.8cm 脱离地面共面，防底面 Z-fighting 闪烁；视角无关，不会抽搐）
     g.position.set(opts.x || 0, opts.y || 0, opts.z || 0);
     g.rotation.y = opts.ry || 0;
     if (opts.s) g.scale.setScalar(opts.s);
@@ -335,9 +335,7 @@
     var inf = new T.Mesh(new T.PlaneGeometry(4200, 4200), new T.MeshLambertMaterial({ color: new T.Color(st.grass || 0x93a760).multiplyScalar(0.97) }));
     inf.rotation.x = -Math.PI / 2; inf.position.y = -0.09; Z.scene.add(inf);
     Z.grassC = st.grass; // 山脚草坡取当前国色，与地面无缝衔接
-    /* polygonOffset 把地面推离深度面：建筑底面与地平共面时不再闪烁（Z-fighting） */
-    var gm = new T.MeshLambertMaterial({ map: groundTex(st, R, paths, plazas || [], water || []), polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
-    var m = new T.Mesh(new T.PlaneGeometry(R * 2, R * 2), gm);
+    var m = new T.Mesh(new T.PlaneGeometry(R * 2, R * 2), new T.MeshLambertMaterial({ map: groundTex(st, R, paths, plazas || [], water || []) }));
     m.rotation.x = -Math.PI / 2; m.receiveShadow = true; Z.scene.add(m);
     return m;
   }
