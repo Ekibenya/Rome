@@ -3182,20 +3182,20 @@
     hud.style.cssText = 'position:absolute;inset:0;pointer-events:none;font-family:inherit;z-index:5';
     // location chip
     locChip = document.createElement('div');
-    locChip.style.cssText = 'position:absolute;top:8px;left:10px;padding:3px 10px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.35);color:#e8cf9e;font-size:12px;letter-spacing:.15em;border-radius:9px;backdrop-filter:blur(2px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+    locChip.style.cssText = 'position:absolute;top:8px;left:10px;padding:3px 10px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:12px;letter-spacing:.15em;border-radius:0;backdrop-filter:blur(2px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
     hud.appendChild(locChip);
     // 纪年：地名框下方一行半透明小字（不进框），太长自动跑马灯
     eraChip = document.createElement('div');
-    eraChip.style.cssText = 'position:absolute;top:34px;left:12px;max-width:62%;font-size:10px;letter-spacing:.06em;color:rgba(232,207,158,.5);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
+    eraChip.style.cssText = 'position:absolute;top:34px;left:12px;max-width:62%;font-size:10px;letter-spacing:.06em;color:rgba(217,217,212,.45);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
     hud.appendChild(eraChip);
     applyChip();
     // expand button
     expBtn = document.createElement('div');
-    expBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:11px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
+    expBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0';
     expBtn.onclick = function () { Z.toggleExpand(); };
     hud.appendChild(expBtn);
     var xBtn = document.createElement('div');
-    xBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:11px;cursor:pointer;pointer-events:auto;border-radius:9px;display:none';
+    xBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:11px;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
     xBtn.textContent = '×';
     xBtn.title = '完全隐藏三维横条（文字区右上可随时展开）';
     xBtn.onclick = function () {
@@ -3207,39 +3207,39 @@
     if (isTouch()) {
       var lowBtn = document.createElement('div');
       var lowSty = function () {
-        lowBtn.style.cssText = 'position:absolute;top:8px;right:102px;padding:2px 8px;background:' + (PERF.low ? 'rgba(201,160,99,.4)' : 'rgba(12,9,6,.62)') + ';border:1px solid rgba(201,160,99,.45);color:' + (PERF.low ? '#1a1208' : '#e8cf9e') + ';font-size:11px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
+        lowBtn.style.cssText = 'position:absolute;top:8px;right:102px;padding:2px 8px;background:' + (PERF.low ? '#c99b3f' : 'rgba(6,6,6,.62)') + ';border:1px solid rgba(236,236,232,.22);color:' + (PERF.low ? '#0a0a08' : '#d9d9d4') + ';font-size:9.5px;letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:' + (Z.expanded ? 'block' : 'none');
       };
       lowSty();
-      lowBtn.textContent = '低配';
+      lowBtn.textContent = 'LEVIS·低配';
       lowBtn.onclick = function () { PERF.low = !PERF.low; perfSave(); applyPerf(); lowSty(); };
       hud.appendChild(lowBtn); Z._lowBtn = lowSty;
       var txtBtn = document.createElement('div');
-      txtBtn.style.cssText = 'position:absolute;top:8px;right:148px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:11px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
-      txtBtn.textContent = '纯文字';
+      txtBtn.style.cssText = 'position:absolute;top:8px;right:148px;padding:2px 8px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:' + (Z.expanded ? 'block' : 'none');
+      txtBtn.textContent = 'TEXTVS·纯文字';
       txtBtn.title = '关闭三维，纯文字游玩（最省电），可随时开回';
       txtBtn.onclick = function () { try { localStorage.setItem('med3d_off', '1'); } catch (e) { } location.reload(); };
       hud.appendChild(txtBtn); Z._txtBtn = txtBtn;
     }
     // door button
     doorBtn = document.createElement('div');
-    doorBtn.style.cssText = 'position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:5px 18px;background:rgba(24,18,11,.5);-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%);border:1px solid rgba(224,190,130,.8);color:#f0d8a8;font-size:13px;letter-spacing:.25em;cursor:pointer;pointer-events:auto;display:none;border-radius:9px';
+    doorBtn.style.cssText = 'position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:5px 18px;background:rgba(6,6,6,.7);-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%);border:1px solid rgba(201,155,63,.8);color:#ecc878;font-size:13px;letter-spacing:.25em;cursor:pointer;pointer-events:auto;display:none;border-radius:0';
     doorBtn.onclick = function () { tryDoor(); };
     hud.appendChild(doorBtn);
     // joystick (mobile)
     joyEl = document.createElement('div');
-    joyEl.style.cssText = 'position:absolute;right:18px;bottom:16px;width:96px;height:96px;border-radius:50%;background:rgba(20,14,8,.35);border:1px solid rgba(201,160,99,.4);pointer-events:auto;display:none;touch-action:none';
+    joyEl.style.cssText = 'position:absolute;right:18px;bottom:16px;width:96px;height:96px;border-radius:50%;background:rgba(6,6,6,.4);border:1px solid rgba(236,236,232,.22);pointer-events:auto;display:none;touch-action:none';
     joyKnob = document.createElement('div');
-    joyKnob.style.cssText = 'position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:rgba(201,160,99,.5);border:1px solid rgba(240,220,180,.6)';
+    joyKnob.style.cssText = 'position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:rgba(201,155,63,.5);border:1px solid rgba(236,200,120,.6)';
     joyEl.appendChild(joyKnob);
     bindJoy(joyEl);
     hud.appendChild(joyEl);
     // tip
     tipEl = document.createElement('div');
-    tipEl.style.cssText = 'position:absolute;bottom:8px;left:12px;color:rgba(232,207,158,.5);font-size:10.5px;letter-spacing:.12em;text-align:left';
+    tipEl.style.cssText = 'position:absolute;bottom:8px;left:12px;color:rgba(217,217,212,.45);font-size:10.5px;letter-spacing:.12em;text-align:left';
     hud.appendChild(tipEl);
     // loading overlay
     loadEl = document.createElement('div');
-    loadEl.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#c9a063;font-size:13px;letter-spacing:.3em;background:rgba(11,9,6,.5)';
+    loadEl.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#c99b3f;font-size:12px;letter-spacing:.34em;background:rgba(6,6,6,.6)';
     hud.appendChild(loadEl);
     host.appendChild(hud);
     ensureBuildHud(host);
@@ -3247,10 +3247,10 @@
   function isTouch() { return matchMedia('(pointer:coarse)').matches; }
   function updateHud() {
     if (!hud) return;
-    if (Z.loading) { loadEl.style.display = 'flex'; loadEl.textContent = '营造天下 ' + Math.round(Z.prog * 100) + '%'; }
+    if (Z.loading) { loadEl.style.display = 'flex'; loadEl.textContent = 'OPVS MVNDI · 营造天下 ' + Math.round(Z.prog * 100) + '%'; }
     else if (Z.failed) { loadEl.style.display = 'flex'; loadEl.textContent = '三维资材未至 · 以简册代之'; }
     else loadEl.style.display = 'none';
-    expBtn.textContent = Z.expanded ? '收起' : '营造'; // 展开默认即营造；游历是营造内的切换项
+    expBtn.textContent = Z.expanded ? 'CLAVDE·收起' : 'OPVS·营造'; // 展开默认即营造；游历是营造内的切换项
     if (Z._xBtn) {
       Z._xBtn.style.display = Z.expanded ? 'none' : 'block';
       expBtn.style.right = !Z.expanded ? '44px' : '10px';
@@ -4567,28 +4567,28 @@
     w.style.cssText = 'position:absolute;inset:0;pointer-events:none';
     // 国库
     var gold = document.createElement('div');
-    gold.style.cssText = isTouch() ? 'position:absolute;top:8px;right:204px;padding:2px 8px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:11px;letter-spacing:.04em;border-radius:9px;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:12.5px;letter-spacing:.1em;border-radius:9px;display:none;white-space:nowrap';
+    gold.style.cssText = isTouch() ? 'position:absolute;top:8px;right:204px;padding:2px 8px;background:rgba(6,6,6,.66);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,155,63,.55);color:#ecc878;font-size:11px;letter-spacing:.04em;border-radius:0;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(6,6,6,.66);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,155,63,.55);color:#ecc878;font-size:12.5px;letter-spacing:.1em;border-radius:0;display:none;white-space:nowrap';
     w.appendChild(gold); bHud.goldChip = gold;
     // 模式切换
     var vb = document.createElement('div');
-    vb.style.cssText = 'position:absolute;top:8px;right:56px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:11px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
+    vb.style.cssText = 'position:absolute;top:8px;right:56px;padding:2px 8px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0';
     vb.onclick = function () { if (Z.intPlan) { exitInterior(); return; } Z.toggleView(); };
     w.appendChild(vb); bHud.viewBtn = vb;
     // 托盘开关
     var tb = document.createElement('div');
-    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:linear-gradient(180deg,#b8894e,#8a6535);color:#231a0c;font-size:' + (isTouch() ? '11.5px' : '13px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:9px;display:none;font-weight:600';
-    tb.textContent = isTouch() ? '清单' : '营造清单';
+    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:#c99b3f;color:#0a0a08;font-size:' + (isTouch() ? '11.5px' : '13px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:0;display:none;font-weight:600';
+    tb.textContent = isTouch() ? '清单' : 'OPERA·营造清单';
     tb.onclick = function () { bHud.tray.style.display = bHud.tray.style.display === 'none' ? 'block' : 'none'; fillTray(); };
     w.appendChild(tb); bHud.trayBtn = tb;
     // 奏报（集中通报本轮兴作/拆除）
     var rb = document.createElement('div');
-    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '70px' : '124px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:linear-gradient(180deg,#6f9a68,#4c7148);color:#0f1a0d;font-size:' + (isTouch() ? '11.5px' : '13px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:9px;display:none;font-weight:600';
+    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '70px' : '124px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:#7a9a6a;color:#0c130a;font-size:' + (isTouch() ? '11.5px' : '13px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:0;display:none;font-weight:600';
     rb.onclick = function () { submitLedger(); };
     w.appendChild(rb); bHud.reportBtn = rb;
     // 托盘
     var mob = isTouch();
     var tray = document.createElement('div');
-    tray.style.cssText = 'position:absolute;left:6px;right:6px;bottom:' + (mob ? '38px' : '44px') + ';height:' + (mob ? '96px' : '132px') + ';background:rgba(20,15,9,.5);-webkit-backdrop-filter:blur(6px) saturate(140%);backdrop-filter:blur(6px) saturate(140%);border:1px solid rgba(201,160,99,.4);border-radius:12px;pointer-events:auto;display:none;backdrop-filter:blur(3px)';
+    tray.style.cssText = 'position:absolute;left:6px;right:6px;bottom:' + (mob ? '38px' : '44px') + ';height:' + (mob ? '96px' : '132px') + ';background:rgba(6,6,6,.7);-webkit-backdrop-filter:blur(6px) saturate(140%);backdrop-filter:blur(6px) saturate(140%);border:1px solid rgba(236,236,232,.22);border-radius:0;pointer-events:auto;display:none;backdrop-filter:blur(3px)';
     var tabs = document.createElement('div');
     tabs.style.cssText = 'display:flex;gap:2px;padding:' + (mob ? '2px 4px 0' : '4px 6px 0');
     tray.appendChild(tabs); bHud.tabsEl = tabs;
@@ -4598,7 +4598,7 @@
     w.appendChild(tray); bHud.tray = tray;
     // 幽灵操作条
     var gb = document.createElement('div');
-    gb.style.cssText = 'position:absolute;left:50%;bottom:186px;transform:translateX(-50%);display:none;gap:' + (isTouch() ? '4px' : '8px') + ';pointer-events:auto;align-items:center;background:rgba(14,10,6,.85);border:1px solid rgba(224,190,130,.55);padding:' + (isTouch() ? '4px 6px' : '6px 10px') + ';border-radius:12px;max-width:98%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch';
+    gb.style.cssText = 'position:absolute;left:50%;bottom:186px;transform:translateX(-50%);display:none;gap:' + (isTouch() ? '4px' : '8px') + ';pointer-events:auto;align-items:center;background:rgba(6,6,6,.88);border:1px solid rgba(201,155,63,.6);padding:' + (isTouch() ? '4px 6px' : '6px 10px') + ';border-radius:0;max-width:98%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch';
     w.appendChild(gb); bHud.ghostBar = gb;
     // 轴向旋转条（幽灵条上方）
     var ab = document.createElement('div');
@@ -4616,7 +4616,7 @@
   }
   function mkBtn(txt, fn, danger) {
     var b = document.createElement('div');
-    b.style.cssText = 'padding:' + (isTouch() ? '4px 9px' : '4px 12px') + ';cursor:pointer;font-size:' + (isTouch() ? '12px' : '13px') + ';letter-spacing:.12em;white-space:nowrap;border:1px solid ' + (danger ? 'rgba(224,110,90,.7);color:#f0a898' : 'rgba(224,190,130,.7);color:#f0d8a8') + ';border-radius:9px;user-select:none';
+    b.style.cssText = 'padding:' + (isTouch() ? '4px 9px' : '4px 12px') + ';cursor:pointer;font-size:' + (isTouch() ? '12px' : '13px') + ';letter-spacing:.12em;white-space:nowrap;border:1px solid ' + (danger ? 'rgba(224,110,90,.7);color:#f0a898' : 'rgba(201,155,63,.7);color:#ecc878') + ';border-radius:0;user-select:none';
     b.textContent = txt; b.onclick = fn; return b;
   }
   function fillTray() {
@@ -4627,8 +4627,8 @@
     cats.forEach(function (c, i) {
       var t = document.createElement('div');
       t.textContent = c.lab || c.tab;
-      t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '11px' : '12.5px') + ';letter-spacing:.16em;border-radius:9px 2px 0 0;' +
-        (i === bHud.tab ? 'background:rgba(201,160,99,.28);color:#f0d8a8;border:1px solid rgba(224,190,130,.5);border-bottom:none' : 'color:#9d8c6b;border:1px solid transparent');
+      t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '11px' : '12.5px') + ';letter-spacing:.16em;border-radius:0;' +
+        (i === bHud.tab ? 'background:rgba(201,155,63,.16);color:#ecc878;border:1px solid rgba(201,155,63,.6);border-bottom:none' : 'color:#6b6b66;border:1px solid transparent');
       t.onclick = function () { bHud.tab = i; fillTray(); };
       bHud.tabsEl.appendChild(t);
     });
@@ -4638,14 +4638,14 @@
     var cw = mob ? 56 : 76, chh = mob ? 62 : 92, tw = mob ? 42 : 60, th = mob ? 32 : 52;
     cats[bHud.tab].items.forEach(function (item) {
       var card = document.createElement('div');
-      card.style.cssText = 'flex:none;width:' + cw + 'px;height:' + chh + 'px;background:rgba(26,20,14,.55);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.3);border-radius:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:2px;gap:1px';
+      card.style.cssText = 'flex:none;width:' + cw + 'px;height:' + chh + 'px;background:rgba(6,6,6,.6);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.18);border-radius:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:2px;gap:1px';
       var im = document.createElement('div');
-      im.style.cssText = 'width:' + tw + 'px;height:' + th + 'px;background:#241c12 center/cover;border-radius:9px';
+      im.style.cssText = 'width:' + tw + 'px;height:' + th + 'px;background:#101010 center/cover;border-radius:0';
       im.dataset.pack = item.pack || ''; im.dataset.name = item.name; im.dataset.kind = item.kind;
       card.appendChild(im);
       var nm = document.createElement('div');
       nm.textContent = item.disp;
-      nm.style.cssText = 'font-size:' + (mob ? '9px' : '10.5px') + ';color:#e8cf9e;white-space:nowrap;overflow:hidden;max-width:' + (cw - 6) + 'px';
+      nm.style.cssText = 'font-size:' + (mob ? '9px' : '10.5px') + ';color:#d9d9d4;white-space:nowrap;overflow:hidden;max-width:' + (cw - 6) + 'px';
       card.appendChild(nm);
       var pr = document.createElement('div');
       var afford = ECON.gold >= item.price;
@@ -4735,19 +4735,19 @@
     if (!bHud.wrap) return;
     var on = inBuild();
     bHud.goldChip.style.display = on ? 'block' : 'none';
-    if (on) { econTick(); bHud.goldChip.textContent = isTouch() ? ('金 ' + ECON.gold.toLocaleString()) : ('国库 金 ' + ECON.gold.toLocaleString() + ' · 岁入 ' + ECON.RATE + '/分'); }
+    if (on) { econTick(); bHud.goldChip.textContent = isTouch() ? ('金 ' + ECON.gold.toLocaleString()) : ('AERARIVM 金 ' + ECON.gold.toLocaleString() + ' · 岁入 ' + ECON.RATE + '/分'); }
     bHud.trayBtn.style.display = on ? 'block' : 'none';
     if (bHud.reportBtn) {
       var lc = ledgerCount();
       bHud.reportBtn.style.display = (on && lc > 0) ? 'block' : 'none';
-      bHud.reportBtn.textContent = isTouch() ? ('奏报·' + lc + '（发AI）') : ('奏报·' + lc + '（发送给AI）');
+      bHud.reportBtn.textContent = isTouch() ? ('ACTA·' + lc + '（发AI）') : ('ACTA·奏报·' + lc + '（发送给AI）');
     }
     /* 一进营造（本会话内 inBuild 首次成立）就自动弹出建造清单，让人一眼看出这是盖房子的游戏；
        离开营造(on=false)复位，下次再进会重新弹出。用户在营造中手动收起后不会再被强开。抗城景加载时的 on 抖动。 */
     if (on) { if (!bHud._openedSession) { bHud._openedSession = true; bHud.tray.style.display = 'block'; try { fillTray(); } catch (e) {} } }
     else { bHud._openedSession = false; bHud.tray.style.display = 'none'; }
     bHud.viewBtn.style.display = (Z.expanded && (Z.mode === 'city' || Z.intPlan)) ? 'block' : 'none';
-    bHud.viewBtn.textContent = Z.intPlan ? '出 · 回城' : (Z.view === 'build' ? '游历' : '营造');
+    bHud.viewBtn.textContent = Z.intPlan ? 'EXI·回城' : (Z.view === 'build' ? 'ITER·游历' : 'OPVS·营造');
     // 操作条贴近底部，托盘展开时抬升避让
     var trayOpen = bHud.tray && bHud.tray.style.display !== 'none';
     var barBottom = trayOpen ? (isTouch() ? '142px' : '184px') : (isTouch() ? '40px' : '48px');
@@ -4761,7 +4761,7 @@
     if (Z.expanded && Z.mode === 'city' && np && np.root.parent) {
       nb.style.display = 'flex'; nb.innerHTML = '';
       var nl = document.createElement('div');
-      nl.style.cssText = 'color:#e8cf9e;font-size:12.5px;letter-spacing:.06em;padding-right:4px;white-space:nowrap;max-width:' + (isTouch() ? '120px' : '260px') + ';overflow:hidden;text-overflow:ellipsis';
+      nl.style.cssText = 'color:#d9d9d4;font-size:12.5px;letter-spacing:.06em;padding-right:4px;white-space:nowrap;max-width:' + (isTouch() ? '120px' : '260px') + ';overflow:hidden;text-overflow:ellipsis';
       nl.textContent = np.name + '（' + np.cat + '）';
       nl.title = np.desc || '';
       nb.appendChild(nl);
@@ -4796,7 +4796,7 @@
         bHud.gKey = gKey; gb.innerHTML = '';
         var mob0 = isTouch();
         var lab = document.createElement('div');
-        lab.style.cssText = 'color:#e8cf9e;font-size:12.5px;white-space:nowrap;max-width:' + (mob0 ? '58px' : '150px') + ';overflow:hidden;text-overflow:ellipsis;flex:none';
+        lab.style.cssText = 'color:#d9d9d4;font-size:12.5px;white-space:nowrap;max-width:' + (mob0 ? '58px' : '150px') + ';overflow:hidden;text-overflow:ellipsis;flex:none';
         lab.textContent = (Z.B.movingId ? '迁·' : '') + Z.B.item.disp;
         gb.appendChild(lab);
         gb.style.width = mob0 ? '96%' : 'auto';
@@ -4806,11 +4806,11 @@
         }
         var mkSlider = function (icon, min, max, val, w, fn) {
           var wrap = document.createElement('div');
-          wrap.style.cssText = 'display:flex;align-items:center;gap:3px;color:#c8b088;font-size:12px;white-space:nowrap' + (mob0 ? ';flex:1 1 40px;min-width:40px' : '');
+          wrap.style.cssText = 'display:flex;align-items:center;gap:3px;color:#9c9c98;font-size:12px;white-space:nowrap' + (mob0 ? ';flex:1 1 40px;min-width:40px' : '');
           if (icon && !mob0) { var ic = document.createElement('span'); ic.textContent = icon; wrap.appendChild(ic); }
           var sl = document.createElement('input');
           sl.type = 'range'; sl.min = min; sl.max = max; sl.value = val;
-          sl.style.cssText = (mob0 ? 'width:100%' : 'width:' + w + 'px') + ';accent-color:#c9a063;cursor:pointer;margin:0';
+          sl.style.cssText = (mob0 ? 'width:100%' : 'width:' + w + 'px') + ';accent-color:#c99b3f;cursor:pointer;margin:0';
           sl.addEventListener('pointerdown', function () { bHud.gDrag = true; });
           sl.addEventListener('pointerup', function () { bHud.gDrag = false; });
           sl.addEventListener('input', function () { fn(parseFloat(sl.value)); });
@@ -4832,7 +4832,7 @@
         gb.appendChild(zBtn);
         if (Z.B.item.kind === 'model') {
           var axBtn = mkBtn('轴', function () { bHud.gAxis = !bHud.gAxis; bHud.gKey = ''; updateBuildHud(); });
-          if (bHud.gAxis) { axBtn.style.background = 'rgba(201,160,99,.25)'; axBtn.style.color = '#f0d8a8'; }
+          if (bHud.gAxis) { axBtn.style.background = 'rgba(201,160,99,.25)'; axBtn.style.color = '#ecc878'; }
           gb.appendChild(axBtn);
         }
         var okBtn = mkBtn(mob0 ? '✓建' : '✓ 定建', function () { confirmGhost(); });
@@ -4910,7 +4910,7 @@
     } else if (on && Z.sel && !Z.B) {
       sb.style.display = 'flex'; sb.innerHTML = '';
       var lab2 = document.createElement('div');
-      lab2.style.cssText = 'color:#e8cf9e;font-size:12.5px;letter-spacing:.08em;padding-right:4px;white-space:nowrap';
+      lab2.style.cssText = 'color:#d9d9d4;font-size:12.5px;letter-spacing:.08em;padding-right:4px;white-space:nowrap';
       var selDisp = Z.sel.rec ? Z.sel.rec.disp : (Z.sel.disp || buildingDisp(Z.sel.root));
       lab2.textContent = selDisp + ' · ' + posName(Math.round(Z.sel.root.position.x / CELL), Math.round(Z.sel.root.position.z / CELL));
       sb.appendChild(lab2);
