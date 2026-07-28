@@ -290,7 +290,7 @@ canvas{display:block}
 .mOp.on{border-color:var(--gold);color:var(--gold-hi)}
 .mOp:hover{color:var(--txt)}
 /* left edge: two arrows, slide panels with bottom blur-fade */
-.gArr{position:absolute;left:0;width:27px;padding:15px 0;z-index:26;cursor:pointer;
+.gArr{position:absolute;left:0;width:27px;padding:15px 0;z-index:31;cursor:pointer;
       border:1px solid rgba(236,236,232,.16);border-left:0;background:rgba(6,6,6,.88);
       display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--mut);
       transition:left .45s cubic-bezier(.2,.85,.25,1),color .2s,border-color .2s}
@@ -299,7 +299,7 @@ canvas{display:block}
 .gArr .t{writing-mode:vertical-rl;font-size:8px;letter-spacing:.3em}
 #arrMap{top:15%}
 #arrArm{top:60%}
-.gPanel{position:absolute;left:0;width:min(46vw,560px);z-index:24;background:rgba(6,6,6,.78);
+.gPanel{position:absolute;left:0;width:min(46vw,560px);z-index:30;background:rgba(6,6,6,.78);
       border-right:1px solid rgba(236,236,232,.14);border-bottom:1px solid rgba(236,236,232,.10);
       backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
       transform:translateX(-103%) translateZ(0);transition:transform .45s cubic-bezier(.2,.85,.25,1);overflow:hidden}
