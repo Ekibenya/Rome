@@ -53,7 +53,7 @@
   };
   try {
     var _tv = localStorage.getItem('med3d_tier');
-    Z.tier = _tv != null ? (Math.abs(+_tv) % 3) : (localStorage.getItem('med3d_expand') === '1' ? 2 : 0);
+    Z.tier = _tv != null ? (Math.abs(+_tv) % 3) : 0;
   } catch (e) { Z.tier = 0; }
   Z.expanded = Z.tier > 0;
 
