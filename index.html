@@ -5147,11 +5147,17 @@ function zj3dTick(){
     var p=currentPanel(),cw=p?p.world:{};
     if(E.setEra)E.setEra(cw['纪年']||(GAME.op?GAME.op.era:'')||'');
     var _m=mood();
-    var _loc=med?E.match(String(cw['时地']||'')).al[0]:playerLoc().name;
+    var _loc=med?medLoc(String(cw['时地']||'')):playerLoc().name;
     if(E.onRender)E.onRender(_loc,_m.night);
     if(E.onStory){var _lm=null;for(var i=S.history.length-1;i>=0;i--){if(S.history[i].role!=='user'){_lm=S.history[i];break;}}E.onStory(_lm&&_lm.text?_lm.text:'');}
     if(med){medEdictSync();}else{edictSync();}
   }catch(e){}
+}
+function medLoc(td){ /* 环海八城：时地 → 引擎城市键 */
+  var CS=['罗马','雅典','斯巴达','迦太基','亚历山卓','拜占庭','科林斯','叙拉古','羅馬','亞歷山卓','敘拉古'];
+  var CM={'羅馬':'罗马','亞歷山卓':'亚历山卓','敘拉古':'叙拉古'};
+  for(var i=0;i<CS.length;i++)if(td.indexOf(CS[i])>=0)return CM[CS[i]]||CS[i];
+  return '罗马';
 }
 function medEdictSync(){ /* 環海側 sec_deed 敕令：同 edictSync，落到 MED3D */
   if(!GAME.on||!window.MED3D||!MED3D.owns()||!MED3D.applyEdict)return;
