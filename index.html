@@ -232,7 +232,7 @@ canvas{display:block}
 #game .gModes,#game .gLine{pointer-events:auto}
 #game .gModes{display:flex;gap:2px;padding:10px 14px 0;flex-wrap:wrap}
 #game .gm{font-size:9px;letter-spacing:.2em;color:var(--mut);padding:6px 12px 5px;cursor:pointer;
-      border:1px solid transparent;white-space:nowrap}
+      border:1px solid transparent;white-space:nowrap;background:rgba(6,6,6,.6)} /* 页签自带底色：浮层下正文透字不糊眼 */
 #game .gm.on{color:#0a0a0a;background:var(--gold);font-weight:600}
 #game .gm:not(.on):hover{color:var(--gold-hi)}
 #game .gLine{display:flex;align-items:center;gap:12px;padding:10px 14px 14px}
@@ -522,7 +522,17 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 #txHint{position:absolute;left:12px;bottom:44px;z-index:3;font-size:11.5px;color:#d9a06a;text-shadow:0 1px 3px #000}
 @keyframes zj3dMarq{to{transform:translateX(-50%)}}
 .zj3dMarq{animation:zj3dMarq linear infinite}
-@media(max-width:760px){#arrTx,#pnTx{display:none}}
+@media(max-width:760px){ /* 手机版三维照常可用：全宽三档，TERRA 拉手居中 */
+  #pnTx{right:0;height:min(32vh,300px)}
+  #game.tx2 #pnTx{height:min(52vh,460px)}
+  #game.txBig #pnTx{height:min(78vh,640px)}
+  #arrTx{left:50%}
+  #game.txOpen #arrTx{top:calc(46px + min(32vh,300px))}
+  #game.txOpen.tx2 #arrTx{top:calc(46px + min(52vh,460px))}
+  #game.txOpen.txBig #arrTx{top:calc(46px + min(78vh,640px))}
+  #game .gTop{overflow-x:auto;scrollbar-width:none}
+  #game .gNarr{padding-bottom:158px}
+}
 </style>
 
 <canvas id="terrain"></canvas>
@@ -1055,7 +1065,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.5.1';
+  var ZJ3D_VER='1.5.2';
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -2554,7 +2564,7 @@ function gameShow(){
   if(!ERA.act.length)ERA.act=buildActs((ERA.year==null?117:ERA.year));
   GAME.on=true;gEl.classList.add('show');gEl.setAttribute('data-pg','narr');
   /* 桌面端进入游戏默认展开天下面板（默认条档） */
-  if(innerWidth>760&&!GAME.txOpen){GAME.txOpen=true;gEl.classList.add('txOpen');gEl.classList.remove('tx2','txBig');try{localStorage.setItem('med3d_tier','0');}catch(_){}setTimeout(zj3dTick,600);}
+  if(!GAME.txOpen){GAME.txOpen=true;gEl.classList.add('txOpen');gEl.classList.remove('tx2','txBig');try{localStorage.setItem('med3d_tier','0');}catch(_){}setTimeout(zj3dTick,600);} /* 手机亦默认开三维（默认条档，LOD 自动降耗） */
   var gb=$('#game .gBrand');if(gb&&gb.textContent.indexOf('·B')<0)gb.textContent+='  ·B'+BUILD;
   $('#stage').style.display='none';$('#rail').style.display='none';$('#mission').style.display='none';
   setTimeout(gmapSize,80);
