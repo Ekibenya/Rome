@@ -1074,7 +1074,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.5.5';
+  var ZJ3D_VER='1.5.6';
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -2691,7 +2691,17 @@ function gmapDraw(){
   GAME.lblPrev=shown;
   try{window.__MAPHIT=GAME.hit;}catch(_){}   /* 可觀測：測試用命中表 */
 }
+var GMP={},gmPin0=0,gmZoom0=1,gmMid0=null;   /* 多指登记：双指=捏合缩放+平移 */
+function gmPts(){return Object.keys(GMP);}
+function gmDist(){var k=gmPts();var a=GMP[k[0]],b=GMP[k[1]];return Math.hypot(a.x-b.x,a.y-b.y);}
+function gmMid(){var k=gmPts();var a=GMP[k[0]],b=GMP[k[1]];return {x:(a.x+b.x)/2,y:(a.y+b.y)/2};}
 gmCv.addEventListener('pointerdown',function(e){
+  GMP[e.pointerId]={x:e.clientX,y:e.clientY};
+  if(gmPts().length===2){
+    GAME.drag=false;GAME.vel=0;
+    gmPin0=gmDist();gmZoom0=GAME.zoom||1;gmMid0=gmMid();
+    return;
+  }
   GAME.drag=true;GAME.moved=0;GAME.lx=e.clientX;GAME.ly=e.clientY;GAME.lt=performance.now();
   if(gmCv.setPointerCapture)try{gmCv.setPointerCapture(e.pointerId);}catch(_){}
 });
@@ -2703,6 +2713,17 @@ gmCv.addEventListener('wheel',function(e){
 gmCv.addEventListener('pointermove',function(e){
   var r=gmCv.getBoundingClientRect();
   GAME.mx=e.clientX-r.left;GAME.my=e.clientY-r.top;GAME.hov=true;
+  if(GMP[e.pointerId])GMP[e.pointerId]={x:e.clientX,y:e.clientY};
+  if(gmPts().length>=2){                        /* 雙指：捏合縮放 + 中點平移 */
+    if(gmPin0>0)GAME.zoom=Math.max(.7,Math.min(4,gmZoom0*gmDist()/gmPin0));
+    var mid=gmMid();
+    if(gmMid0){
+      GAME.lon-=(mid.x-gmMid0.x)*.005/(GAME.zoom||1);
+      GAME.tilt=Math.max(-1.25,Math.min(1.35,(GAME.tilt==null?.42:GAME.tilt)+(mid.y-gmMid0.y)*.0035/(GAME.zoom||1)));
+    }
+    gmMid0=mid;
+    return;
+  }
   if(!GAME.drag)return;
   var dx=e.clientX-GAME.lx;GAME.lx=e.clientX;
   var dy=e.clientY-(GAME.ly==null?e.clientY:GAME.ly);GAME.ly=e.clientY;
@@ -2713,7 +2734,10 @@ gmCv.addEventListener('pointermove',function(e){
   GAME.tilt=Math.max(-1.25,Math.min(1.35,(GAME.tilt==null?.42:GAME.tilt)+dy*.0035/(GAME.zoom||1)));
   GAME.moved+=Math.abs(dx)+Math.abs(dy);
 });
+gmCv.addEventListener('pointercancel',function(e){delete GMP[e.pointerId];if(gmPts().length<2){gmPin0=0;gmMid0=null;}});
 gmCv.addEventListener('pointerup',function(e){
+  delete GMP[e.pointerId];
+  if(gmPts().length<2){gmPin0=0;gmMid0=null;}
   if(!GAME.drag)return;GAME.drag=false;
   if(GAME.moved<5){
     GAME.vel=0;                                   /* 純點擊不留甩動慣性 */
@@ -5598,7 +5622,10 @@ function loop(t){
   $('#mission').style.opacity=clamp01(1-Math.abs(pos-Math.round(pos))*3).toFixed(3);
   if(INTRO.on)introDraw();
   if(MENU.on)menuDraw();
-  if(GAME.on)gbgDraw();
+  if(GAME.on){ /* 背景粒子柱只在桌面端跑：手机端彻底停用并释放，省内存省帧 */
+    if(innerWidth>760)gbgDraw();
+    else if(GBG.inited){GBG.inited=false;GBG.p=null;GBG.orders=null;try{mg.clearRect(0,0,mW,mH);}catch(_){}}
+  }
   if(GAME.on&&(GAME.mapOpen||gEl.getAttribute('data-pg')==='map'))gmapDraw();
   if(((!INTRO.on&&!MENU.on)||MENU.exiting)&&!GAME.on){terrainDraw(t);cardLayout();railDraw();}
   if(!INTRO.on&&!MENU.on&&!GAME.on)grainDraw();
