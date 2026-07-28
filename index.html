@@ -2732,6 +2732,8 @@ function iterGo(){
   $('#gLoc').innerHTML=(y<0?(-y)+'&nbsp;A.C.N.':'A.D.&nbsp;'+y)+
     '&nbsp;<i>·</i>&nbsp;'+s.n+'&nbsp;<i>·</i>&nbsp;'+s.cn;
   GAME.dest=s.n;GAME.destT=performance.now();      /* 地圖不收起：目的地亮環 */
+  GAME.dest3d=s.cn||s.n;                            /* 三维即刻随行：不必等神谕回话 */
+  try{zj3dTick();}catch(_){}
   /* 前往直接視作推進一輪 */
   if(BUSY){narrAdd('sys','神諭尚在沉吟，稍候再啟程',null);return;}
   var idx=TURNI++;
@@ -5163,7 +5165,16 @@ function zj3dTick(){
     var p=currentPanel(),cw=p?p.world:{};
     if(E.setEra)E.setEra(cw['纪年']||(GAME.op?GAME.op.era:'')||'');
     var _m=mood();
-    var _loc=med?medLoc(String(cw['时地']||'')):playerLoc().name;
+    var _td=String(cw['时地']||cw['時地']||'');
+    var _loc;
+    if(med){
+      _loc=medLoc(_td);
+      if(GAME.dest3d){
+        var _dl=medLoc(GAME.dest3d);
+        /* 叙事已抵达该地则交还叙事，否则以玩家选定地为准 */
+        if(_loc===_dl)GAME.dest3d=null; else _loc=_dl;
+      }
+    }else _loc=playerLoc().name;
     if(E.onRender)E.onRender(_loc,_m.night);
     if(E.onStory){var _lm=null;for(var i=S.history.length-1;i>=0;i--){if(S.history[i].role!=='user'){_lm=S.history[i];break;}}E.onStory(_lm&&_lm.text?_lm.text:'');}
     if(med){medEdictSync();}else{edictSync();}
@@ -5275,7 +5286,7 @@ zjLoadPref();
 function loadOpening(side,op,locOverride){
   ACTIVE=side;
   TYPE_GEN++;TURNS=[];TURNI=0;BUSY=false;
-  GAME.op=op;GAME.opText=op.text;_zjOpC={};try{fdClose();}catch(_){}zjLoadPref();
+  GAME.op=op;GAME.opText=op.text;GAME.dest3d=null;_zjOpC={};try{fdClose();}catch(_){}zjLoadPref();
   var body=stripMvu(op.text),panel=parseMvu(op.text);
   var nr=$('#gNarr');nr.innerHTML='';
   body.split(/\n{2,}/).forEach(function(par){
