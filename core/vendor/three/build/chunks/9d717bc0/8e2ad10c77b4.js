@@ -762,7 +762,7 @@
 
   /* ---------------- player ---------------- */
   function buildPlayer() {
-    var g = makePawn({ outfit: 'fglad', head: 'Hair_Upsweep', prop: 'sword', robe: 0x24202c, band: 0xa63b26, chest: 0x2c2836 });
+    var g = makePawn({ outfit: 'fglad', head: 'Mid_Hair', hairC: 0xd9a94e, prop: 'sword', robe: 0x24202c, band: 0xa63b26, chest: 0x2c2836 });
     g.userData.isPlayer = true;
     return g;
   }
@@ -780,7 +780,7 @@
   }
   Z.captive = false;      // 剧情软禁：仪仗尽散
   Z.escortBusy = false;   // 卫队出击中（暂离仪仗位）
-  Z.escortN = 4;          // 卫队员额（玩家增减，持久）
+  Z.escortN = 0;          // 卫队员额（默认无卫，玩家可雇，持久）
   try { var _en = parseInt(localStorage.getItem('zj3d_escortN')); if (_en >= 0 && _en <= 24) Z.escortN = _en; } catch (e) { }
   function escortNSave() { try { localStorage.setItem('zj3d_escortN', '' + Z.escortN); } catch (e) { } }
   var GUARD_COST = 100, GUARD_REFUND = 50;
@@ -1771,10 +1771,20 @@
     }
   }
   function crowd(cx, cz, rad, n, seed) {
+    /* 市集人群：活人着衣漫步（旧版误撒裸身石像充数，已废） */
     var r = rng('cw' + seed);
-    for (var i = 0; i < n; i++) {
+    var keys = Object.keys(NPC_TYPES);
+    for (var i = 0; i < n * 2; i++) {
       var a = r() * 6.28, d = Math.sqrt(r()) * rad;
-      var g = mput('statue', cx + Math.cos(a) * d, cz + Math.sin(a) * d, r() * 6.28, { solid: false, autodoor: false, shadow: false });
+      var t = NPC_TYPES[keys[Math.floor(r() * keys.length)]];
+      var root = makePawn(t.cfg);
+      root.position.set(cx + Math.cos(a) * d, 0, cz + Math.sin(a) * d);
+      root.rotation.y = r() * 6.28;
+      Z.scene.add(root);
+      regPawn(root, {
+        name: t.disp + '·' + NAME_POOL[Math.floor(r() * NAME_POOL.length)],
+        cat: t.cat, desc: t.desc, tag: 'ambient', wander: Math.max(6, rad)
+      });
     }
   }
 
@@ -5031,7 +5041,14 @@
       R.torso = seg('torso', [0, J.hip, 0]);
       R.armL = seg('armL', J.armL); R.armR = seg('armR', J.armR);
       R.legL = seg('legL', J.legL); R.legR = seg('legR', J.legR);
-      if (cfg.head && R.torso) { var at = lib['PW_at_' + cfg.head]; if (at) R.torso.add(dress(at.clone(true))); }
+      if (cfg.head && R.torso) {
+        var at = lib['PW_at_' + cfg.head];
+        if (at) {
+          var hd = dress(at.clone(true));
+          if (cfg.hairC) { var hm = new T.MeshLambertMaterial({ color: cfg.hairC }); hd.traverse(function (ch) { if (ch.isMesh) ch.material = hm; }); }
+          R.torso.add(hd);
+        }
+      }
       if (cfg.shield && R.armL) {
         var sh = lib['PW_at_Roman_Shield'];
         if (sh) { var s2 = dress(sh.clone(true)); s2.position.set(-0.14, -0.4, 0.08); s2.rotation.y = Math.PI / 2; R.armL.add(s2); }
@@ -5126,22 +5143,22 @@
     '灵寿': ['lianpo']
   };
   /* 军旅编制 */
-  var PAWN_FIT = {
-    shi: ['siderobe', 'Half_Bald'], nong: ['shorts', 'Farmer_Hat'], gong: ['fisher', 'Mid_Hair'], shang: ['citizen', 'Mid_Hair'],
+  var PAWN_FIT = { /* 市井日常皆着衣：shorts/skirt（袒身装）只留给角斗与竞技场面 */
+    shi: ['siderobe', 'Half_Bald'], nong: ['fisher', 'Farmer_Hat'], gong: ['fisher', 'Mid_Hair'], shang: ['citizen', 'Mid_Hair'],
     guan: ['normal', 'Half_Bald'], jiang: ['mcart', 'Helmet_Mohawk'], fangshi: ['siderobe', 'Bald_and_Long_Hair'],
     yueshi: ['fshoulder', 'Hair_Bun_High'], shiguan: ['normal', 'Half_Bald'], wuzhu: ['fpriest', 'Hair_Tiara'],
-    youxia: ['mglad', 'Helmet_Face_Mask'], rusheng: ['citizen', 'Mid_Hair'], mozhe: ['skirt', 'Bald_and_Long_Hair'],
+    youxia: ['mglad', 'Helmet_Face_Mask'], rusheng: ['citizen', 'Mid_Hair'], mozhe: ['siderobe', 'Bald_and_Long_Hair'],
     shuike: ['siderobe', 'Long_Hair'], yizhe: ['normal', 'Mid_Hair'], buzhe: ['fpriest', 'Hair_Bun_Low'],
-    yufu: ['fisher', 'Farmer_Hat'], qiaofu: ['shorts', 'Mid_Hair'], muren: ['shorts', 'Mid_Hair'], paoren: ['citizen', 'Half_Bald'],
-    zhinu: ['fdress', 'Hair_Bun_Mid'], yinshi: ['skirt', 'Bald_and_Long_Hair'], dizi: ['citizen', 'Mid_Hair'], yushou: ['fisher', 'Mid_Hair']
+    yufu: ['fisher', 'Farmer_Hat'], qiaofu: ['fisher', 'Mid_Hair'], muren: ['citizen', 'Mid_Hair'], paoren: ['citizen', 'Half_Bald'],
+    zhinu: ['fdress', 'Hair_Bun_Mid'], yinshi: ['siderobe', 'Bald_and_Long_Hair'], dizi: ['citizen', 'Mid_Hair'], yushou: ['fisher', 'Mid_Hair']
   };
   Object.keys(PAWN_FIT).forEach(function (k) { if (NPC_TYPES[k]) { NPC_TYPES[k].cfg.outfit = PAWN_FIT[k][0]; NPC_TYPES[k].cfg.head = PAWN_FIT[k][1]; } });
   var HIST_FIT = {
-    laodan: ['siderobe', 'Half_Bald'], gongshu: ['fisher', 'Half_Bald'], kongzi: ['siderobe', 'Mid_Hair'], yanhui: ['skirt', 'Bald_and_Long_Hair'],
+    laodan: ['siderobe', 'Half_Bald'], gongshu: ['fisher', 'Half_Bald'], kongzi: ['siderobe', 'Mid_Hair'], yanhui: ['citizen', 'Bald_and_Long_Hair'],
     zilu: ['corhop', 'Spartan_Mohawk_Helmet', 1], changhong: ['citizen', 'Long_Hair'], yinxi: ['normal', 'Mid_Hair'], shangyang: ['siderobe', 'Half_Bald'],
-    baiqi: ['mcart', 'Helmet_650_BC'], lianpo: ['athhop', 'Helmet_Mohawk', 1], linxiangru: ['normal', 'Half_Bald'], yanying: ['shorts', 'Half_Bald'],
+    baiqi: ['mcart', 'Helmet_650_BC'], lianpo: ['athhop', 'Helmet_Mohawk', 1], linxiangru: ['normal', 'Half_Bald'], yanying: ['normal', 'Half_Bald'],
     zouyan: ['siderobe', 'Bald_and_Long_Hair'], yueyi: ['corhop', 'Helmet_Atheniens', 1], jingke: ['normal', 'Mid_Hair'],
-    xinlingjun: ['corhop', 'Helmet_Without_Mohawk'], hanfei: ['normal', 'Mid_Hair'], quyuan: ['skirt', 'Bald_and_Long_Hair']
+    xinlingjun: ['corhop', 'Helmet_Without_Mohawk'], hanfei: ['normal', 'Mid_Hair'], quyuan: ['siderobe', 'Bald_and_Long_Hair']
   };
   Object.keys(HIST_FIT).forEach(function (k) { if (HIST[k]) { HIST[k].cfg.outfit = HIST_FIT[k][0]; HIST[k].cfg.head = HIST_FIT[k][1]; if (HIST_FIT[k][2]) HIST[k].cfg.shield = 1; } });
   var TROOPS = {
@@ -5215,11 +5232,11 @@
   function spawnAmbient(locName) {
     var r = rng('folk' + locName);
     var keys = Object.keys(NPC_TYPES);
-    var n = Math.round((16 + (hash(locName) % 8)) * LOD());
+    var n = Math.round((46 + (hash(locName) % 14)) * LOD()); /* 大城配大人口 */
     for (var i = 0; i < n; i++) {
       var key = keys[Math.floor(r() * keys.length)];
       var t = NPC_TYPES[key];
-      var a = r() * 6.28, d = 15 + r() * 70;
+      var a = r() * 6.28, d = 12 + r() * 95;
       var x = Math.sin(a) * d, z = Math.cos(a) * d;
       var root = makePawn(t.cfg);
       root.position.set(x, 0, z); root.rotation.y = r() * 6.28;
@@ -5249,15 +5266,15 @@
     ud._px = root.position.x; ud._pz = root.position.z;
     var sp = Math.hypot(dx, dz) / Math.max(dt, 1e-3);
     if (!isFinite(sp)) sp = 0;
-    var target = sp > 0.25 ? Math.min(0.6, 0.25 + sp * 0.1) : 0;
+    var target = sp > 0.25 ? Math.min(0.34, 0.16 + sp * 0.05) : 0; /* 摆幅收敛：行走臂摆约±18°，不再大开大合 */
     var a0 = isFinite(ud._amp) ? ud._amp : 0;
     ud._amp = a0 + (target - a0) * Math.min(1, dt * 6);
     var p0 = isFinite(ud._ph) ? ud._ph : 0;
     ud._ph = p0 + dt * (5 + Math.min(sp, 6) * 1.4);
     var sw = Math.sin(ud._ph) * ud._amp;
     R.armL.rotation.x = sw; R.armR.rotation.x = -sw;
-    if (R.legL) R.legL.rotation.x = -sw * 0.9;
-    if (R.legR) R.legR.rotation.x = sw * 0.9;
+    if (R.legL) R.legL.rotation.x = -sw * 1.35;
+    if (R.legR) R.legR.rotation.x = sw * 1.35;
     if (R.torso) R.torso.rotation.z = Math.sin(ud._ph * 0.5) * ud._amp * 0.05;
   }
   function rigTick(dt) {
