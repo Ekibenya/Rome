@@ -433,11 +433,11 @@ canvas{display:block}
 .svChip .vt{transform:rotate(90deg);white-space:nowrap;font-size:6.5px;letter-spacing:.16em;font-weight:400}
 /* U 盤造型：插頭朝外「插」進色環，機身載編號與工作燈 */
 .svUsb{flex-direction:column;justify-content:flex-start;overflow:visible}
-.svUsb .pin{position:relative;flex:none;border-radius:1.5px 1.5px 0 0}
+.svUsb .pin{position:relative;flex:none;border-radius:0 0 1.5px 1.5px}
 .svUsb .pin:after{content:'';position:absolute;left:25%;right:25%;top:30%;height:32%;background:rgba(8,8,10,.9);border-radius:1px}
 .svUsb .neck{flex:none;width:74%;background:rgba(120,124,132,.5)}
-.svUsb .body{position:relative;width:100%;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0a0a0a;border:1px solid;border-radius:2px 2px 5px 5px}
-.svUsb .led{position:absolute;bottom:3px;left:50%;margin-left:-1.5px;width:3px;height:3px;border-radius:50%}
+.svUsb .body{position:relative;width:100%;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0a0a0a;border:1px solid;border-radius:6px 6px 2px 2px}
+.svUsb .led{position:absolute;top:4px;left:50%;margin-left:-1.5px;width:3px;height:3px;border-radius:50%}
 #svCore{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;text-align:center;pointer-events:none;width:min(52vw,340px)}
 #svCoreT{font-size:clamp(16px,3vw,25px);letter-spacing:.55em;text-indent:.55em;color:#ececec}
 #svCoreSub{display:inline-block;margin:14px auto 0;font-size:8px;letter-spacing:.22em;color:var(--mut);line-height:1.7;border:1px solid rgba(236,236,232,.2);background:rgba(14,14,14,.75);padding:7px 16px;max-width:min(46vw,230px)}
@@ -5783,58 +5783,43 @@ function svRender(){
   var ring=$('#svRing');if(!ring)return;
   ring.innerHTML='';
   var m=Math.min(innerWidth,innerHeight);
-  /* 四層同心（比例取自參考稿）：淡彩帶 1.00 · 外卡圈 .85 · 濃彩帶 .70 · 內卡圈 .55 */
-  var Rp=m*.40,R1=m*.352,Rv=m*.28,R2=m*.235;  /* R1 上推：U 盤插頭正插入外色環；R2 上推：標籤牌貼住內色環 */
+  var Rp=m*.40,Rv=m*.268;                 /* 外＝粉彩帶（機身盡頭）· 內＝飽和帶（插座條） */
   var bt=Math.max(3,m*.0125),SEG=72;
-  function band(R,sat,lig,th){
+  function band(R,sat,lig){
     var w=2*Math.PI*R/SEG*.86;
     for(var i=0;i<SEG;i++){
       var h=Math.round(i/SEG*360);
       var d=document.createElement('div');
-      d.style.cssText='position:absolute;left:0;top:0;width:'+w.toFixed(2)+'px;height:'+th.toFixed(2)+'px;'
-        +'margin:'+(-th/2).toFixed(2)+'px 0 0 '+(-w/2).toFixed(2)+'px;background:hsl('+h+','+sat+'%,'+lig+'%);'
+      d.style.cssText='position:absolute;left:0;top:0;width:'+w.toFixed(2)+'px;height:'+bt.toFixed(2)+'px;'
+        +'margin:'+(-bt/2).toFixed(2)+'px 0 0 '+(-w/2).toFixed(2)+'px;background:hsl('+h+','+sat+'%,'+lig+'%);'
         +'transform:rotate('+(i/SEG*360).toFixed(2)+'deg) translateY('+(-R).toFixed(1)+'px)';
       ring.appendChild(d);
     }
   }
-  band(Rp,68,79,bt);   /* 外：粉彩色帶 */
-  band(Rv,94,55,bt);   /* 內：飽和色帶 */
-  /* 兩圈暗卡：徑向長條、圓角、細描邊、徑向小字 */
-  var cw1=2*Math.PI*R1/SVN*.50,cl1=cw1*2.55;
-  var cw2=2*Math.PI*R2/SVN*.68,cl2=cw2*1.95;
+  band(Rp,68,79);band(Rv,94,55);
+  /* U 盤：外環位＝機身，內環位＝插頭；插頭朝內，尖端抵住飽和色帶＝已插入 */
+  var W=2*Math.PI*(m*.35)/SVN*.52;
+  var Lb=W*2.35,Lp=W*.9,neck=W*.14;
+  var L=Lb+neck+Lp,R=Rv+bt/2+L/2;
   for(var i=0;i<SVN;i++)(function(n){
-    var v=svGet(n+1),a=(n/SVN*360).toFixed(2),sel=SVSEL===n+1;
-    function mk(cw,cl,R,txt,col,bc){
-      var d=document.createElement('div');d.className='svChip';d.setAttribute('data-n',n+1);
-      d.style.cssText='width:'+cw.toFixed(2)+'px;height:'+cl.toFixed(2)+'px;'
-        +'margin:'+(-cl/2).toFixed(2)+'px 0 0 '+(-cw/2).toFixed(2)+'px;'
-        +'transform:rotate('+a+'deg) translateY('+(-R).toFixed(1)+'px);'
-        +'background:#080808;border:1px solid '+bc+';border-radius:2px'
-        +(sel?';box-shadow:0 0 10px rgba(255,255,255,.45)':(v?';box-shadow:0 0 7px rgba(236,236,232,.16)':''));
-      d.innerHTML='<span class="vt" style="color:'+col+'">'+txt+'</span>';
-      ring.appendChild(d);
-    }
-    /* 外圈＝U 盤：金屬插頭朝外，機身內為槽號與工作燈 */
-    var pinH=cl1*.26,neckH=cl1*.05,bodyH=cl1-pinH-neckH,hue=Math.round(n/SVN*360);
+    var v=svGet(n+1),a=(n/SVN*360).toFixed(2),sel=SVSEL===n+1,hue=Math.round(n/SVN*360);
+    var lbl='#'+SV_ROMAN[n]+(v?('\u00b7'+String(v.t||'').replace(/\s+/g,'').slice(0,7)):'');
     var u=document.createElement('div');u.className='svChip svUsb';u.setAttribute('data-n',n+1);
-    u.style.cssText='width:'+cw1.toFixed(2)+'px;height:'+cl1.toFixed(2)+'px;'
-      +'margin:'+(-cl1/2).toFixed(2)+'px 0 0 '+(-cw1/2).toFixed(2)+'px;'
-      +'transform:rotate('+a+'deg) translateY('+(-R1).toFixed(1)+'px)';
-    u.innerHTML='<i class="pin" style="width:'+(cw1*.6).toFixed(1)+'px;height:'+pinH.toFixed(1)+'px;background:linear-gradient(180deg,'
-        +(v?'#d4d8de':'#666a72')+','+(v?'#878c95':'#393c43')+')"></i>'
-      +'<i class="neck" style="height:'+neckH.toFixed(1)+'px"></i>'
-      +'<b class="body" style="height:'+bodyH.toFixed(1)+'px;border-color:'+(sel?'#fff':'rgba(236,236,232,'+(v?'.6':'.24')+')')+';'
-      +(sel?'box-shadow:0 0 10px rgba(255,255,255,.45);':(v?'box-shadow:0 0 8px rgba(236,236,232,.16);':''))+'">'
-      +'<span class="vt" style="color:'+(v?'#ececec':'rgba(150,150,145,.8)')+'">#'+SV_ROMAN[n]+'</span>'
-      +(v?'<i class="led" style="background:hsl('+hue+',92%,62%);box-shadow:0 0 6px hsl('+hue+',92%,62%)"></i>':'')
-      +'</b>';
+    u.style.cssText='width:'+W.toFixed(2)+'px;height:'+L.toFixed(2)+'px;'
+      +'margin:'+(-L/2).toFixed(2)+'px 0 0 '+(-W/2).toFixed(2)+'px;'
+      +'transform:rotate('+a+'deg) translateY('+(-R).toFixed(1)+'px)';
+    u.innerHTML='<b class="body" style="height:'+Lb.toFixed(1)+'px;border-color:'
+        +(sel?'#fff':'rgba(236,236,232,'+(v?'.6':'.24')+')')+';'
+        +(sel?'box-shadow:0 0 11px rgba(255,255,255,.45);':(v?'box-shadow:0 0 8px rgba(236,236,232,.16);':''))+'">'
+        +'<span class="vt" style="color:'+(v?'#ececec':'rgba(150,150,145,.8)')+'">'+esc2(lbl)+'</span>'
+        +(v?'<i class="led" style="background:hsl('+hue+',92%,62%);box-shadow:0 0 6px hsl('+hue+',92%,62%)"></i>':'')
+      +'</b>'
+      +'<i class="neck" style="height:'+neck.toFixed(1)+'px"></i>'
+      +'<i class="pin" style="width:'+(W*.62).toFixed(1)+'px;height:'+Lp.toFixed(1)+'px;background:linear-gradient(0deg,'
+        +(v?'#d4d8de':'#6b6f77')+','+(v?'#878c95':'#3b3e45')+')"></i>';
     ring.appendChild(u);
-    mk(cw2,cl2,R2,v?esc2(String(v.t||'').replace(/\s+/g,'').slice(0,7)):'VACVVM',
-       v?'var(--gold-hi)':'rgba(150,150,145,.7)',
-       sel?'#fff':'rgba(236,236,232,'+(v?'.48':'.2')+')');
   })(i);
-  /* 時碼與紅圈 × 依環半徑就位（參考稿：時碼在環內近底，紅圈在環外右上） */
-  var ck=$('#svClock');if(ck)ck.style.top=(innerHeight/2+m*.255)+'px';
+  var ck=$('#svClock');if(ck)ck.style.top=(innerHeight/2+m*.20)+'px';
   var rx=$('#svRedX');
   if(rx){rx.style.left=(innerWidth/2+m*.455)+'px';rx.style.top=(innerHeight/2-m*.235)+'px';rx.style.right='auto';}
 }
