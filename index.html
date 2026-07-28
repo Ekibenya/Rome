@@ -4394,13 +4394,14 @@ function renderMvu(panel){
   try{memSync();}catch(_){}
   h+='<div class="zjP">'
     +'<div class="mSec">'+zjHead(S.secG,'tgG','',ACTIVE==='roma'?'NEXVS&nbsp;·&nbsp;人物圖譜':'牽絲譜&nbsp;·&nbsp;人物圖譜',S.secG)+(S.secG?'<div id="zjGraphBox" class="fade">'+graphInner()+'</div>':'')+'</div>'
+    +'<div class="mSec">'+zjHead(S.secA,'tgA','',ACTIVE==='roma'?'ANNALES&nbsp;·&nbsp;編年史':'太史紀&nbsp;·&nbsp;編年史',S.secA)+(S.secA?'<div class="fade">'+axisInner()+'</div>':'')+'</div>'
     +'<div class="mSec">'+zjHead(S.secM,'tgM','',ACTIVE==='roma'?'MEMORIA&nbsp;·&nbsp;長程記憶':'起居注&nbsp;·&nbsp;長程記憶',S.secM)+(S.secM?'<div class="fade zjMemPane">'+memPaneInner(true)+'</div>':'')+'</div>'
     +'</div>';
   document.querySelector('#game .gMfd').innerHTML=h;
   try{graphHydrate();}catch(_){}
 }
 /* ═══════════ 図譜 CHAIN × 記憶 MEM（Ghost 原版整件移植：蛛网引擎/PERSONNEL FILE/编年长卷）═══════════ */
-var S={history:[],memNpc:null,_npcMetaBusy:null,memEdit:null,secG:true,secM:true,
+var S={history:[],memNpc:null,_npcMetaBusy:null,memEdit:null,secG:true,secA:true,secM:true,
   graphHidden:[],npcMeta:{},mem:[],memOn:true,memN:0};
 function esc(s){return esc2(s);}
 function stripCoT(t){return String(t||'').replace(/<think>[\s\S]*?<\/think>/gi,'');}
@@ -4421,14 +4422,14 @@ function callAuxAI(sys,msgs){
 }
 function savePref(){
   SET.zj=SET.zj||{};
-  SET.zj[ACTIVE]={graphHidden:S.graphHidden,npcMeta:S.npcMeta,mem:S.mem,memOn:S.memOn,memN:S.memN,secG:S.secG,secM:S.secM};
+  SET.zj[ACTIVE]={graphHidden:S.graphHidden,npcMeta:S.npcMeta,mem:S.mem,memOn:S.memOn,memN:S.memN,secG:S.secG,secA:S.secA,secM:S.secM};
   setStore();
 }
 function zjLoadPref(){
   var z=(SET.zj||{})[ACTIVE]||{};
   S.graphHidden=z.graphHidden||[];S.npcMeta=z.npcMeta||{};S.mem=z.mem||[];
   S.memOn=z.memOn!==false;S.memN=z.memN||0;
-  if(z.secG!=null)S.secG=z.secG;if(z.secM!=null)S.secM=z.secM;
+  if(z.secG!=null)S.secG=z.secG;if(z.secA!=null)S.secA=z.secA;if(z.secM!=null)S.secM=z.secM;
   S.memNpc=null;S.memEdit=null;
 }
 function render(){if(GAME.lastPanel)renderMvu(GAME.lastPanel);}
@@ -4887,6 +4888,24 @@ function memChronicle(){
   for(var i=lines.length-1;i>=8;i--){if(used+lines[i].length>7000)break;tail.unshift(lines[i]);used+=lines[i].length+1;}
   return head.join('\n')+'\n……（中略 '+(lines.length-8-tail.length)+' 条，已录于长卷）……\n'+tail.join('\n');
 }
+/* 編年史 ANNALES：長卷時間軸（Ghost/RitusZhou axisInner 同構；紀年章+節點+史筆） */
+function axisInner(){
+  var ms=S.mem||[];
+  if(!ms.length)return '<div style="padding:18px 0 6px;text-align:center;font-size:11.5px;letter-spacing:.2em;color:var(--mut)">編年尚空 · 行過一輪自動記一筆</div>';
+  var lastE=null;
+  var items=ms.map(function(m,i){
+    var eraChip='';
+    if((m.e||'')&&m.e!==lastE){lastE=m.e;eraChip='<div style="display:flex;align-items:center;gap:10px;margin:18px 0 10px"><div style="flex:none;font-size:11.5px;color:var(--gold2);letter-spacing:.18em;border:1px solid rgba(201,155,63,.45);padding:3px 12px 2px;background:rgba(201,155,63,.08)">'+esc(m.e)+'</div><div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,155,63,.4),transparent)"></div></div>';}
+    return eraChip+'<div style="position:relative;padding:0 0 16px 22px">'
+      +'<div style="position:absolute;left:4px;top:9px;bottom:-3px;width:1px;background:rgba(236,236,232,.14)"></div>'
+      +'<div style="position:absolute;left:1px;top:6px;width:7px;height:7px;background:'+(m.manual?'#ecece8':'var(--gold)')+'"></div>'
+      +'<div style="font-size:10.5px;color:var(--mut);letter-spacing:.12em">第'+(i+1)+'筆'+(m.d?(' · '+esc(m.d)):'')+(m.manual?' · <span style="color:var(--gold2)">手記</span>':'')+'</div>'
+      +(m.a?'<div style="font-size:11.5px;color:#c9c9c3;margin-top:3px;letter-spacing:.06em">我：'+esc(m.a)+'</div>':'')
+      +(m.s?'<div style="font-size:12px;color:#d9d9d4;line-height:1.8;margin-top:3px;letter-spacing:.05em">'+esc(m.s)+'</div>':'')
+      +'</div>';
+  }).join('');
+  return '<div style="max-height:420px;overflow-y:auto;padding:4px 2px 0">'+items+'</div>';
+}
 /* 記憶 MEM pane（侧栏紧凑型 compact=true；事件走 data-act 委托，输入取值按 .zjMemPane 就近作用域） */
 function memPaneInner(compact){
   var n=S.mem?S.mem.length:0;
@@ -4935,6 +4954,7 @@ document.querySelector('#game .gMfd').addEventListener('click',function(e){
   var el=t.closest?t.closest('[data-act]'):null;if(!el)return;
   var a=el.getAttribute('data-act');
   if(a==='tgG'){S.secG=!S.secG;savePref();render();}
+  else if(a==='tgA'){S.secA=!S.secA;savePref();render();}
   else if(a==='tgM'){S.secM=!S.secM;savePref();render();}
   else if(a==='graphZoomReset'){gzReset();}
   else if(a==='npcUnhide'){S.graphHidden=[];savePref();render();}
