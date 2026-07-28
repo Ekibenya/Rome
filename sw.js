@@ -1,6 +1,6 @@
 /* ROMA.SYS · service worker
-   殼層預緩存 + 其餘按需緩存。素材總量近 200MB（三維包與樂曲），一次性全預下載既慢又
-   會撐爆配額，所以只預存「打得開」所需的那幾個檔，其餘用過哪個存哪個。 */
+   壳层预缓存 + 其余按需缓存。素材总量近 200MB（三维包与乐曲），一次性全预下载既慢又
+   会撑爆配额，所以只预存「打得开」所需的那几个档，其余用过哪个存哪个。 */
 var V = 'roma-v1';
 var SHELL = [
   '/',
@@ -13,7 +13,7 @@ var SHELL = [
 self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(V).then(function (c) {
-      /* 逐個放行：任何一個檔掛掉都不該讓整個安裝失敗（addAll 是全有全無的） */
+      /* 逐个放行：任何一个档挂掉都不该让整个安装失败（addAll 是全有全无的） */
       return Promise.all(SHELL.map(function (u) {
         return c.add(new Request(u, { cache: 'reload' })).catch(function () {});
       }));
@@ -38,11 +38,11 @@ self.addEventListener('fetch', function (e) {
   if (r.method !== 'GET') return;
   var u;
   try { u = new URL(r.url); } catch (_) { return; }
-  /* 跨域一律不碰：AI 接口、生圖接口、NovelAI 中轉都必須原樣直達 */
+  /* 跨域一律不碰：AI 接口、生图接口、NovelAI 中转都必须原样直达 */
   if (u.origin !== location.origin) return;
   if (u.pathname.indexOf('/_vercel/') === 0) return;
 
-  /* 文檔：網絡優先，斷網時回落到上一次緩存的殼 */
+  /* 文档：网络优先，断网时回落到上一次缓存的壳 */
   if (r.mode === 'navigate') {
     e.respondWith(
       fetch(r).then(function (res) {
@@ -56,13 +56,13 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  /* 素材：緩存優先、後台回源刷新（stale-while-revalidate） */
+  /* 素材：缓存优先、后台回源刷新（stale-while-revalidate） */
   e.respondWith(
     caches.match(r).then(function (hit) {
       var net = fetch(r).then(function (res) {
         if (res && res.ok && res.type === 'basic' && cacheable(res)) {
           var cp = res.clone();
-          /* 配額滿了就讓它失敗，瀏覽器自己按 LRU 淘汰，不影響本次返回 */
+          /* 配额满了就让它失败，浏览器自己按 LRU 淘汰，不影响本次返回 */
           caches.open(V).then(function (c) { c.put(r, cp).catch(function () {}); });
         }
         return res;
@@ -72,10 +72,10 @@ self.addEventListener('fetch', function (e) {
   );
 });
 
-/* 大檔一律不進 SW 緩存：三維包與樂曲合計近 200MB，全存下來會把本站變成瀏覽器
-   清理配額時的首選目標——而清理是按站點整體來的，會連 localStorage 裡的存檔一起抹掉。
-   況且 /core/res/* 本來就帶 immutable 長緩存，重訪時瀏覽器自己的 HTTP 緩存已經接住了，
-   SW 這一層只需要保證「打得開、能離線進菜單」。 */
+/* 大档一律不进 SW 缓存：三维包与乐曲合计近 200MB，全存下来会把本站变成浏览器
+   清理配额时的首选目标——而清理是按站点整体来的，会连 localStorage 里的存档一起抹掉。
+   况且 /core/res/* 本来就带 immutable 长缓存，重访时浏览器自己的 HTTP 缓存已经接住了，
+   SW 这一层只需要保证「打得开、能离线进菜单」。 */
 var MAXB = 4 * 1024 * 1024;
 function cacheable(res) {
   var n = parseInt(res.headers.get('content-length') || '', 10);

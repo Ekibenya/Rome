@@ -3105,7 +3105,7 @@
     '耶路撒冷': ['rock', 'levant'], '孟菲斯': ['rock', 'aegypt'], '底比斯': ['rock', 'aegypt'],
     '埃及底比斯': ['rock', 'aegypt'], '麦罗埃': ['rock', 'aegypt'], '马里卜': ['rock', 'levant'],
     '安条克': ['colonia', 'levant'], '巴比伦': ['rock', 'levant'], '波斯波利斯': ['rock', 'levant'],
-    '泰西封': ['rock', 'levant'], '苏薩': ['rock', 'levant'], '苏萨': ['rock', 'levant'],
+    '泰西封': ['rock', 'levant'], '苏萨': ['rock', 'levant'], '苏萨': ['rock', 'levant'],
     '埃克巴坦那': ['rock', 'levant'], '塞琉西亚': ['colonia', 'levant'],
     '潘提卡派翁': ['port', 'pontus'], '奥尔比亚': ['port', 'pontus'],
     '塔拉科': ['port', 'hispania'], '瑙克拉提斯': ['port', 'aegypt'],
@@ -3130,8 +3130,8 @@
       return true;
     }
     /* 未列名地点：按名相择形——带村庄字样即田舍，靠海词即港市，余者行省城 */
-    if (/村|庄|莊|乡|鄉|田|农|農|VICVS/i.test(locName)) medVicus(locName, 'latium', locName);
-    else if (/港|海|岛|島|滨|濱/.test(locName)) medPort(locName, 'graecia', locName);
+    if (/村|庄|庄|乡|乡|田|农|农|VICVS/i.test(locName)) medVicus(locName, 'latium', locName);
+    else if (/港|海|岛|岛|滨|滨/.test(locName)) medPort(locName, 'graecia', locName);
     else medColonia(locName, 'latium', locName);
     return true;
   }
@@ -3266,7 +3266,7 @@
     else loadEl.style.display = 'none';
     expBtn.textContent = Z.tier === 0 ? 'OPVS·建造' : (Z.tier === 1 ? 'MAIOR·放大' : 'CLAVDE·收起'); // 展开默认即营造；游历是营造内的切换项
     if (Z._xBtn) {
-      Z._xBtn.style.display = 'block'; /* 關閉鈕常駐：任何檔位都能一鍵收起 */
+      Z._xBtn.style.display = 'block'; /* 关闭钮常驻：任何档位都能一键收起 */
       expBtn.style.right = '44px';
     }
     if (Z._lowBtn) Z._lowBtn();

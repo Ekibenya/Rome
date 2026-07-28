@@ -1775,7 +1775,7 @@
     else loadEl.style.display = 'none';
     expBtn.textContent = Z.expanded ? '收起' : '营造'; // 展开默认即营造；游历是营造内的切换项
     if (Z._xBtn) {
-      Z._xBtn.style.display = 'block'; /* 關閉鈕常駐：任何檔位都能一鍵收起 */
+      Z._xBtn.style.display = 'block'; /* 关闭钮常驻：任何档位都能一键收起 */
       expBtn.style.right = '44px';
     }
     if (Z._lowBtn) Z._lowBtn();
