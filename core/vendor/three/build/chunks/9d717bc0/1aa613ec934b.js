@@ -1760,13 +1760,18 @@
     eraChip.style.cssText = 'position:absolute;top:34px;left:12px;max-width:62%;font-size:8.5px;letter-spacing:.06em;color:rgba(232,207,158,.5);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
     hud.appendChild(eraChip);
     applyChip();
+    /* 顶排按钮统一进一个 flex 行：原先各自写死 right 偏移，而「游历」还在另一层，
+       两层互不知情，展开后必然叠在一起。改成同一行由 flex 排布，永不重叠。 */
+    var tr0 = document.createElement('div');
+    tr0.style.cssText = 'position:absolute;top:8px;right:10px;display:flex;gap:6px;align-items:center;pointer-events:auto';
+    hud.appendChild(tr0); Z._topRow = tr0;
     // expand button
     expBtn = document.createElement('div');
-    expBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
+    expBtn.style.cssText = 'order:9;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
     expBtn.onclick = function () { Z.toggleExpand(); };
-    hud.appendChild(expBtn);
+    tr0.appendChild(expBtn);
     var xBtn = document.createElement('div');
-    xBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;cursor:pointer;pointer-events:auto;border-radius:9px;display:none';
+    xBtn.style.cssText = 'order:10;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;cursor:pointer;pointer-events:auto;border-radius:9px;display:none';
     xBtn.textContent = '×';
     xBtn.title = '完全隐藏三维横条（文字区右上可随时展开）';
     xBtn.onclick = function () {
@@ -1774,23 +1779,23 @@
       try { localStorage.setItem('zj3d_hide', '1'); } catch (e) { }
       if (window.ZJ3D_onExpand) window.ZJ3D_onExpand();
     };
-    hud.appendChild(xBtn); Z._xBtn = xBtn;
+    tr0.appendChild(xBtn); Z._xBtn = xBtn;
     // 低配模式（仅手机）：更低渲染分辨率 + 关阴影 + 锁30帧
     if (isTouch()) {
       var lowBtn = document.createElement('div');
       var lowSty = function () {
-        lowBtn.style.cssText = 'position:absolute;top:8px;right:102px;padding:2px 8px;background:' + (PERF.low ? 'rgba(201,160,99,.4)' : 'rgba(12,9,6,.62)') + ';border:1px solid rgba(201,160,99,.45);color:' + (PERF.low ? '#1a1208' : '#e8cf9e') + ';font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
+        lowBtn.style.cssText = 'order:3;padding:2px 8px;background:' + (PERF.low ? 'rgba(201,160,99,.4)' : 'rgba(12,9,6,.62)') + ';border:1px solid rgba(201,160,99,.45);color:' + (PERF.low ? '#1a1208' : '#e8cf9e') + ';font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
       };
       lowSty();
       lowBtn.textContent = '低配';
       lowBtn.onclick = function () { PERF.low = !PERF.low; perfSave(); applyPerf(); lowSty(); };
-      hud.appendChild(lowBtn); Z._lowBtn = lowSty;
+      tr0.appendChild(lowBtn); Z._lowBtn = lowSty;
       var txtBtn = document.createElement('div');
-      txtBtn.style.cssText = 'position:absolute;top:8px;right:148px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
+      txtBtn.style.cssText = 'order:2;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
       txtBtn.textContent = '纯文字';
       txtBtn.title = '关闭三维，纯文字游玩（最省电），可随时开回';
       txtBtn.onclick = function () { try { localStorage.setItem('zj3d_off', '1'); } catch (e) { } location.reload(); };
-      hud.appendChild(txtBtn); Z._txtBtn = txtBtn;
+      tr0.appendChild(txtBtn); Z._txtBtn = txtBtn;
     }
     // door button
     doorBtn = document.createElement('div');
@@ -1825,7 +1830,7 @@
     expBtn.textContent = Z.expanded ? '收起' : '营造'; // 展开默认即营造；游历是营造内的切换项
     if (Z._xBtn) {
       Z._xBtn.style.display = 'block'; /* 关闭钮常驻：任何档位都能一键收起 */
-      expBtn.style.right = '44px';
+      /* 位置交给 flex 行，不再写死偏移 */
     }
     if (Z._lowBtn) Z._lowBtn();
     if (Z._txtBtn) Z._txtBtn.style.display = Z.expanded ? 'block' : 'none';
@@ -2066,7 +2071,7 @@
         else doorBtn.style.display = 'none';
       }
     }
-    if (Z.mode === 'city' && Z.ready && Z.scene) { pawnTick(dt, t); animTick(dt); }
+    if (Z.mode === 'city' && Z.ready && Z.scene) { pawnTick(dt, t); rigTick(dt); animTick(dt); }
     if (Z.ready && Z.scene && Z.player) { if (!Z.escortBusy) escortTick(dt, t); eventTick(dt, t); }
     // 分块旷野随焦点生成
     if ((tick._ck = (tick._ck || 0) + dt) > 0.4) {
@@ -3127,13 +3132,13 @@
     w.style.cssText = 'position:absolute;inset:0;pointer-events:none';
     // 国库
     var gold = document.createElement('div');
-    gold.style.cssText = isTouch() ? 'position:absolute;top:8px;right:204px;padding:2px 8px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:9.5px;letter-spacing:.04em;border-radius:9px;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:10.5px;letter-spacing:.1em;border-radius:9px;display:none;white-space:nowrap';
-    w.appendChild(gold); bHud.goldChip = gold;
+    gold.style.cssText = isTouch() ? 'order:1;padding:2px 8px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:9.5px;letter-spacing:.04em;border-radius:9px;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);max-width:calc(100% - 340px);overflow:hidden;text-overflow:ellipsis;padding:3px 12px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:10.5px;letter-spacing:.1em;border-radius:9px;display:none;white-space:nowrap';
+    (isTouch() && Z._topRow ? Z._topRow : w).appendChild(gold); bHud.goldChip = gold;
     // 模式切换
     var vb = document.createElement('div');
-    vb.style.cssText = 'position:absolute;top:8px;right:56px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
+    vb.style.cssText = 'order:4;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
     vb.onclick = function () { if (Z.intPlan) { exitInterior(); return; } Z.toggleView(); };
-    w.appendChild(vb); bHud.viewBtn = vb;
+    (Z._topRow || w).appendChild(vb); bHud.viewBtn = vb;
     // 托盘开关
     var tb = document.createElement('div');
     tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:linear-gradient(180deg,#b8894e,#8a6535);color:#231a0c;font-size:' + (isTouch() ? '10px' : '11px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:9px;display:none;font-weight:600';
@@ -3738,6 +3743,13 @@
   }
 
   /* ---------------- 游走 / 军令 / 战斗 tick ---------------- */
+  /* 骨架摆臂：与地中海引擎同一份实现（共用模块）。本引擎只有罗马纪的女主是骨架棋子，
+     其余火柴人没有 userData.rig，模块内会直接跳过。 */
+  function rigTick(dt) {
+    if (!window.ZJ_PAWN) return;
+    for (var i = 0; i < Z.pawns.length; i++) { var r = Z.pawns[i].root; if (r && r.parent) window.ZJ_PAWN.swing(r, dt); }
+    if (Z.player) window.ZJ_PAWN.swing(Z.player, dt);
+  }
   function pawnTick(dt, t) {
     for (var i = 0; i < Z.pawns.length; i++) {
       var p = Z.pawns[i];
