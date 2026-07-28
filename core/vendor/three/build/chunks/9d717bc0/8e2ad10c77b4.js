@@ -766,7 +766,7 @@
     g.userData.isPlayer = true;
     return g;
   }
-  /* ---------------- 王室卫队：凯撒仪仗常随 ---------------- */
+  /* ---------------- 王室卫队：贝罗娜仪仗常随 ---------------- */
   Z.escort = [];
   var GUARD_CFG = { robe: 0x2c2836, band: 0xc9a063, chest: 0x3a3444, hat: 'plume', hatC: 0x2c2836, prop: 'spear', s: 0.94, outfit: 'corhop', head: 'Spartan_Mohawk_Helmet', shield: 1 };
   function escortOffsets(n) {
@@ -807,7 +807,7 @@
     Z.escortBusy = false;
     if (!Z.player || !Z.scene) return;
     if (Z.captive) return; // 软禁之身，无卫可随
-    var n = Z.escortN; // 员额由凯撒钦定（默认四卫：前二后二）
+    var n = Z.escortN; // 员额由贝罗娜钦定（默认四卫：前二后二）
     var offs = escortOffsets(n);
     var py = Z.player.rotation.y, sy = Math.sin(py), cy = Math.cos(py);
     for (var i = 0; i < n; i++) {
@@ -844,7 +844,7 @@
     if (tgt.tag !== 'unit') {
       var nm = tgt.name, cat = tgt.cat;
       killPawn(tgt);
-      msg = '（凯撒敕命禁卫军出击——' + nm + '（' + cat + '）于' + city + '城' + pos + '为卫士所格杀，卫队无伤，归列护驾。）';
+      msg = '（贝罗娜敕命禁卫军出击——' + nm + '（' + cat + '）于' + city + '城' + pos + '为卫士所格杀，卫队无伤，归列护驾。）';
     } else {
       var dC = tgt.count;
       var aS = n * 16 * (0.9 + Math.random() * 0.25); // 羽林近卫，以一当二
@@ -855,7 +855,7 @@
       escortKill(gCas);
       if (dLeft <= 0) killPawn(tgt); else shrinkUnit(tgt, dLeft);
       var res = dLeft <= 0 ? tgt.name + '全军覆没' : tgt.name + '余' + dLeft + '人退却';
-      msg = '（凯撒敕命禁卫军出击' + tgt.name + '。过程：卫队突阵于' + city + '城' + pos + '，' + tgt.name + '伤亡' + dCas + '人，卫士殉职' + gCas + '人。结果：' + res + '，卫队归列护驾。影响：禁卫见血，都中侧目。）';
+      msg = '（贝罗娜敕命禁卫军出击' + tgt.name + '。过程：卫队突阵于' + city + '城' + pos + '，' + tgt.name + '伤亡' + dCas + '人，卫士殉职' + gCas + '人。结果：' + res + '，卫队归列护驾。影响：禁卫见血，都中侧目。）';
     }
     Z.escortBusy = false;
     if (window.ZJ3D_say) ZJ3D_say(msg);
@@ -929,9 +929,9 @@
           var gCas = Math.random() < 0.35 ? 1 : 0;
           gCas = Math.min(gCas, Math.max(0, Z.escort.length - 1));
           if (gCas > 0) escortKill(gCas);
-          msg = '（变起仓促——' + k + '名刺客扑向御驾，禁卫军立时合围搏杀。刺客' + k + '人尽数格杀' + (gCas > 0 ? '，卫士殉职' + gCas + '人' : '，卫队无一伤亡') + '，凯撒无恙。史官记：有贼犯驾于' + city + '。）';
+          msg = '（变起仓促——' + k + '名刺客扑向御驾，禁卫军立时合围搏杀。刺客' + k + '人尽数格杀' + (gCas > 0 ? '，卫士殉职' + gCas + '人' : '，卫队无一伤亡') + '，贝罗娜无恙。史官记：有贼犯驾于' + city + '。）';
         } else {
-          msg = '（变起仓促——' + k + '名刺客扑向御驾，左右竟无一卫！兵刃加身，凯撒却立而不倒，创口于众目之下弥合如初。刺客骇然掷刃，仓皇遁走。' + city + '城中悄声相传：凯撒果然不可杀。）';
+          msg = '（变起仓促——' + k + '名刺客扑向御驾，左右竟无一卫！兵刃加身，贝罗娜却立而不倒，创口于众目之下弥合如初。刺客骇然掷刃，仓皇遁走。' + city + '城中悄声相传：贝罗娜果然不可杀。）';
         }
         Z.escortBusy = false;
         EV = null;
@@ -959,7 +959,7 @@
         g.position.y = Math.abs(Math.sin(t * 8 + i * 1.7)) * 0.045;
       } else {
         g.position.y *= 0.8;
-        // 立定后转向与凯撒同向
+        // 立定后转向与贝罗娜同向
         var d0 = py - g.rotation.y;
         while (d0 > Math.PI) d0 -= Math.PI * 2;
         while (d0 < -Math.PI) d0 += Math.PI * 2;
@@ -3955,7 +3955,7 @@
       var back = 0; LEDGER.razed.forEach(function (e) { back += e.g || 0; });
       parts.push('除旧——' + group(LEDGER.razed).map(function (e) { return e.v + e.d + (e.n > 1 ? '×' + e.n : ''); }).join('、') + (back ? '，共返金' + back : ''));
     }
-    var msg = '（凯撒颁营造清单于史官，本轮于' + (cities.join('、') || Z.cityKey) + '：' + parts.join('；') + '。国库现余金' + ECON.gold + '，役夫既发，坊市为之一新。）';
+    var msg = '（贝罗娜颁营造清单于史官，本轮于' + (cities.join('、') || Z.cityKey) + '：' + parts.join('；') + '。国库现余金' + ECON.gold + '，役夫既发，坊市为之一新。）';
     if (window.ZJ3D_say) ZJ3D_say(msg);
     LEDGER = { built: [], razed: [] }; ledgerSave(); updateBuildHud();
   }
@@ -4455,7 +4455,7 @@
       }
       if (gdrag) { gdrag = false; return; }
       if (!wasClick) return;
-      // 点击人物/军旅/凯撒：弹窗或预备移驾
+      // 点击人物/军旅/贝罗娜：弹窗或预备移驾
       if (!Z.B) {
         var proots = Z.pawns.map(function (p) { return p.root; });
         if (Z.player && Z.player.parent) proots.push(Z.player);
@@ -4463,7 +4463,7 @@
         if (ph) {
           var oo = ph, isP = false;
           while (oo) { if (oo.userData && oo.userData.isPlayer) { isP = true; break; } oo = oo.parent; }
-          if (isP) { // 点中凯撒 → 预备移驾（点目标格瞬移）
+          if (isP) { // 点中贝罗娜 → 预备移驾（点目标格瞬移）
             Z.tp = { phase: 'armed' };
             Z.sel = null; Z.actor = null; Z.selNpc = null;
             updateBuildHud();
@@ -4562,7 +4562,7 @@
     updateBuildHud();
   }
 
-  /* 移驾：凯撒瞬移至目标格，卫队随驾列位 */
+  /* 移驾：贝罗娜瞬移至目标格，卫队随驾列位 */
   function doTeleport() {
     if (!Z.tp || Z.tp.phase !== 'confirm' || !Z.player) return;
     puff(Z.player.position.x, 0.7, Z.player.position.z, 0xd8b23a, 2, 1.6, 0.8);
@@ -4784,7 +4784,7 @@
       nl.title = np.desc || '';
       nb.appendChild(nl);
       nb.appendChild(mkBtn('对话', function () {
-        if (window.ZJ3D_say) ZJ3D_say('（凯撒与' + np.name + '（' + np.cat + '）开启对话。）');
+        if (window.ZJ3D_say) ZJ3D_say('（贝罗娜与' + np.name + '（' + np.cat + '）开启对话。）');
         Z.selNpc = null; updateBuildHud();
       }));
       if (np.tag === 'escort' && inBuild()) {
@@ -4921,7 +4921,7 @@
         sb.appendChild(mkBtn('✓ 移驾', function () { doTeleport(); }));
         sb.appendChild(mkBtn('✕', function () { Z.tp = null; updateBuildHud(); }, true));
       } else {
-        tl.textContent = '已选 凯撒 · 点目标地点即可前往';
+        tl.textContent = '已选 贝罗娜 · 点目标地点即可前往';
         sb.appendChild(tl);
         sb.appendChild(mkBtn('✕', function () { Z.tp = null; updateBuildHud(); }, true));
       }
@@ -5301,7 +5301,7 @@
       gx: tp.x - dx / d * 1.05, gz: tp.z - dz / d * 1.05,
       tgt: np, yaw: Math.atan2(dx, dz)
     };
-    if (window.ZJ3D_say) ZJ3D_say('（凯撒亲自拔剑出手，攻击' + np.name + '（' + np.cat + '）！这一击已然挥出：请神谕裁断此击结果与在场众人反应。）');
+    if (window.ZJ3D_say) ZJ3D_say('（贝罗娜亲自拔剑出手，攻击' + np.name + '（' + np.cat + '）！这一击已然挥出：请神谕裁断此击结果与在场众人反应。）');
   }
   function strikeTick(dt) {
     var s = Z.strike; if (!s) return;
@@ -5463,7 +5463,7 @@
       // 对平民/人物：一击而殁
       var nm = tgt.name, cat = tgt.cat;
       killPawn(tgt);
-      msg = '（凯撒敕命' + atk.name + '攻击' + nm + '（' + cat + '）。过程：兵刃骤起于' + city + '城' + pos + '，' + nm + '不及走避。结果：' + nm + '殒命，' + atk.name + '无伤。影响：城中震恐，市井奔散，民心动摇——史官秉笔直书，此事必载于史。）';
+      msg = '（贝罗娜敕命' + atk.name + '攻击' + nm + '（' + cat + '）。过程：兵刃骤起于' + city + '城' + pos + '，' + nm + '不及走避。结果：' + nm + '殒命，' + atk.name + '无伤。影响：城中震恐，市井奔散，民心动摇——史官秉笔直书，此事必载于史。）';
     } else {
       var aC = atk.count, dC = tgt.count;
       var aS = aC * 10 * (0.85 + Math.random() * 0.3);
@@ -5480,7 +5480,7 @@
       // 应用伤亡
       if (dLeft <= 0) killPawn(tgt); else shrinkUnit(tgt, dLeft);
       if (aLeft <= 0) killPawn(atk); else if (aCas > 0) { var na = shrinkUnit(atk, aLeft); if (Z.actor === atk) setActor(na); }
-      msg = '（凯撒敕命' + atk.name + '攻击' + tgt.name + '。过程：' + proc + '。结果：' + res + '。影响：' + imp + '。）';
+      msg = '（贝罗娜敕命' + atk.name + '攻击' + tgt.name + '。过程：' + proc + '。结果：' + res + '。影响：' + imp + '。）';
     }
     if (window.ZJ3D_say) ZJ3D_say(msg);
     updateBuildHud();
@@ -5698,11 +5698,11 @@
     var isNature = !!tgt.root.userData.natId;
     razeBuilding(tgt.root);
     if (window.ZJ3D_say && isNature) {
-      ZJ3D_say('（凯撒敕命' + atk.name + '于' + city + '城' + pos + '纵火焚除' + disp + '，草木化为焦炭，烟起数里。）');
+      ZJ3D_say('（贝罗娜敕命' + atk.name + '于' + city + '城' + pos + '纵火焚除' + disp + '，草木化为焦炭，烟起数里。）');
     } else if (window.ZJ3D_say) {
-      ZJ3D_say('（凯撒敕命' + atk.name + '攻毁' + city + '城' + pos + '之' + disp +
+      ZJ3D_say('（贝罗娜敕命' + atk.name + '攻毁' + city + '城' + pos + '之' + disp +
         '。过程：兵卒鼓噪而进，纵火焚椽，槌墙毁柱，梁木轰然而倒。结果：' + disp +
-        '焚毁倾颓，化为瓦砾焦土。影响：烟尘蔽日，市人夺路奔走，物议汹汹——史官直书凯撒毁城，民心为之一沉。）');
+        '焚毁倾颓，化为瓦砾焦土。影响：烟尘蔽日，市人夺路奔走，物议汹汹——史官直书贝罗娜毁城，民心为之一沉。）');
     }
     updateBuildHud();
   }
