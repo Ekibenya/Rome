@@ -3233,7 +3233,9 @@
     applyChip();
     /* 右上按钮排：flex 布局，宽标签不再重叠 */
     var tr0 = document.createElement('div');
-    tr0.style.cssText = 'position:absolute;top:8px;right:10px;display:flex;gap:6px;align-items:center;pointer-events:auto';
+    /* 手机 390px 下这一排实测总宽 458px，金库 chip 整块被挤出屏幕外。
+       给个 left 约束并允许换行，别让它无限向左溢出。 */
+    tr0.style.cssText = 'position:absolute;top:8px;right:10px;left:10px;justify-content:flex-end;flex-wrap:wrap;display:flex;gap:6px;align-items:center;pointer-events:auto';
     hud.appendChild(tr0); Z._topRow = tr0;
     // expand button
     expBtn = document.createElement('div');
@@ -3789,7 +3791,9 @@
      ============================================================ */
   var CELL = 2;
   Z.view = 'build';          // 默认营造；游历为可切换选项（仅城市场景生效）
-  try { var _v0 = localStorage.getItem('zj3d_view2'); if (_v0 === 'walk' || _v0 === 'build') Z.view = _v0; } catch (e) { }
+  /* 键名必须与中原引擎分开：zj3d_view2 被 ZJ3D 共写，在周卡点过「漫游」会让罗马卡
+     一进来就是 walk 模式，inBuild() 恒假、营造栏整套消失，而且极难自查。 */
+  try { var _v0 = localStorage.getItem('med3d_view2'); if (_v0 === 'walk' || _v0 === 'build') Z.view = _v0; } catch (e) { }
   Z.bcam = { fx: 0, fz: 20, yaw: 0.6, pitch: 0.85, dist: 60 };
   Z.B = null;                // 幽灵态 {item, obj, cx, cz, ry, valid, movingId}
   Z.sel = null;              // 选中的已建 {rec, root}
@@ -4623,17 +4627,33 @@
     // 模式切换
     var vb = document.createElement('div');
     vb.style.cssText = 'order:5;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:8.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap';
-    vb.onclick = function () { if (Z.intPlan) { exitInterior(); return; } Z.toggleView(); };
+    /* 室内一律先出门：Z.toggleView 开头就 if(Z.mode!=='city')return，
+       在屋里点它等于点了个死钮，出不去也切不了模式。 */
+    vb.onclick = function () { if (Z.intPlan || Z.mode === 'interior') { exitInterior(); return; } Z.toggleView(); };
     (Z._topRow || w).appendChild(vb); bHud.viewBtn = vb;
     // 托盘开关
     var tb = document.createElement('div');
-    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(201,155,63,.6);color:#ecc878;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
+    /* 位置铁则：DICTVM 输入栏的「执行」钮占住右下角 right:10..70px。此钮必须让开——
+       两者原先像素级完全重叠，结果是清单点不着、执行也点不着（还盖在上面，
+       玩家以为那个金框钮就是执行钮，压根不知道有建造清单这回事）。 */
+    tb.style.cssText = 'position:absolute;right:' + (isTouch() ? '78px' : '80px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(201,155,63,.6);color:#ecc878;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
     tb.textContent = isTouch() ? '清单' : 'OPERA·建造清单';
-    tb.onclick = function () { bHud.tray.style.display = bHud.tray.style.display === 'none' ? 'block' : 'none'; fillTray(); };
+    /* 首次进营造把钮点成金底黑字，让人一眼看见「这里能开清单」；点过一次即恢复常态。
+       比自动弹托盘温和——不遮画面，但也不至于像以前那样完全没人发现得了。 */
+    tb._hi = function (on) {
+      tb.style.background = on ? 'rgba(201,155,63,.92)' : 'rgba(6,6,6,.7)';
+      tb.style.color = on ? '#0a0a0a' : '#ecc878';
+    };
+    tb.onclick = function () {
+      bHud._openedSession = true; tb._hi(false);
+      bHud.tray.style.display = bHud.tray.style.display === 'none' ? 'block' : 'none';
+      fillTray();
+    };
     w.appendChild(tb); bHud.trayBtn = tb;
     // 奏报（集中通报本轮兴作/拆除）
     var rb = document.createElement('div');
-    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '86px' : '190px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
+    /* 跟着清单钮一起右移，别撞上它的新位置 */
+    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '132px' : '212px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
     rb.onclick = function () { submitLedger(); };
     w.appendChild(rb); bHud.reportBtn = rb;
     // 托盘
@@ -4797,8 +4817,10 @@
        （旧行为是首次进营造即自动弹出，整幅画面被物品格挡住，看不到城。）
        离开营造(on=false)一律收起并复位。 */
     if (!on) { bHud._openedSession = false; bHud.tray.style.display = 'none'; }
-    bHud.viewBtn.style.display = (Z.expanded && (Z.mode === 'city' || Z.intPlan)) ? 'block' : 'none';
-    bHud.viewBtn.textContent = Z.intPlan ? 'EXI·回城' : (Z.view === 'build' ? 'ITER·漫游' : 'OPVS·建造');
+    if (bHud.trayBtn && bHud.trayBtn._hi) bHud.trayBtn._hi(on && !bHud._openedSession);
+    /* 室内即便没开陈设规划，也要留这个出口钮；否则进屋后营造 UI 全灭、无路可退 */
+    bHud.viewBtn.style.display = Z.expanded ? 'block' : 'none';
+    bHud.viewBtn.textContent = (Z.intPlan || Z.mode === 'interior') ? 'EXI·回城' : (Z.view === 'build' ? 'ITER·漫游' : 'OPVS·建造');
     // 操作条贴近底部，托盘展开时抬升避让
     var trayOpen = bHud.tray && bHud.tray.style.display !== 'none';
     var barBottom = trayOpen ? (isTouch() ? '142px' : '184px') : (isTouch() ? '40px' : '48px');
@@ -5007,7 +5029,7 @@
     if (Z.mode !== 'city') return;
     cancelGhost(); Z.sel = null;
     Z.view = Z.view === 'build' ? 'walk' : 'build';
-    try { localStorage.setItem('zj3d_view2', Z.view); } catch (e) { }
+    try { localStorage.setItem('med3d_view2', Z.view); } catch (e) { }
     if (Z.view === 'build') {
       // 相机聚焦玩家附近
       if (Z.player) { Z.bcam.fx = Z.player.position.x; Z.bcam.fz = Z.player.position.z; }
