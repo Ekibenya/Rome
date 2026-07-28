@@ -3190,7 +3190,7 @@
     hud.appendChild(locChip);
     // 纪年：地名框下方一行半透明小字（不进框），太长自动跑马灯
     eraChip = document.createElement('div');
-    eraChip.style.cssText = 'position:absolute;top:34px;left:12px;max-width:62%;font-size:10px;letter-spacing:.06em;color:rgba(217,217,212,.45);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
+    eraChip.style.cssText = 'position:absolute;top:36px;left:10px;max-width:62%;padding:2px 8px;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.14);font-size:10px;letter-spacing:.08em;color:#d9d9d4;text-shadow:0 1px 2px #000;white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
     hud.appendChild(eraChip);
     applyChip();
     /* 右上按钮排：flex 布局，宽标签不再重叠 */
@@ -3205,8 +3205,9 @@
     var xBtn = document.createElement('div');
     xBtn.style.cssText = 'order:10;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:11px;cursor:pointer;border-radius:0;display:none';
     xBtn.textContent = '×';
-    xBtn.title = '完全隐藏三维横条（文字区右上可随时展开）';
+    xBtn.title = '收起面板（TERRA·天下 可重新展开）';
     xBtn.onclick = function () {
+      if (window.ZJ3D_closePane) { ZJ3D_closePane(); return; }
       try { localStorage.setItem('med3d_hide', '1'); } catch (e) { }
       if (window.ZJ3D_onExpand) window.ZJ3D_onExpand();
     };
@@ -4908,7 +4909,7 @@
         sb.appendChild(mkBtn('✓ 移驾', function () { doTeleport(); }));
         sb.appendChild(mkBtn('✕', function () { Z.tp = null; updateBuildHud(); }, true));
       } else {
-        tl.textContent = '已选 凯撒 · 点目标地点即可移驾';
+        tl.textContent = '已选 凯撒 · 点目标地点即可前往';
         sb.appendChild(tl);
         sb.appendChild(mkBtn('✕', function () { Z.tp = null; updateBuildHud(); }, true));
       }
@@ -5936,7 +5937,7 @@
   }
   Z.command = function (raw) {
     raw = String(raw || '').trim();
-    if (!raw) return { ok: false, report: '敕令为空' };
+    if (!raw) return { ok: false, report: '指令为空' };
     if (!Z.ready || Z.mode !== 'city' || !Z.cityKey) return { ok: false, report: '三维天下尚未就绪，请展开上方三维画面待城池加载完毕' };
     var m;
     m = /(?:攻打|攻击|讨伐|兵发|^攻|^伐)\s*(.+)$/.exec(raw); if (m) return cmdAttack(m[1]);
@@ -5944,7 +5945,7 @@
     m = /^(?:找|寻访?|召见|见)\s*(.+)$/.exec(raw); if (m) return cmdFind(m[1]);
     m = /^(?:去|往|移步|行至|到)\s*(.+)$/.exec(raw); if (m) return cmdGo(m[1]);
     m = /(?:盖|修建|建造|营建|兴建|新建|起|造|修|铺设|铺|植|种|建)\s*(.+)$/.exec(raw); if (m) return cmdBuild(m[1], raw);
-    return { ok: false, report: '未能辨识敕令。可用句式：起马厩×2 ／ 拆酒楼 ／ 攻打粮仓 ／ 寻苏格拉底 ／ 去城南 ／ 移驾斯巴达（列国都邑）' };
+    return { ok: false, report: '未能辨识指令。可用：建马厩×2 ／ 拆酒楼 ／ 攻打粮仓 ／ 寻苏格拉底 ／ 去城南 ／ 前往斯巴达（各城邦）' };
   };
 
   /* ---------------- public hooks ---------------- */
