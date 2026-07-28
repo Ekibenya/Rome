@@ -965,6 +965,21 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
     <div class="esc2">ESC&nbsp;//&nbsp;RETVRN</div>
   </div>
 </div>
+<div class="gDlg" id="dlgBgm">
+  <div class="box" style="width:min(94vw,540px)">
+    <span class="tag">MVSICA</span>
+    <h2>幕間樂&nbsp;·&nbsp;播放器</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
+      <span class="gt" id="bgPrev" title="上一首"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.6"><path d="M6 4v16M20 4L9 12l11 8z"/></svg></span>
+      <span class="gt" id="bgPlay" title="播放/暫停"><svg id="bgPlayIco" viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.6"><path d="M6 4l14 8-14 8z"/></svg></span>
+      <span class="gt" id="bgNext" title="下一首"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.6"><path d="M18 4v16M4 4l11 8-11 8z"/></svg></span>
+      <span class="sub" id="bgNow" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.1em">未在播放</span>
+    </div>
+    <div class="sRow"><span>音量</span><input type="range" id="bgVol" min="0" max="100" value="60"></div>
+    <div id="bgList" style="margin-top:12px;max-height:min(46vh,340px);overflow-y:auto;border:1px solid rgba(236,236,232,.12)"></div>
+    <div class="esc2">ESC&nbsp;//&nbsp;RETVRN</div>
+  </div>
+</div>
 <div class="gDlg" id="dlgExit">
   <div class="box" style="text-align:center">
     <span class="tag">EXIT</span>
@@ -1074,7 +1089,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.5.7';
+  var ZJ3D_VER='1.5.8';
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -1501,7 +1516,7 @@ addEventListener('keydown',function(e){
       return;
     }
     if(e.key==='Escape'){
-      var gds=['#dlgCfg','#dlgBook','#dlgSave','#dlgExit','#dlgApi','#dlgVoc'],ghit=false;
+      var gds=['#dlgCfg','#dlgBook','#dlgSave','#dlgExit','#dlgApi','#dlgVoc','#dlgBgm'],ghit=false;
       for(var gi=0;gi<gds.length;gi++){var ge2=$(gds[gi]);
         if(ge2.style.display==='flex'){ge2.style.display='none';ghit=true;break;}}
       if(!ghit&&(GAME.mapOpen||GAME.armOpen)){
@@ -2596,7 +2611,7 @@ function gameExit(){
   GAME.on=false;GAME.txOpen=false;gEl.classList.remove('show','mapOpen','armOpen','txOpen');
   mOv.classList.remove('gbg');
   GAME.mapOpen=GAME.armOpen=false;
-  ['#dlgCfg','#dlgBook','#dlgSave','#dlgExit','#dlgApi','#dlgVoc'].forEach(function(d){$(d).style.display='none';});
+  ['#dlgCfg','#dlgBook','#dlgSave','#dlgExit','#dlgApi','#dlgVoc','#dlgBgm'].forEach(function(d){$(d).style.display='none';});
   menuEnter();
 }
 /* half-globe map: the sphere hangs off the panel's left edge; drag to roll it */
@@ -3329,8 +3344,8 @@ var BGM_LIST=[
 var BGM={i:0,a:null,on:false,skip:0};
 function bgmEl(){
   if(BGM.a)return BGM.a;
-  var a=new Audio();a.preload='none';a.volume=0.6;
-  a.addEventListener('ended',function(){BGM.skip=0;bgmPlay((BGM.i+1)%BGM_LIST.length);});
+  var a=new Audio();a.preload='none';a.volume=(typeof BGVOL==='number'?BGVOL:60)/100;
+  a.addEventListener('ended',function(){BGM.skip=0;bgmPlay((BGM.i+1)%BGM_LIST.length);if(typeof bgmUi==='function')bgmUi();});
   a.addEventListener('error',function(){
     if(!BGM.on)return;
     if(++BGM.skip>=BGM_LIST.length){BGM.skip=0;return;}   /* 整輪皆敗即止，防死循環 */
@@ -3350,7 +3365,38 @@ function bgmToggle(){
   if(BGM.a&&BGM.a.src){var p=BGM.a.play();if(p&&p.catch)p.catch(function(){});BGM.on=true;$('#gtSnd').classList.add('on');return;}
   BGM.skip=0;bgmPlay(0);
 }
-$('#gtSnd').addEventListener('click',bgmToggle);
+/* —— 播放器面板 —— */
+var BGVOL=60;try{BGVOL=Math.max(0,Math.min(100,parseInt(localStorage.getItem('rome_bgmvol'))||60));}catch(_){}
+function bgmUi(){
+  var now=$('#bgNow'),ico=$('#bgPlayIco');
+  if(now)now.textContent=(BGM.a&&BGM.a.src)?((BGM.on?'▶ ':'❚❚ ')+(BGM_LIST[BGM.i]?BGM_LIST[BGM.i].t:'')):'未在播放 · 點曲目或 ▶ 開始';
+  if(ico)ico.innerHTML=BGM.on?'<path d="M8 4v16M16 4v16"/>':'<path d="M6 4l14 8-14 8z"/>';
+  var ls=$('#bgList');
+  if(ls&&ls.children.length)for(var i=0;i<ls.children.length;i++)
+    ls.children[i].style.color=(i===BGM.i&&BGM.a&&BGM.a.src)?'var(--gold-hi)':'';
+}
+function bgmListRender(){
+  var ls=$('#bgList');if(!ls||ls.children.length)return;
+  BGM_LIST.forEach(function(x,i){
+    var r=document.createElement('div');
+    r.style.cssText='padding:7px 12px;font-size:9.5px;letter-spacing:.1em;color:var(--mut);cursor:pointer;border-bottom:1px solid rgba(236,236,232,.07);display:flex;gap:10px';
+    r.innerHTML='<span style="opacity:.5;width:20px;flex:none">'+String(i+1).padStart(2,'0')+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+x.t+'</span>';
+    r.addEventListener('click',function(){bgmPlay(i);bgmUi();});
+    ls.appendChild(r);
+  });
+}
+$('#gtSnd').addEventListener('click',function(){
+  bgmListRender();bgmUi();
+  var v=$('#bgVol');if(v)v.value=BGVOL;
+  gDlgShow('#dlgBgm');
+});
+$('#bgPlay').addEventListener('click',function(){bgmToggle();bgmUi();});
+$('#bgPrev').addEventListener('click',function(){bgmPlay((BGM.i-1+BGM_LIST.length)%BGM_LIST.length);bgmUi();});
+$('#bgNext').addEventListener('click',function(){bgmPlay((BGM.i+1)%BGM_LIST.length);bgmUi();});
+$('#bgVol').addEventListener('input',function(){
+  BGVOL=+this.value;if(BGM.a)BGM.a.volume=BGVOL/100;
+  try{localStorage.setItem('rome_bgmvol',''+BGVOL);}catch(_){}
+});
 /* —— 全屏 —— */
 $('#gtFull').addEventListener('click',function(){
   if(document.fullscreenElement)document.exitFullscreen();
@@ -4351,7 +4397,7 @@ $('#gtVoc').addEventListener('click',function(){gDlgShow('#dlgVoc');});
 $('#exYes').addEventListener('click',function(){$('#dlgExit').style.display='none';gameExit();});
 $('#exNo').addEventListener('click',function(){$('#dlgExit').style.display='none';});
 (function(){
-  var ds=['#dlgCfg','#dlgBook','#dlgSave','#dlgExit','#dlgApi','#dlgVoc'];
+  var ds=['#dlgCfg','#dlgBook','#dlgSave','#dlgExit','#dlgApi','#dlgVoc','#dlgBgm'];
   for(var i=0;i<ds.length;i++)(function(sel){
     var el2=$(sel);
     el2.addEventListener('pointerup',function(e){if(e.target===el2)el2.style.display='none';});
