@@ -455,10 +455,10 @@ canvas{display:block}
   border:1px solid rgba(236,236,232,.22);padding:1px 5px 0}
 .svFold .lb{font-size:6.5px;letter-spacing:.2em;line-height:1.6;color:rgba(200,200,196,.55)}
 /* 手機：卡片縮小、標題移上方，避免擠壓 */
-#svField.sm .svFold{padding:4px 7px 4px 4px;gap:5px}
-#svField.sm .svFold .num{font-size:11px;padding:0 4px}
-#svField.sm .svFold .lb{font-size:5.5px;letter-spacing:.14em;line-height:1.5}
-#svField.sm .svFold .tab{top:-6px;height:6px}
+#svField.sm .svFold{padding:3px 6px 3px 3px;gap:4px}
+#svField.sm .svFold .num{font-size:10px;padding:0 3px}
+#svField.sm .svFold .lb{font-size:5px;letter-spacing:.1em;line-height:1.4}
+#svField.sm .svFold .tab{top:-5px;height:5px}
 
 .svFold.on{border-color:rgba(236,236,232,.7)}
 .svFold.on .tab{border-color:rgba(236,236,232,.7)}
@@ -484,7 +484,7 @@ canvas{display:block}
 .svfbtn{cursor:pointer;color:var(--txt);white-space:nowrap}
 .svfbtn:hover{color:var(--gold-hi)}
 @media(max-width:760px){
-  #svCore{top:14%;width:min(88vw,340px)}
+  #svCore{width:min(88vw,320px)}
   #svCoreT{font-size:17px;letter-spacing:.42em;text-indent:.42em}
   #svCoreSub{margin-top:8px;font-size:7px;padding:5px 12px;max-width:82vw}
   #svCoreBtns{margin-top:10px;gap:7px}
@@ -5956,8 +5956,8 @@ function svBgDraw(){
     w:(svRnd(i,4)<.12?1.7:1),
     al:.05+svRnd(i,5)*.14,
     sp:(svRnd(i,6)-.5)*.014,                   /* 角速度：扇面極緩旋擰 */
-    bp:svRnd(i,7)*6.283,bs:.22+svRnd(i,8)*.55, /* 明暗呼吸 */
-    hp:svRnd(i,9),hs:.20+svRnd(i,10)*.42       /* 高光行進相位／速度＝穿梭感 */
+    bp:svRnd(i,7)*6.283,bs:.10+svRnd(i,8)*.22, /* 明暗呼吸（放慢、幅度小） */
+    hp:svRnd(i,9),hs:.055+svRnd(i,10)*.10      /* 高光行進：慢速長帶，避免閃爍 */
   });
   SVLS=[];
   for(var q=0;q<34;q++)SVLS.push({y:svRnd(q,7),x:svRnd(q,8),len:.05+svRnd(q,9)*.30,
@@ -5972,22 +5972,22 @@ function svFx(t){
   var DIAG=Math.hypot(W,H);
   for(var i=0;i<SVL.length;i++){
     var L=SVL[i],aa=L.a+t*L.sp;                       /* 整根線只轉不斷 */
-    var sh=.70+.30*Math.sin(t*L.bs+L.bp);             /* 明暗呼吸 */
+    var sh=.86+.14*Math.sin(t*L.bs+L.bp);             /* 明暗呼吸：幅度收小，不刺眼 */
     var r0=L.r0*H*(1+.07*Math.sin(t*.55+L.bp));       /* 內端輕微伸縮 */
     var r1=L.r1*DIAG;
     var ca=Math.cos(aa),sa=Math.sin(aa);
     /* 底線：全長連續、恆在（不斷線） */
-    g.strokeStyle='rgba(236,236,232,'+(L.al*sh*.45).toFixed(3)+')';
+    g.strokeStyle='rgba(236,236,232,'+(L.al*sh*.72).toFixed(3)+')';
     g.lineWidth=L.w*DPR*.8;
     g.beginPath();g.moveTo(cx+ca*r0,cy+sa*r0);g.lineTo(cx+ca*r1,cy+sa*r1);g.stroke();
     /* 高光：沿同一條線由內向外加速奔行＝穿梭動感（疊加在底線上，底線不受影響） */
     var hp=(L.hp+t*L.hs)%1,span=r1-r0;
-    var h0=r0+span*hp*hp,h1=h0+span*(.09+hp*.26);
+    var h0=r0+span*hp*hp,h1=h0+span*(.24+hp*.46);   /* 更長的光帶＝滑行而非閃點 */
     if(h1>r1)h1=r1;
-    var hf=Math.min(1,hp*6)*Math.max(0,Math.min(1,(1-hp)/.30));
-    if(hf>0){
-      g.strokeStyle='rgba(248,248,245,'+(L.al*1.9*hf).toFixed(3)+')';
-      g.lineWidth=L.w*DPR*1.05;
+    var hf=Math.sin(Math.PI*hp);                    /* 正弦包絡：進出皆平滑，無突現突滅 */
+    if(hf>.02){
+      g.strokeStyle='rgba(244,244,240,'+(L.al*.80*hf).toFixed(3)+')';
+      g.lineWidth=L.w*DPR*1.0;
       g.beginPath();g.moveTo(cx+ca*h0,cy+sa*h0);g.lineTo(cx+ca*h1,cy+sa*h1);g.stroke();
     }
   }
@@ -6007,39 +6007,26 @@ function svRender(){
   var m=Math.min(innerWidth,innerHeight),cx=innerWidth/2,cy=innerHeight/2;
   var narrow=innerWidth<760;
   host.classList.toggle('sm',narrow);
+  var por=innerHeight>innerWidth;                 /* 直立螢幕：把散佈場縱向拉長，構圖與桌面同構 */
+  var base=por?innerWidth:Math.min(innerWidth,innerHeight);
+  var sx=por?.95:1.26, sy=por?1.72:.96;
   var P=[];
-  if(narrow){
-    /* 手機：抖動網格——列數依寬度自適應，均勻鋪滿標題以下，永不擠成一團 */
-    var cols=Math.max(3,Math.floor(innerWidth/128)),rows=Math.ceil(SVN/cols);
-    var gx0=innerWidth*.10,gx1=innerWidth*.90;
-    var gy0=innerHeight*.335,gy1=innerHeight*.875;
-    for(var gi=0;gi<SVN;gi++){
-      var cc=gi%cols,rw=Math.floor(gi/cols);
-      var ux=cols>1?cc/(cols-1):.5,uy=rows>1?rw/(rows-1):.5;
-      P.push({x:gx0+(gx1-gx0)*ux+(svRnd(gi,31)-.5)*innerWidth*.045,
-              y:gy0+(gy1-gy0)*uy+(svRnd(gi,32)-.5)*18,
-              z:.80+svRnd(gi,33)*.30});
-    }
-    for(var gk=0;gk<SVN;gk++){
-      var q=P[gk];
-      q.x=Math.max(58,Math.min(innerWidth-58,q.x));
-      q.y=Math.max(innerHeight*.32,Math.min(innerHeight-84,q.y));
-    }
-    svPlace(host,P);return;
-  }
-  /* 桌面：環形散佈 → 夾入安全邊 → 鬆弛推開 */
+  /* 環形散佈 → 夾入安全邊 → 鬆弛推開（桌面／手機同一套，只換尺度） */
   for(var k0=0;k0<SVN;k0++){
     var ak=(k0+.5)/SVN*Math.PI*2+(svRnd(k0,21)-.5)*.34;
-    var rk=(.19+svRnd(k0,22)*.26)*m;
-    P.push({x:cx+Math.cos(ak)*rk*1.26,y:cy+Math.sin(ak)*rk*.96,z:.62+svRnd(k0,23)*.58});
+    var rk=(.19+svRnd(k0,22)*.26)*base;
+    P.push({x:cx+Math.cos(ak)*rk*sx,y:cy+Math.sin(ak)*rk*sy,z:.62+svRnd(k0,23)*.58});
   }
-  var padX=Math.max(120,innerWidth*.085),padT=76,padB=112;
+  var padX=narrow?Math.max(52,innerWidth*.13):Math.max(120,innerWidth*.085);
+  var padT=narrow?64:76,padB=narrow?92:112;
   function clampP(q){q.x=Math.max(padX,Math.min(innerWidth-padX,q.x));q.y=Math.max(padT,Math.min(innerHeight-padB,q.y));}
-  var MINX=152,MINY=44,HOLE=Math.min(innerWidth,innerHeight)*.145;
-  for(var pass=0;pass<26;pass++){
+  var MINX=narrow?96:152,MINY=narrow?28:44;
+  var HOLE=narrow?innerWidth*.20:Math.min(innerWidth,innerHeight)*.145;
+  var HSX=narrow?2.7:1.5;
+  for(var pass=0;pass<40;pass++){
     for(var i1=0;i1<SVN;i1++){
-      var q1=P[i1],hx=q1.x-cx,hy=q1.y-cy,hd=Math.hypot(hx/1.5,hy);
-      if(hd<HOLE&&hd>1){var pushh=(HOLE-hd)*.5;q1.x+=hx/hd*pushh*1.5;q1.y+=hy/hd*pushh;}  /* 讓開中央標題區 */
+      var q1=P[i1],hx=q1.x-cx,hy=q1.y-cy,hd=Math.hypot(hx/HSX,hy);
+      if(hd<HOLE&&hd>1){var pushh=(HOLE-hd)*.5;q1.x+=hx/hd*pushh*HSX;q1.y+=hy/hd*pushh;}  /* 讓開中央標題區 */
       for(var j1=i1+1;j1<SVN;j1++){
         var q2=P[j1],dx=q2.x-q1.x,dy=q2.y-q1.y;
         var ox=MINX-Math.abs(dx),oy=MINY-Math.abs(dy);
@@ -6065,8 +6052,8 @@ function svPlace(host,P){
     d.style.left=x.toFixed(1)+'px';d.style.top=y.toFixed(1)+'px';
     d.style.opacity=(v?.55:.38)+z*.42;
     var lab=v?String(v.t||'').replace(/\s*·\s*/g,' ').replace(/\s+/g,' ').trim():'VACVVM';
-    var cut=narrow?7:10;
-    var l1=lab.slice(0,cut),l2=lab.slice(cut,cut*2);
+    var cut=narrow?8:10;
+    var l1=lab.slice(0,cut),l2=narrow?'':lab.slice(cut,cut*2);   /* 手機單行，卡片更矮更好排 */
     d.innerHTML='<i class="tab"></i>'
       +'<b class="num">'+(v?(n+1<10?'0'+(n+1):''+(n+1)):'—')+'</b>'
       +'<span class="lb">'+esc2(l1)+(l2?'<br>'+esc2(l2):'')+'</span>';
