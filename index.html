@@ -425,20 +425,21 @@ canvas{display:block}
 .gNav{display:none}
 @media (max-width:760px){
   #game .gTop .gBrand{display:none}
-  #game .gMain{left:0;right:0;bottom:52px}
-  #game .gMfd{display:none;left:0;right:0;width:auto;bottom:52px;border-left:0}
+  #game .gMain{left:0;right:0;bottom:34px}
+  #game .gMfd{display:none;left:0;right:0;width:auto;bottom:34px;border-left:0}
   .gArr{display:none}
   .gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}
-  #game[data-pg=map] #pnMap{display:block;top:46px;bottom:52px;height:auto}
-  #game[data-pg=arm] #pnArm{display:block;top:46px;bottom:52px}
+  /* 輿·備一页：地图上、装备下（Ghost 式上下布局省空间） */
+  #game[data-pg=map] #pnMap{display:block;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52)}
+  #game[data-pg=map] #pnArm{display:block;top:calc(46px + (100dvh - 80px)*.52);bottom:34px;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}
   #game[data-pg=mfd] .gMfd{display:block}
-  #game[data-pg=map] .gMain,#game[data-pg=arm] .gMain,#game[data-pg=mfd] .gMain{display:none}
-  .gNav{display:flex;position:absolute;left:0;right:0;bottom:0;height:52px;z-index:40;
-      border-top:1px solid rgba(236,236,232,.16);background:rgba(6,6,6,.95)}
-  .gNav span{flex:1;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;
-      font-size:8px;letter-spacing:.18em;color:var(--mut);cursor:pointer}
-  .gNav span b{font-size:10px;font-weight:400;letter-spacing:.24em}
-  .gNav span.on{color:var(--gold-hi)}
+  #game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}
+  /* Ghost 式小岛切换条：底部居中小胶囊，点选或左右滑切页 */
+  .gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;
+      border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.92);touch-action:pan-x}
+  .gNav span{display:flex;align-items:center;padding:0 13px;font-size:9px;letter-spacing:.22em;color:var(--mut);cursor:pointer;white-space:nowrap}
+  .gNav span b{display:none}
+  .gNav span.on{color:#0a0a0a;background:var(--gold)}
 }
 
 button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-offset:3px}
@@ -677,9 +678,8 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   </div>
 
   <nav class="gNav">
+    <span data-pg="map"><b>TABVLA</b>輿·備</span>
     <span class="on" data-pg="narr"><b>SERMO</b>敘事</span>
-    <span data-pg="map"><b>TABVLA</b>地圖</span>
-    <span data-pg="arm"><b>ARMA</b>裝備</span>
     <span data-pg="mfd"><b>TABVLARIVM</b>情報</span>
   </nav>
 </div>
@@ -1068,7 +1068,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.5.3';
+  var ZJ3D_VER='1.5.4';
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -2957,17 +2957,31 @@ function gearLine(){
 }
 invRender();
 
-/* mobile bottom nav */
+/* mobile bottom nav（小岛式：点选或在胶囊上左右滑动切页） */
 (function(){
   var tabs=gEl.querySelectorAll('.gNav span');
+  var ORDER=['map','narr','mfd'];
+  function setPg(pg){
+    for(var j=0;j<tabs.length;j++)tabs[j].classList.toggle('on',tabs[j].getAttribute('data-pg')===pg);
+    gEl.setAttribute('data-pg',pg);
+    if(pg==='map'){setTimeout(gmapSize,60);try{invRender();}catch(_){}}
+  }
   for(var i=0;i<tabs.length;i++)(function(tb){
-    tb.addEventListener('click',function(){
-      for(var j=0;j<tabs.length;j++)tabs[j].classList.remove('on');
-      tb.classList.add('on');
-      gEl.setAttribute('data-pg',tb.getAttribute('data-pg'));
-      if(tb.getAttribute('data-pg')==='map')setTimeout(gmapSize,60);
-    });
+    tb.addEventListener('click',function(){setPg(tb.getAttribute('data-pg'));});
   })(tabs[i]);
+  var nav=gEl.querySelector('.gNav'),sx=null;
+  if(nav){
+    nav.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;},{passive:true});
+    nav.addEventListener('touchend',function(e){
+      if(sx==null)return;
+      var dx=e.changedTouches[0].clientX-sx;sx=null;
+      if(Math.abs(dx)<28)return;
+      var cur=gEl.getAttribute('data-pg')||'narr';
+      var i2=ORDER.indexOf(cur);if(i2<0)i2=1;
+      i2=Math.max(0,Math.min(ORDER.length-1,i2+(dx<0?1:-1)));
+      setPg(ORDER[i2]);
+    },{passive:true});
+  }
 })();
 /* ============ 引擎：回合史 / 打字机 / 神谕(AI) / 重演·回溯 / 语音 ============ */
 var TURNS=[],TURNI=0,BUSY=false;
@@ -3306,7 +3320,7 @@ $('#cfgGlass').addEventListener('input',function(){SET.glass=+this.value;
 var formaCss=document.createElement('style');document.head.appendChild(formaCss);
 function applyForma(){
   if(SET.forma===1)formaCss.textContent='@media(max-width:760px){#game .gMain{left:64px;right:322px;bottom:0}#game .gMfd{display:block}.gArr{display:flex}.gNav{display:none}}';
-  else if(SET.forma===2)formaCss.textContent='#game .gMain{left:0;right:0;bottom:52px}#game .gMfd{display:none;left:0;right:0;width:auto;bottom:52px;border-left:0}.gArr{display:none}.gPanel{display:none}.gNav{display:flex;position:absolute;left:0;right:0;bottom:0;height:52px;z-index:40;border-top:1px solid rgba(236,236,232,.16);background:rgba(6,6,6,.95)}.gNav span{flex:1;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;font-size:8px;letter-spacing:.18em;color:var(--mut);cursor:pointer}.gNav span b{font-size:10px;font-weight:400}.gNav span.on{color:var(--gold-hi)}#game[data-pg=map] #pnMap{display:block;transform:none;top:46px;bottom:52px;height:auto;width:100%}#game[data-pg=arm] #pnArm{display:block;transform:none;top:46px;bottom:52px;width:100%}#game[data-pg=mfd] .gMfd{display:block;top:46px;bottom:52px}#game[data-pg=map] .gMain,#game[data-pg=arm] .gMain,#game[data-pg=mfd] .gMain{display:none}';
+  else if(SET.forma===2)formaCss.textContent='#game .gMain{left:0;right:0;bottom:34px}#game .gMfd{display:none;left:0;right:0;width:auto;bottom:34px;border-left:0}.gArr{display:none}.gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}.gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.92);touch-action:pan-x}.gNav span{display:flex;align-items:center;padding:0 13px;font-size:9px;letter-spacing:.22em;color:var(--mut);cursor:pointer;white-space:nowrap}.gNav span b{display:none}.gNav span.on{color:#0a0a0a;background:var(--gold)}#game[data-pg=map] #pnMap{display:block;transform:none;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52);width:100%}#game[data-pg=map] #pnArm{display:block;transform:none;top:calc(46px + (100dvh - 80px)*.52);bottom:34px;width:100%;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}#game[data-pg=mfd] .gMfd{display:block;top:46px;bottom:34px}#game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}';
   else formaCss.textContent='';
 }
 applyForma();setSeg('#sgForma',SET.forma);
