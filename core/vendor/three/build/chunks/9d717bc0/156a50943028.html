@@ -19,7 +19,7 @@
   --mono:ui-monospace,'SF Mono',Menlo,Consolas,'Cascadia Mono',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%;overscroll-behavior:none}
 body{background:var(--ink);color:var(--txt);font-family:var(--mono);overflow:hidden;
      -webkit-user-select:none;user-select:none;cursor:crosshair}
 canvas{display:block}
@@ -49,9 +49,9 @@ canvas{display:block}
        writing-mode:vertical-rl;font-size:8px;letter-spacing:.4em;color:#3c3c38;z-index:5}
 
 /* ---------- 3D ring carousel ---------- */
-#stage{position:fixed;inset:0;z-index:10;perspective:1800px;perspective-origin:50% 42%}
+#stage{position:fixed;inset:0;z-index:10;perspective:1800px;perspective-origin:50% 42%;touch-action:none}
 #track{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none}
-.card{position:absolute;left:50%;top:44%;width:var(--fs);height:var(--fs);pointer-events:auto;cursor:pointer;
+.card{position:absolute;left:50%;top:44%;width:var(--fs);height:var(--fs);pointer-events:auto;cursor:pointer;touch-action:none;
       will-change:transform,opacity;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .cframe{position:absolute;inset:0;border:1px solid rgba(236,236,232,.5)}
 .cframe::before,.cframe::after{content:'';position:absolute;width:7px;height:7px;border:1px solid var(--paper)}
@@ -88,7 +88,7 @@ canvas{display:block}
        white-space:nowrap;overflow:hidden;max-width:90%}
 
 /* ---------- rail ---------- */
-#rail{position:fixed;left:0;right:0;bottom:64px;height:74px;z-index:15;cursor:ew-resize}
+#rail{position:fixed;left:0;right:0;bottom:64px;height:74px;z-index:15;cursor:ew-resize;touch-action:none}
 #railCv{position:absolute;inset:0;width:100%;height:100%}
 
 /* ---------- footer ---------- */
@@ -1476,12 +1476,21 @@ function grainDraw(){
 /* ================= interaction ================ */
 var drag=null;
 function stepPix(){return railGeom().span/(N-1);}
+/* 手指與滑鼠分開算靈敏度：手機屏窄，rail 一格才二十來像素，沿用桌面比例會導致
+   輕輕一抹就飛過好幾個開局，根本停不準。手指改用固定的「一格 ≈ 短邊三分之一」。 */
+function dragUnit(touch){return touch?Math.max(120,Math.min(innerWidth,innerHeight)*.38):stepPix()*2.2;}
 function onDown(e){
   if(INTRO.on||(MENU.on&&!MENU.exiting)||GAME.on)return;
-  if(drag||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
+  if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
+  /* 能走到這裡的必定是主指針，也就是說上一次的手勢一定已經結束了。
+     手機上 pointerup／pointercancel 偶爾會被系統吞掉，舊的 drag 一直掛著就會讓
+     轉盤徹底不動——那正是「轉著轉著突然卡住」的來源。無條件丟棄重來。 */
+  drag=null;
   var t=e.target;
   if(t.closest&&(t.closest('#foot')||t.closest('#link')||t.closest('#brand')))return;
-  drag={id:e.pointerId,x:e.clientX,p:pos,v:0,lx:e.clientX,lt:performance.now(),moved:false};
+  var touch=e.pointerType!=='mouse';
+  drag={id:e.pointerId,x:e.clientX,p:pos,v:0,lx:e.clientX,lt:performance.now(),moved:false,
+        touch:touch,u:dragUnit(touch),t0:t};
   snapT=null;vel=0;
 }
 function onMove(e){
@@ -1492,28 +1501,35 @@ function onMove(e){
   if(!drag||e.pointerId!==drag.id)return;
   var dx=e.clientX-drag.x;
   if(Math.abs(dx)>3)drag.moved=true;
-  pos=drag.p-dx/(stepPix()*2.2);     /* drag left → ring turns to the next panel */
+  pos=drag.p-dx/drag.u;              /* drag left → ring turns to the next panel */
   var now=performance.now(),dt=now-drag.lt;
   if(dt>0){drag.v=(e.clientX-drag.lx)/dt;drag.lx=e.clientX;drag.lt=now;}
 }
 function onUp(e){
   if(!drag||e.pointerId!==drag.id)return;
-  var moved=drag.moved;
-  vel=-drag.v*7/stepPix();
-  drag=null;
-  if(!moved){
-    var ry=$('#rail').getBoundingClientRect();
-    if(e.clientY>=ry.top&&e.clientY<=ry.bottom){
-      var g=railGeom();
-      var i=Math.round((e.clientX-g.m)/(g.span/(N-1)));
-      goTo(Math.max(0,Math.min(N-1,i)));
-    }else{
-      var card=e.target.closest&&e.target.closest('.card');
-      if(card){
-        var ci=+card.dataset.i;
-        if(ci===mod(Math.round(pos),N))engage();else goTo(ci);
-      }
-    }
+  var d=drag;drag=null;
+  if(d.moved){
+    if(d.touch){
+      /* 手指鬆開不留自由慣性：撥多快都只在「已經轉到的那一格」上再多推一格，
+         甩不飛也甩不丟，想停哪個開局就停哪個。 */
+      var i=Math.round(pos);
+      if(Math.abs(d.v)>.45)i=(d.v<0?Math.floor(pos)+1:Math.ceil(pos)-1);
+      vel=0;goTo(mod(i,N));
+    }else vel=-d.v*7/stepPix();
+    return;
+  }
+  vel=0;
+  var ry=$('#rail').getBoundingClientRect();
+  if(e.clientY>=ry.top&&e.clientY<=ry.bottom){
+    var g=railGeom();
+    var ri=Math.round((e.clientX-g.m)/(g.span/(N-1)));
+    goTo(Math.max(0,Math.min(N-1,ri)));
+  }else{
+    var card=d.t0&&d.t0.closest&&d.t0.closest('.card');
+    if(card){
+      var ci=+card.dataset.i;
+      if(ci===mod(Math.round(pos),N))engage();else goTo(ci);
+    }else if(snapT===null)snapT=Math.round(pos);
   }
 }
 function goTo(i){
@@ -1524,7 +1540,14 @@ function goTo(i){
 addEventListener('pointerdown',onDown);
 addEventListener('pointermove',onMove);
 addEventListener('pointerup',onUp);
-addEventListener('pointercancel',function(e){if(drag&&(!e||e.pointerId===drag.id))drag=null;ERA.drag=false;if(ERA.pts)for(var pk in ERA.pts)delete ERA.pts[pk];});
+/* 手勢被系統搶走（返回手勢、下拉刷新、來電浮層…）時會收到 cancel。
+   只把 drag 清掉會讓轉盤停死在兩張牌中間，所以順手歸位到最近的一格。 */
+function ringAbort(){drag=null;vel=0;goTo(mod(Math.round(pos),N));}
+addEventListener('pointercancel',function(e){
+  if(drag&&(!e||e.pointerId===drag.id))ringAbort();
+  ERA.drag=false;if(ERA.pts)for(var pk in ERA.pts)delete ERA.pts[pk];
+});
+addEventListener('visibilitychange',function(){if(document.hidden&&drag)ringAbort();});
 var wAcc=0;
 addEventListener('wheel',function(e){
   if(INTRO.on||(MENU.on&&!MENU.exiting)||GAME.on)return;
