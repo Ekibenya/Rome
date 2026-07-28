@@ -1993,10 +1993,19 @@
     ];
     addGround(st, R, paths, [{ x: -12, z: -26, rx: 16, rz: 12, stone: true }], []);
     mountainRing(R, seed, [0, 340]);
-    /* 三重陆墙（北面陆侧）各设一门 + 长引水道接卫城 */
-    cityWall([[-95, -70], [95, -70], [95, -68.4], [-95, -68.4]], { h: 6.5, th: 2.2, towerEvery: 30, gateS: .8, gateGap: 6, gates: [{ x: -16, z: -69, ry: 3.04 }] });
-    cityWall([[-88, -82], [88, -82], [88, -80.6], [-88, -80.6]], { h: 5.2, th: 1.9, towerEvery: 34, gateS: .7, gateGap: 5.5, gates: [{ x: -17.5, z: -81, ry: 3.04 }] });
-    cityWall([[-80, -94], [80, -94], [80, -92.8], [-80, -92.8]], { h: 4.2, th: 1.6, towers: false, gateS: .62, gateGap: 5, gates: [{ x: -19, z: -93, ry: 3.04 }] });
+    /* 三重陆防（史实制）：主墙高厚密塔两端入海 · 中墙弧线 · 外垒低矮土栅，门沿大道轴线贯串 */
+    cityWallLine([[-104, 106], [-100, 44], [-92, -30], [-64, -72], [-14, -86], [42, -80], [78, -52], [92, -6], [98, 52], [100, 106]], {
+      h: 8.5, th: 3.6, towerEvery: 16, towerS: 1.0, gateS: .9, gateGap: 7,
+      gates: [{ x: -16, z: -85.5, ry: 3.04 }, { x: 94.4, z: 16, ry: 1.65 }, { x: -96, z: 6, ry: -1.62 }]
+    });
+    cityWallLine([[-114, 60], [-108, -16], [-88, -62], [-40, -96], [16, -102], [64, -90], [92, -50], [104, 26]], {
+      h: 5.2, th: 2, towerEvery: 28, towerS: .7, gateS: .7, gateGap: 6,
+      gates: [{ x: -18.5, z: -98.3, ry: 3.04 }, { x: -109.7, z: 6, ry: -1.62 }, { x: 102.5, z: 16, ry: 1.65 }]
+    });
+    cityWallLine([[-124, 70], [-120, -30], [-96, -80], [-44, -112], [24, -116], [80, -102], [108, -58], [118, 20]], {
+      h: 3, th: 1.4, color: 0x9b7d58, cap: 0x86684a, gateS: .6, gateGap: 5.5,
+      gates: [{ x: -19.8, z: -113.5, ry: 3.04 }, { x: -121.4, z: 5.5, ry: -1.62 }, { x: 117.5, z: 16, ry: 1.65 }]
+    });
     aqueductRun(-150, -108, -38, -54, 8);
     /* 地中海在北：外港 + 圆形军港（科同）*/
     seaField(0, 176, 360, 140, 0x2f8fb8);
@@ -2691,6 +2700,31 @@
       rim.position.set(mx, hgt + 2.75, mz); rim.rotation.y = ang; Z.scene.add(rim);
       var wat = new T.Mesh(new T.BoxGeometry(1.5, 0.35, segL), water);
       wat.position.set(mx, hgt + 3.1, mz); wat.rotation.y = ang; Z.scene.add(wat);
+    }
+  }
+
+  /* 开放墙线：折线不闭环（长墙/多重防线用），塔按间距沿线布 */
+  function cityWallLine(pts, opts) {
+    opts = opts || {};
+    var off = [];
+    for (var i = pts.length - 1; i >= 0; i--) {
+      var pPrev = pts[Math.max(0, i - 1)], pNext = pts[Math.min(pts.length - 1, i + 1)];
+      var dx = pNext[0] - pPrev[0], dz = pNext[1] - pPrev[1], L = Math.hypot(dx, dz) || 1;
+      off.push([pts[i][0] - dz / L * 1.2, pts[i][1] + dx / L * 1.2]);
+    }
+    cityWall(pts.concat(off), Object.assign({}, opts, { towers: false, towerEvery: 0 }));
+    if (opts.towerEvery) {
+      var acc = 0;
+      for (var j = 1; j < pts.length; j++) {
+        var ddx = pts[j][0] - pts[j - 1][0], ddz = pts[j][1] - pts[j - 1][1], SL = Math.hypot(ddx, ddz);
+        var ang = Math.atan2(ddx, ddz);
+        for (var d = (opts.towerEvery - acc % opts.towerEvery) % opts.towerEvery; d < SL; d += opts.towerEvery) {
+          var tx = pts[j - 1][0] + ddx * d / SL, tz = pts[j - 1][1] + ddz * d / SL, ng = false;
+          (opts.gates || []).forEach(function (g) { if (Math.hypot(tx - g.x, tz - g.z) < (opts.gateGap || 7) + 3) ng = true; });
+          if (!ng) mput((d | 0) % 3 === 2 ? 'watchtower' : 'walltower', tx, tz, ang, { autodoor: false, s: opts.towerS || 0.85 });
+        }
+        acc += SL;
+      }
     }
   }
 
