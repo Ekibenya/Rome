@@ -437,8 +437,9 @@ canvas{display:block}
   /* Ghost 式小岛切换条：底部居中小胶囊，点选或左右滑切页 */
   .gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;
       border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.92);touch-action:pan-x}
-  .gNav span{display:flex;align-items:center;padding:0 13px;font-size:9px;letter-spacing:.22em;color:var(--mut);cursor:pointer;white-space:nowrap}
+  .gNav span{display:flex;align-items:center;padding:0 15px;color:var(--mut);cursor:pointer}
   .gNav span b{display:none}
+  .gNav span svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}
   .gNav span.on{color:#0a0a0a;background:var(--gold)}
 }
 
@@ -678,9 +679,9 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   </div>
 
   <nav class="gNav">
-    <span data-pg="map"><b>TABVLA</b>輿·備</span>
-    <span class="on" data-pg="narr"><b>SERMO</b>敘事</span>
-    <span data-pg="mfd"><b>TABVLARIVM</b>情報</span>
+    <span data-pg="map" title="TABVLA · 地圖與裝備"><svg viewBox="0 0 24 24"><path d="M3 6l6-2.2 6 2.2 6-2.2V18l-6 2.2L9 18l-6 2.2z"/><path d="M9 3.8V18M15 6v14.2"/></svg></span>
+    <span class="on" data-pg="narr" title="SERMO · 敘事"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.5h16M4 14h16M4 18.5h9"/></svg></span>
+    <span data-pg="mfd" title="TABVLARIVM · 情報"><svg viewBox="0 0 24 24"><path d="M5 20v-9M12 20V4M19 20v-6"/><path d="M3 20.5h18"/></svg></span>
   </nav>
 </div>
 
@@ -707,7 +708,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="sub">給每幕正文配&nbsp;AI&nbsp;插畫。接口、密鑰與參數只存本機瀏覽器。開「每幕自動生圖」後每出一幕自動作畫，失敗自動重試一次。</div>
       <div class="sRow"><span>啟用生圖</span><span class="sSeg" id="sgImgOn"><span class="on">關</span><span>開</span></span></div>
       <div class="sRow"><span>每幕自動生圖（關則手動點「繪此幕」）</span><span class="sSeg" id="sgImgAuto"><span class="on">關</span><span>開</span></span></div>
-      <div class="sRow"><span>每輪生幾張</span><span class="sSeg" id="sgImgCount"><span class="on">1</span><span>2</span><span>3</span><span>4</span></span></div>
+      <div class="sRow"><span>每輪生幾張</span><span class="sSeg" id="sgImgCount"><span class="on">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></span></div>
       <div class="sub">超過&nbsp;1&nbsp;張時由副模型據本幕劇情拆出不同切入點（主場景／人物特寫／別處&nbsp;NPC／換機位），各生一張——需配好副模型，否則以不同種子重繪。</div>
       <div class="sRow"><span>鏡頭&nbsp;·&nbsp;風格（內置提示詞）</span><span class="sSeg" id="sgImgCam"><span class="on">自動</span><span>電影感</span><span>插畫</span><span>油畫</span><span>第一人稱</span><span>寫實</span></span></div>
       <div class="sRow"><span>圖片顯示尺寸</span><span class="sSeg" id="sgImgDisp"><span>迷你</span><span>小</span><span class="on">中</span><span>大</span></span></div>
@@ -867,12 +868,17 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       </div>
     </div>
     <div class="cfgPane" id="cp_bak" style="display:none">
-      <div class="sub">全量數據備份：設置／接口／預設／記憶／正則／腳本／自寫世界書／角色卡／存檔&nbsp;·&nbsp;一個&nbsp;JSON&nbsp;帶走</div>
-      <div style="display:flex;gap:12px;margin-top:16px">
+      <div class="sub">分項備份：每一項可單獨導出／導入（JSON&nbsp;小檔）。導入同類即覆蓋，刷新頁面生效。</div>
+      <div id="bakRows" style="margin-top:10px"></div>
+      <div class="sub" style="margin-top:16px">全量備份：一個&nbsp;JSON&nbsp;帶走上面全部項目</div>
+      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
         <span class="eBtn" id="bakExp" style="margin-top:0">EXPORTARE&nbsp;導出全部</span>
-        <span class="eBtn" id="bakImp" style="margin-top:0">導入</span>
-        <span class="eBtn" id="bakWipe" style="margin-top:0" title="雙擊執行">清空全部（雙擊）</span>
+        <span class="eBtn" id="bakImp" style="margin-top:0">導入（全量或任一單項檔）</span>
         <input type="file" id="bakFile" accept=".json" style="display:none">
+      </div>
+      <div class="sub" style="margin-top:18px">一鍵清除：抹掉本遊戲存在此瀏覽器的<b style="color:#e86a52">全部資料</b>——設置、AI接口、預設、記憶、正則、腳本、自寫世界書、角色卡、全部存檔、裝備、圖庫緩存、三維偏好。自定義字體與周紀線各自數據不動。執行後自動刷新。</div>
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <span class="eBtn" id="bakWipe" style="margin-top:0">一鍵清除全部資料…</span>
       </div>
       <div class="sub" id="bakMsg" style="margin-top:12px"></div>
     </div>
@@ -1068,7 +1074,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.5.4';
+  var ZJ3D_VER='1.5.5';
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -3320,7 +3326,7 @@ $('#cfgGlass').addEventListener('input',function(){SET.glass=+this.value;
 var formaCss=document.createElement('style');document.head.appendChild(formaCss);
 function applyForma(){
   if(SET.forma===1)formaCss.textContent='@media(max-width:760px){#game .gMain{left:64px;right:322px;bottom:0}#game .gMfd{display:block}.gArr{display:flex}.gNav{display:none}}';
-  else if(SET.forma===2)formaCss.textContent='#game .gMain{left:0;right:0;bottom:34px}#game .gMfd{display:none;left:0;right:0;width:auto;bottom:34px;border-left:0}.gArr{display:none}.gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}.gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.92);touch-action:pan-x}.gNav span{display:flex;align-items:center;padding:0 13px;font-size:9px;letter-spacing:.22em;color:var(--mut);cursor:pointer;white-space:nowrap}.gNav span b{display:none}.gNav span.on{color:#0a0a0a;background:var(--gold)}#game[data-pg=map] #pnMap{display:block;transform:none;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52);width:100%}#game[data-pg=map] #pnArm{display:block;transform:none;top:calc(46px + (100dvh - 80px)*.52);bottom:34px;width:100%;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}#game[data-pg=mfd] .gMfd{display:block;top:46px;bottom:34px}#game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}';
+  else if(SET.forma===2)formaCss.textContent='#game .gMain{left:0;right:0;bottom:34px}#game .gMfd{display:none;left:0;right:0;width:auto;bottom:34px;border-left:0}.gArr{display:none}.gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}.gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.92);touch-action:pan-x}.gNav span{display:flex;align-items:center;padding:0 15px;color:var(--mut);cursor:pointer}.gNav span b{display:none}.gNav span svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}.gNav span.on{color:#0a0a0a;background:var(--gold)}#game[data-pg=map] #pnMap{display:block;transform:none;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52);width:100%}#game[data-pg=map] #pnArm{display:block;transform:none;top:calc(46px + (100dvh - 80px)*.52);bottom:34px;width:100%;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}#game[data-pg=mfd] .gMfd{display:block;top:46px;bottom:34px}#game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}';
   else formaCss.textContent='';
 }
 applyForma();setSeg('#sgForma',SET.forma);
@@ -4140,40 +4146,110 @@ $('#cardFile').addEventListener('change',function(){
   this.value='';
 });
 /* —— 備·數據備份 —— */
-$('#bakExp').addEventListener('click',function(){
-  var all={};
-  for(var i=0;i<localStorage.length;i++){
-    var k=localStorage.key(i);
-    if(k&&k.indexOf('rome_')===0&&k!=='rome_font')all[k]=localStorage.getItem(k);
-  }
-  var b=new Blob([JSON.stringify(all,null,1)],{type:'application/json'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='roma_backup.json';a.click();
-  $('#bakMsg').textContent='已導出 '+Object.keys(all).length+' 項';
-});
-$('#bakImp').addEventListener('click',function(){$('#bakFile').click();});
-$('#bakFile').addEventListener('change',function(){
-  var f=this.files[0];if(!f)return;
-  var rd=new FileReader();
-  rd.onload=function(){
-    try{
-      var all=JSON.parse(rd.result),n=0;
-      Object.keys(all).forEach(function(k){
-        if(k.indexOf('rome_')===0){localStorage.setItem(k,all[k]);n++;}
-      });
-      $('#bakMsg').textContent='已導入 '+n+' 項 · 刷新頁面生效';
-    }catch(_){$('#bakMsg').textContent='JSON 解析失敗';}
-  };
-  rd.readAsText(f);this.value='';
-});
-$('#bakWipe').addEventListener('dblclick',function(){
-  var keys=[];
-  for(var i=0;i<localStorage.length;i++){
-    var k=localStorage.key(i);
-    if(k&&k.indexOf('rome_')===0)keys.push(k);
-  }
-  keys.forEach(function(k){localStorage.removeItem(k);});
-  $('#bakMsg').textContent='已清空 '+keys.length+' 項 · 刷新頁面生效';
-});
+/* —— 分項備份：預設/記憶/正則/腳本/角色卡/世界書/接口/裝備/存檔/其他設置 逐項導出導入 —— */
+var BAK_CATS={
+  preset:{n:'預設',get:function(){return SET.presets||[];},set:function(v){SET.presets=v||[];setStore();}},
+  mem:{n:'記憶',get:function(){return SET.mems||[];},set:function(v){SET.mems=v||[];setStore();}},
+  rx:{n:'正則',get:function(){return SET.rx||[];},set:function(v){SET.rx=v||[];setStore();}},
+  js:{n:'腳本',get:function(){return SET.js||[];},set:function(v){SET.js=v||[];setStore();}},
+  card:{n:'角色卡',get:function(){return SET.cards||[];},set:function(v){SET.cards=v||[];setStore();}},
+  lore:{n:'世界書(自寫)',get:function(){return loreCustomGet();},set:function(v){loreCustomPut(v||[]);}},
+  api:{n:'AI接口',key:'rome_api'},
+  inv:{n:'裝備行囊',key:'rome_inv'},
+  save:{n:'存檔(全部槽位)',multi:'rome_sv2_'},
+  imgs:{n:'圖庫緩存',key:'rome_imgs'},
+  disp:{n:'其他設置(顯示/生圖/語音/採樣)',get:function(){
+      var s={};Object.keys(SET).forEach(function(k){if(['presets','mems','rx','js','cards'].indexOf(k)<0)s[k]=SET[k];});
+      return {set:s,cfg:localStorage.getItem('rome_cfg')||''};
+    },set:function(v){
+      if(v&&v.set){Object.keys(v.set).forEach(function(k){SET[k]=v.set[k];});setStore();}
+      if(v&&v.cfg)try{localStorage.setItem('rome_cfg',v.cfg);}catch(_){}
+    }}
+};
+function bakCatData(k){
+  var c=BAK_CATS[k];
+  if(c.get)return c.get();
+  if(c.key)return localStorage.getItem(c.key)||'';
+  if(c.multi){var o={};for(var i=0;i<localStorage.length;i++){var kk=localStorage.key(i);
+    if(kk&&kk.indexOf(c.multi)===0)o[kk]=localStorage.getItem(kk);}return o;}
+}
+function bakCatPut(k,data){
+  var c=BAK_CATS[k];
+  if(c.set){c.set(data);return;}
+  if(c.key){try{localStorage.setItem(c.key,typeof data==='string'?data:JSON.stringify(data));}catch(_){}return;}
+  if(c.multi&&data&&typeof data==='object')Object.keys(data).forEach(function(kk){
+    if(kk.indexOf(c.multi)===0)try{localStorage.setItem(kk,data[kk]);}catch(_){}});
+}
+function bakDl(name,obj){
+  var b=new Blob([JSON.stringify(obj,null,1)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+}
+(function(){
+  var rows=$('#bakRows');if(!rows)return;
+  Object.keys(BAK_CATS).forEach(function(k){
+    var r=document.createElement('div');
+    r.className='sRow';
+    r.innerHTML='<span>'+BAK_CATS[k].n+'</span><span style="display:flex;gap:8px"><span class="gt" data-bex="'+k+'">導出</span><span class="gt" data-bim="'+k+'">導入</span></span>';
+    rows.appendChild(r);
+  });
+  var pend=null;
+  rows.addEventListener('click',function(e){
+    var ex=e.target.getAttribute&&e.target.getAttribute('data-bex');
+    var im=e.target.getAttribute&&e.target.getAttribute('data-bim');
+    if(ex){bakDl('roma_'+ex+'.json',{__app:'ROMA',__type:'bak-item',cat:ex,data:bakCatData(ex)});
+      $('#bakMsg').textContent='已導出：'+BAK_CATS[ex].n;}
+    if(im){pend=im;$('#bakFile').click();}
+  });
+  $('#bakExp').addEventListener('click',function(){
+    var all={};Object.keys(BAK_CATS).forEach(function(k){all[k]=bakCatData(k);});
+    bakDl('roma_backup.json',{__app:'ROMA',__type:'bak-all',data:all});
+    $('#bakMsg').textContent='已導出全部（'+Object.keys(BAK_CATS).length+' 項）';
+  });
+  $('#bakImp').addEventListener('click',function(){pend=null;$('#bakFile').click();});
+  $('#bakFile').addEventListener('change',function(){
+    var f=this.files[0];this.value='';if(!f)return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var j=JSON.parse(rd.result);
+        if(j&&j.__type==='bak-item'&&BAK_CATS[j.cat]){
+          if(pend&&pend!==j.cat){$('#bakMsg').textContent='檔案是「'+BAK_CATS[j.cat].n+'」，與所選項不符——已按檔案內容導入';}
+          bakCatPut(j.cat,j.data);
+          $('#bakMsg').textContent='已導入：'+BAK_CATS[j.cat].n+' · 刷新頁面生效';
+        }else if(j&&j.__type==='bak-all'&&j.data){
+          Object.keys(j.data).forEach(function(k){if(BAK_CATS[k])bakCatPut(k,j.data[k]);});
+          $('#bakMsg').textContent='已導入全量備份 · 刷新頁面生效';
+        }else if(j&&typeof j==='object'){ /* 舊版全量檔（rome_* 鍵值表）兼容 */
+          var n=0;Object.keys(j).forEach(function(k){if(k.indexOf('rome_')===0){localStorage.setItem(k,j[k]);n++;}});
+          $('#bakMsg').textContent=n?('已導入舊版備份 '+n+' 項 · 刷新頁面生效'):'不是本遊戲的備份檔';
+        }
+      }catch(_){$('#bakMsg').textContent='JSON 解析失敗';}
+      pend=null;
+    };
+    rd.readAsText(f);
+  });
+  /* 兩段式清除：先亮明細，再點才執行 */
+  var wipeArm=false;
+  $('#bakWipe').addEventListener('click',function(){
+    var keys=[];
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&(/^rome_/.test(k)||/^med3d_/.test(k)||/^zj3d_/.test(k)))keys.push(k);
+    }
+    if(!wipeArm){
+      wipeArm=true;
+      this.textContent='確認清除 '+keys.length+' 項——再點一次執行，不可撤銷';
+      $('#bakMsg').textContent='將清除：'+keys.join('、');
+      var btn=this;
+      setTimeout(function(){if(wipeArm){wipeArm=false;btn.textContent='一鍵清除全部資料…';$('#bakMsg').textContent='已取消（超時未確認）';}},8000);
+      return;
+    }
+    keys.forEach(function(k){try{localStorage.removeItem(k);}catch(_){}});
+    $('#bakMsg').textContent='已清除 '+keys.length+' 項 · 正在刷新…';
+    setTimeout(function(){location.reload();},600);
+  });
+})();
 setTimeout(function(){   /* CARDS 在後方賦值——延遲到本輪腳本執行完再併入 */
   try{loreSync();}catch(_){}
   try{rebuildRing('roma');}catch(_){}
