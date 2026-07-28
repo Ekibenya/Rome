@@ -640,7 +640,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 
 <div id="foot">
   <span>● ROME.SYS&nbsp;&nbsp;|&nbsp;&nbsp;ENGINE SHELL LINKED&nbsp;&nbsp;|&nbsp;&nbsp;<b>16</b> SCENARIOS</span>
-  <span class="r"><span class="lbl">DRAG / WHEEL / ← → TO ROTATE</span><span class="go" id="lineTg" title="切換劇情線">LINEA·ROMA ⇄ 周</span><span class="go" id="goBtn" tabindex="0">ENGAGE ⏎</span></span>
+  <span class="r"><span class="lbl">DRAG / WHEEL / ← → / A D TO ROTATE</span><span class="go" id="lineTg" title="切換劇情線">LINEA·ROMA ⇄ 周</span><span class="go" id="goBtn" tabindex="0">ENGAGE ⏎</span></span>
 </div>
 
 <canvas id="grain"></canvas>
@@ -1660,8 +1660,9 @@ addEventListener('keydown',function(e){
     else if(e.key==='Escape'){$('#dlgOpen').style.display='none';PENDOP=null;}
     return;
   }
-  if(e.key==='ArrowRight')goTo(mod(Math.round(pos)+1,N));
-  else if(e.key==='ArrowLeft')goTo(mod(Math.round(pos)-1,N));
+  var _k=(e.key||'').toLowerCase();   /* A／D 與左右方向鍵同義（大小寫皆可） */
+  if(e.key==='ArrowRight'||_k==='d')goTo(mod(Math.round(pos)+1,N));
+  else if(e.key==='ArrowLeft'||_k==='a')goTo(mod(Math.round(pos)-1,N));
   else if(e.key==='Enter')engage();
   else if(e.key==='Escape')disengage();
 });
