@@ -335,61 +335,6 @@
 
   /* 山：多面棱峰（角向谐波折棱 + 逐面明暗 + 不规则雪线），沿山脊排成岭 */
   var ROCKC = [0x969ca6, 0x8b919c, 0xa2a8b2, 0x848a95];
-  var MTN_MAT = null;
-  function mtnMat() { return MTN_MAT || (MTN_MAT = new T.MeshLambertMaterial({ vertexColors: true })); }
-  function mtnMesh(pw, ph, seed, rockC, snow, gLo, gHi) {
-    // gLo/gHi：草坡带（面心高度比）——之下全草、之间草岩驳杂、之上纯岩
-    // 主峰默认不披草（山脚过渡交给岩席/山肩/草丘），仅显式传入时着草
-    if (gLo === undefined) gLo = -2;
-    if (gHi === undefined) gHi = -1;
-    var rs = 8 + (hash(seed + 'rs') % 3); // 8~10 棱 × 4 环
-    var geo = new T.ConeGeometry(pw, ph, rs, 4, true).toNonIndexed();
-    var pos = geo.attributes.position;
-    // 角向谐波：决定山棱与山坳的走向（低次大起伏 + 高次碎棱）
-    var h1 = 2 + (hash(seed + 'h1') % 3), h2 = 4 + (hash(seed + 'h2') % 3);
-    var p1 = (hash(seed + 'p1') % 628) / 100, p2 = (hash(seed + 'p2') % 628) / 100;
-    var a1 = 0.15 + (hash(seed + 'a1') % 18) / 100;
-    var a2 = 0.08 + (hash(seed + 'a2') % 13) / 100;
-    var apx = ((hash(seed + 'ax') % 100) / 100 - 0.5) * pw * 0.55;
-    var apz = ((hash(seed + 'az') % 100) / 100 - 0.5) * pw * 0.55;
-    var i;
-    for (i = 0; i < pos.count; i++) {
-      var vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
-      var rr = Math.hypot(vx, vz);
-      var t = (vy + ph / 2) / ph; // 0 山脚 → 1 峰顶
-      if (rr < 1e-4) { if (vy > 0) { pos.setX(i, vx + apx); pos.setZ(i, vz + apz); } continue; }
-      var th = Math.atan2(vx, vz);
-      // 逐格噪声按（环号,棱号）取键，接缝两侧同键不裂
-      var ring = Math.round(t * 4);
-      var ai = Math.round(((th + Math.PI) / 6.2832) * rs) % rs;
-      var cn = (hash(seed + 'c' + ring + '_' + ai) % 100) / 100 - 0.5;
-      var f = 1 + a1 * Math.sin(h1 * th + p1) + a2 * Math.sin(h2 * th + p2) + cn * 0.42 * (1.05 - t * 0.55);
-      f *= 1 + 0.34 * (1 - t) * (1 - t) - 0.08 * (1 - t); // 底缓顶陡的凹弧山形，山脚外张
-      if (f < 0.42) f = 0.42;
-      pos.setX(i, vx * f); pos.setZ(i, vz * f);
-      if (t > 0.04 && t < 0.97) pos.setY(i, vy + cn * ph * 0.09 * (1 - t * 0.6));
-      if (t > 0.5) { var k = (t - 0.5) * 1.6; pos.setX(i, pos.getX(i) + apx * k); pos.setZ(i, pos.getZ(i) + apz * k); } // 上部随峰尖偏斜
-    }
-    geo.computeVertexNormals();
-    // 逐面着色：山脚草坡 → 草岩驳杂 → 岩面明暗错落 → 不规则雪线
-    var n = pos.count, col = new Float32Array(n * 3);
-    var rc = new T.Color(rockC), sc = new T.Color(0xe9edf4), c0 = new T.Color();
-    var gc = new T.Color(Z.grassC || 0x8fc86a), _gc0 = new T.Color();
-    var snowT = snow ? 0.52 + (hash(seed + 'sl') % 14) / 100 : 2;
-    for (i = 0; i < n; i += 3) {
-      var ty = ((pos.getY(i) + pos.getY(i + 1) + pos.getY(i + 2)) / 3 + ph / 2) / ph;
-      var fj = (hash(seed + 'f' + i) % 100) / 100;
-      if (ty > snowT + (fj - 0.5) * 0.13) c0.copy(sc).multiplyScalar(0.93 + fj * 0.07);
-      else {
-        c0.copy(rc).multiplyScalar((0.78 + fj * 0.34) * (0.86 + ty * 0.2));
-        var mix = (gHi - ty) / (gHi - gLo) + (fj - 0.5) * 0.4; // 草→岩渐次，带逐面抖动成驳杂带
-        if (mix > 0) c0.lerp(_gc0.copy(gc).multiplyScalar(0.88 + fj * 0.24), Math.min(1, mix));
-      }
-      for (var j = 0; j < 3; j++) { col[(i + j) * 3] = c0.r; col[(i + j) * 3 + 1] = c0.g; col[(i + j) * 3 + 2] = c0.b; }
-    }
-    geo.setAttribute('color', new T.BufferAttribute(col, 3));
-    return new T.Mesh(geo, mtnMat());
-  }
   /* ---------------- 自然资材（树/棕榈/山 61 模型全用） ---------------- */
   function natN(pre, a, b) { var o = []; for (var i = a; i <= b; i++) o.push(pre + (i < 10 ? '00' : '0') + i); return o; }
   var NATBROAD = ['Tree_temp_climate_001', 'Tree_temp_climate_002', 'Tree_temp_climate_003', 'Tree_temp_climate_007', 'Tree_temp_climate_008', 'Tree_temp_climate_009', 'Tree_temp_climate_012', 'Tree_temp_climate_015', 'Tree_temp_climate_016', 'Tree_temp_climate_017', 'Tree_temp_climate_018'];
@@ -401,84 +346,99 @@
     return /Tropic/.test(name) ? 'T_Tree_tropical.png' : /^Tree_/.test(name) ? 'T_Trees_temp_climate.png' : 'T_Mountains_temperate_climate_32.png';
   }
 
-  function mountainGroup(w, h, seed) {
-    var r = rng('mt' + seed);
-    var g = new T.Group();
-    var peaks = 2 + (hash(seed + 'p') % 3); // 主峰 + 2~4 侧峰
-    var ridgeA = r() * 6.28, dx = Math.sin(ridgeA), dz = Math.cos(ridgeA);
-    for (var p = 0; p <= peaks; p++) {
-      var pw = w * (p === 0 ? 1 : 0.42 + r() * 0.36), ph = h * (p === 0 ? 1 : 0.36 + r() * 0.45);
-      var m = mtnMesh(pw, ph, seed + 'k' + p, ROCKC[hash(seed + p) % 4], ph > 26);
-      var along = p === 0 ? 0 : (p % 2 ? 1 : -1) * (0.5 + r() * 0.55) * w; // 沿脊两侧列峰
-      m.position.set(dx * along + (r() - 0.5) * w * 0.35, ph / 2 - 1.2, dz * along + (r() - 0.5) * w * 0.35);
-      m.rotation.y = ridgeA + (r() - 0.5) * 0.9;
-      m.scale.set(1, 1, 0.68 + r() * 0.42); // 顺脊压扁，成岭不成锥
-      g.add(m);
-    }
-    // 岩席：贴地薄岩，灰岩自山根一直漫进草原
-    var sheets = 3 + (hash(seed + 'st') % 2);
-    for (var q3 = 0; q3 < sheets; q3++) {
-      var ba = (q3 / sheets) * 6.28 + r() * 0.9;
-      var bw = w * (0.7 + r() * 0.5), bh = 1.1 + r() * 1.5;
-      var mb = mtnMesh(bw, bh, seed + 't' + q3, ROCKC[hash(seed + 'tc' + q3) % 4], false, -2, -1);
-      mb.position.set(Math.sin(ba) * w * (0.4 + r() * 0.35), bh / 2 - 0.45 + q3 * 0.04, Math.cos(ba) * w * (0.4 + r() * 0.35));
-      mb.rotation.y = r() * 6.28;
-      mb.scale.set(1, 1, 0.55 + r() * 0.5);
-      g.add(mb);
-    }
-    // 山肩岩坡：山体自身摊入平地——半数是裸岩山趾直接压进草原，半数披草渐没
-    var should = 2 + (hash(seed + 'sh') % 2);
-    for (var q2 = 0; q2 < should; q2++) {
-      var sa2 = (q2 / should) * 6.28 + r() * 1.2;
-      var sw = w * (0.85 + r() * 0.45), sh2 = h * (0.06 + r() * 0.09);
-      var rocky = q2 % 2 === 0;
-      var ms = mtnMesh(sw, sh2, seed + 's' + q2, ROCKC[hash(seed + 'sc2' + q2) % 4], false,
-        rocky ? -2 : 0.3, rocky ? -1 : 0.85);
-      ms.position.set(Math.sin(sa2) * w * (0.35 + r() * 0.3), sh2 / 2 - 0.9 + 0.02 + q2 * 0.04, Math.cos(sa2) * w * (0.35 + r() * 0.3));
-      ms.rotation.y = r() * 6.28;
-      ms.scale.set(1, 1, 0.6 + r() * 0.5);
-      g.add(ms);
-    }
-    // 山前草丘：低缓绿坡围裙，接住草地与岩体的落差
-    var mounds = 1 + (hash(seed + 'md') % 2);
-    for (var q = 0; q < mounds; q++) {
-      var qa = r() * 6.28;
-      var qw = w * (0.55 + r() * 0.6), qh = h * (0.09 + r() * 0.09);
-      var mq = mtnMesh(qw, qh, seed + 'q' + q, ROCKC[hash(seed + 'qc' + q) % 4], false, 0.7, 1.35);
-      mq.position.set(Math.sin(qa) * w * (0.6 + r() * 0.4), qh / 2 - 1.2 + q * 0.03, Math.cos(qa) * w * (0.6 + r() * 0.4));
-      mq.rotation.y = r() * 6.28;
-      mq.scale.set(1, 1, 0.62 + r() * 0.5);
-      g.add(mq);
-    }
-    return g;
-  }
-  function mountain(x, z, w, h, seed) {
-    var hh = hash('nm' + seed + x + z);
-    var pool = h >= 34 ? NATMTN.mtn : (h >= 16 ? NATMTN.mix : NATMTN.hill);
-    var name = pool[hh % pool.length];
+  /* 单峰：资材山模按目标宽高缩放成一座峰 */
+  function natPeak(name, w, h, ry) {
     var lib = Z.packs.nature && Z.packs.nature.lib;
-    if (!lib || !lib[name]) return;
+    if (!lib || !lib[name]) return null;
     USED.nature[name] = 1;
     var inf = info('nature', name);
     var o = lib[name].clone(true);
     var mat = matFor('T_Mountains_temperate_climate_32.png');
     o.traverse(function (ch) { if (ch.isMesh) { ch.material = mat; ch.castShadow = true; ch.receiveShadow = true; } });
-    var g = new T.Group(); g.add(o);
+    var pg = new T.Group(); pg.add(o);
     o.position.y = -inf.minY;
-    var sxz = (w * 2.4) / Math.max(inf.size.x, inf.size.z), sy = h / inf.size.y;
-    g.scale.set(sxz, sy, sxz);
-    g.position.set(x, 0, z); g.rotation.y = (hh % 628) / 100;
-    Z.scene.add(g);
+    var sxz = w / Math.max(inf.size.x, inf.size.z), sy = h / inf.size.y;
+    pg.scale.set(sxz, sy, sxz);
+    pg.rotation.y = ry || 0;
+    return pg;
+  }
+  /* 山体组团：主峰+侧峰沿同一走向排列、两端渐低、山前配麓丘 —— 自然山脉规律 */
+  function massif(w, h, seed, strike) {
+    var r = rng('mf' + seed), g = new T.Group();
+    if (strike == null) strike = r() * 6.28;
+    var dx = Math.sin(strike), dz = Math.cos(strike);
+    var hh = hash('mf' + seed);
+    var mainW = w * 2.4;
+    var mpool = h >= 30 ? NATMTN.mtn : NATMTN.mix;
+    var mp = natPeak(mpool[hh % mpool.length], mainW, h, strike + (r() - .5) * 0.4);
+    if (mp) g.add(mp);
+    var sides = 1 + (hh % 2);
+    for (var i = 0; i <= sides; i++) {
+      var sgn = i % 2 ? -1 : 1, off = (0.55 + r() * 0.3) * mainW;
+      var sh = h * (0.48 + r() * 0.24), sw = mainW * (0.55 + r() * 0.28);
+      var pool2 = sh >= 30 ? NATMTN.mtn : NATMTN.mix;
+      var sp = natPeak(pool2[(hh + i + 1) % pool2.length], sw, sh, strike + (r() - .5) * 0.35);
+      if (sp) { sp.position.set(dx * off * sgn, 0, dz * off * sgn); g.add(sp); }
+    }
+    var hp = natPeak(NATMTN.hill[hh % 5], mainW * (0.5 + r() * 0.35), h * (0.16 + r() * 0.1), strike + (r() - .5) * 0.7);
+    if (hp) {
+      var hs = hh & 8 ? 1 : -1;
+      hp.position.set(-dz * hs * mainW * (0.5 + r() * 0.25), 0, dx * hs * mainW * (0.5 + r() * 0.25));
+      g.add(hp);
+    }
+    return g;
+  }
+  function mountain(x, z, w, h, seed) {
+    var hh = hash('nm' + seed + x + z), r = rng('nm2' + seed);
+    var pool = h >= 34 ? NATMTN.mtn : (h >= 16 ? NATMTN.mix : NATMTN.hill);
+    var pk = natPeak(pool[hh % pool.length], w * 2.4, h, (hh % 628) / 100);
+    if (!pk) return;
+    pk.position.set(x, 0, z); Z.scene.add(pk);
     (Z.mtnSpots = Z.mtnSpots || []).push({ x: x, z: z, w: w }); // 供地块绘制山根砾石裙
+    if (h > 22 && (hh & 3) === 0) {
+      var hp2 = natPeak(NATMTN.hill[hh % 5], w * 1.5, h * 0.22, r() * 6.28);
+      if (hp2) { hp2.position.set(x + (r() - .5) * w * 2.2, 0, z + (r() - .5) * w * 2.2); Z.scene.add(hp2); }
+    }
   }
   function mountainRing(R, seed, gaps) {
     var r = rng('ring' + seed);
-    for (var a = 0; a < 360; a += 34 + r() * 30) {
-      var rad = a * Math.PI / 180, skip = false;
-      (gaps || []).forEach(function (gp) { var d = Math.abs(((a - gp + 540) % 360) - 180); if (d < 22) skip = true; });
-      if (skip) continue;
-      var dist = R * (1.18 + r() * 0.42); // 外推山环，山裙不再吞没城缘建筑
-      mountain(Math.sin(rad) * dist, Math.cos(rad) * dist, 16 + r() * 24, 26 + r() * 34, seed + a);
+    var a = r() * 30;
+    while (a < 360) {
+      var span = 34 + r() * 30, mid = a + span / 2, skip = false;
+      (gaps || []).forEach(function (gp) { var d = Math.abs(((mid - gp + 540) % 360) - 180); if (d < 24 + span / 2) skip = true; });
+      if (!skip) {
+        var dist = R * (1.22 + r() * 0.28);
+        var n = 3 + (hash(seed + 'n' + (a | 0)) % 3);
+        var hMax = 30 + r() * 30;
+        for (var i = 0; i < n; i++) {
+          var t = n === 1 ? 0.5 : i / (n - 1);
+          var ang = (a + t * span) * Math.PI / 180;
+          var prof = Math.sin(Math.PI * (0.18 + 0.64 * t)); /* 两端低中间高 */
+          var hh2 = hMax * (0.45 + 0.55 * prof);
+          var ww = (13 + r() * 9 + prof * 8) * 2.4;
+          var d2 = dist * (1 + (r() - .5) * 0.08);
+          var px = Math.sin(ang) * d2, pz = Math.cos(ang) * d2;
+          var pool = hh2 >= 34 ? NATMTN.mtn : (hh2 >= 16 ? NATMTN.mix : NATMTN.hill);
+          var pk = natPeak(pool[hash(seed + 'p' + (a | 0) + i) % pool.length], ww, hh2, ang + Math.PI / 2 + (r() - .5) * 0.25);
+          if (pk) {
+            pk.position.set(px, 0, pz); Z.scene.add(pk);
+            (Z.mtnSpots = Z.mtnSpots || []).push({ x: px, z: pz, w: ww / 2.4 });
+          }
+        }
+        /* 山链内侧麓丘：承接平原 */
+        var fh = 1 + (hash(seed + 'f' + (a | 0)) % 2);
+        for (var q = 0; q < fh; q++) {
+          var fa = (a + span * (0.25 + r() * 0.5)) * Math.PI / 180;
+          var fd = dist * (0.84 - r() * 0.05);
+          var fw = 20 + r() * 14, fhh = 6 + r() * 7;
+          var hp = natPeak(NATMTN.hill[hash(seed + 'h' + (a | 0) + q) % 5], fw, fhh, fa + Math.PI / 2 + (r() - .5) * 0.5);
+          if (hp) {
+            hp.position.set(Math.sin(fa) * fd, 0, Math.cos(fa) * fd); Z.scene.add(hp);
+            (Z.mtnSpots = Z.mtnSpots || []).push({ x: Math.sin(fa) * fd, z: Math.cos(fa) * fd, w: fw / 2.4 });
+          }
+        }
+      }
+      a += span + 12 + r() * 24;
     }
   }
   /* 岩石台地（图4：山腰要塞的基座） */
@@ -561,12 +521,9 @@
     var r = rng('js' + seed), g = new T.Group();
     var n = 1 + (hash(seed + 'n') % 2);
     for (var i = 0; i < n; i++) {
-      var pw = 2.6 + r() * 3, ph = 3.2 + r() * 4.6;
-      var m = mtnMesh(pw, ph, seed + 'j' + i, ROCKC[hash(seed + i) % 4], ph > 6.4);
-      m.position.set((r() - .5) * 3, ph / 2, (r() - .5) * 3);
-      m.rotation.y = r() * 6.28;
-      m.castShadow = true;
-      g.add(m);
+      var pw = 3 + r() * 3, ph = 3.2 + r() * 4.6;
+      var m = natPeak(NATMTN.mtn[hash(seed + 'j' + i) % 10], pw, ph, r() * 6.28);
+      if (m) { m.position.set((r() - .5) * 3, 0, (r() - .5) * 3); g.add(m); }
     }
     for (var b = 0; b < 3; b++) {
       var bs = 0.3 + r() * 0.55;
@@ -583,13 +540,9 @@
     var g = new T.Group();
     var n = 1 + (hash(seed + 'n') % 2);
     for (var i = 0; i < n; i++) {
-      var pw = 2 + r() * 3.2, ph = 1 + r() * 2.2;
-      var m = mtnMesh(pw, ph, seed + 'o' + i, ROCKC[hash(seed + i) % 4], false, -2, -1);
-      m.position.set((r() - .5) * 3.5, ph / 2 - 0.5, (r() - .5) * 3.5);
-      m.rotation.y = r() * 6.28;
-      m.scale.set(1, 0.62 + r() * 0.5, 0.66 + r() * 0.5);
-      m.castShadow = true;
-      g.add(m);
+      var pw = 4 + r() * 4, ph = 1.1 + r() * 1.8;
+      var m = natPeak(NATMTN.hill[hash(seed + 'o' + i) % 5], pw, ph, r() * 6.28);
+      if (m) { m.position.set((r() - .5) * 3.5, 0, (r() - .5) * 3.5); g.add(m); }
     }
     var nb = 2 + (hash(seed + 'b') % 3);
     for (var b = 0; b < nb; b++) {
@@ -3372,7 +3325,7 @@
       if (Math.abs(px) < 8) continue; // 御道净空
       var t0 = r(), obj = null;
       if (t0 < 0.48) obj = tree(px, pz, ['green', 'green', 'pink', 'autumn', 'pine'][Math.floor(r() * 5)], 'ck' + key + i);
-      else if (t0 < 0.64) obj = bambooGrove(px, pz, 'ckb' + key + i, r() > 0.5);
+      else if (t0 < 0.64) obj = tree(px, pz, 'pine', 'ckb' + key + i);
       else if (t0 < 0.78) obj = rock(px, pz, 0.5 + r() * 1.4, 'ck' + key + i);
       else if (t0 < 0.9) obj = outcrop(px, pz, 'cko' + key + i);
       else obj = flowerPatch(px, pz, 'ckf' + key + i);
@@ -3387,7 +3340,7 @@
         var mw = 10 + r() * 20, mh = 8 + r() * (distC > R * 2 ? 40 : 22);
         var px2 = x0 + (r() - .5) * (CHUNK - mw), pz2 = z0 + (r() - .5) * (CHUNK - mw);
         if (Math.abs(px2) > mw + 10) {
-          var mg = mountainGroup(mw, mh, 'ck' + key);
+          var mg = massif(mw, mh, 'ck' + key);
           mg.position.set(px2, 0, pz2);
           g.add(mg);
           aprons.push({ x: px2, z: pz2, w: mw });
@@ -5705,6 +5658,8 @@
       var nm = names[i], mt = /Hill|Mount|Plat/.test(nm);
       spawn('nature', nm, natTex(nm), { x: (i % 9) * 30 - 120, z: Math.floor(i / 9) * 30 - 90, s: mt ? 14 : 1, solid: false, autodoor: false, shadow: true });
     }
+    var mg1 = massif(20, 40, 'demoA'); mg1.position.set(-200, 0, 30); Z.scene.add(mg1);
+    var mg2 = massif(13, 20, 'demoB'); mg2.position.set(200, 0, -40); Z.scene.add(mg2);
     placePlayer(0, 160, Math.PI);
     hudCity(st, 'NATVRA');
   };
