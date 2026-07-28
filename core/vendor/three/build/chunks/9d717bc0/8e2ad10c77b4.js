@@ -99,7 +99,7 @@
     var texLoader = new T.TextureLoader();
     var done = 0, total = MANI.length + TEXES.length + 1;
     function tick() { done++; Z.prog = done / total; updateHud(); }
-    fetch('core/res/data/idx/v1/cdcf9bb63a.dat?v=45').then(function (r) {
+    fetch('core/res/data/idx/v1/cdcf9bb63a.dat?v=46').then(function (r) {
       if (!r.ok) throw new Error('pack http ' + r.status);
       return r.arrayBuffer();
     }).then(function (ab) {
@@ -3512,7 +3512,7 @@
         else doorBtn.style.display = 'none';
       }
     }
-    if (Z.mode === 'city' && Z.ready && Z.scene) { pawnTick(dt, t); rigTick(dt); animTick(dt); medTick(dt); }
+    if (Z.mode === 'city' && Z.ready && Z.scene) { pawnTick(dt, t); rigTick(dt); strikeTick(dt); animTick(dt); medTick(dt); }
     if (Z.ready && Z.scene && Z.player) { if (!Z.escortBusy) escortTick(dt, t); eventTick(dt, t); }
     // 分块旷野随焦点生成
     if ((tick._ck = (tick._ck || 0) + dt) > 0.4) {
@@ -4790,7 +4790,8 @@
         nb.appendChild(mkBtn('增员·金' + GUARD_COST, function () { escortAdd(); }));
         nb.appendChild(mkBtn('减员·返' + GUARD_REFUND, function () { escortSub(); }, true));
       }
-      if (inBuild() && Z.actor && Z.actor !== np && np.tag !== 'escort' && Z.actor.root.parent) {
+      var unitAtk = inBuild() && Z.actor && Z.actor !== np && np.tag !== 'escort' && Z.actor.root.parent;
+      if (unitAtk) {
         nb.appendChild(mkBtn('攻击', function () {
           if (Z.actor.escort) {
             if (Z.escort.length) Z.orders.push({ unit: Z.actor, type: 'escortAtk', target: np, phase: 'march' });
@@ -4798,6 +4799,12 @@
             Z.orders = Z.orders.filter(function (o) { return o.unit !== Z.actor; });
             Z.orders.push({ unit: Z.actor, type: 'attack', target: np, phase: 'march' });
           }
+          Z.selNpc = null; updateBuildHud();
+        }, true));
+      } else if (Z.player && !(np.tag === 'escort' && np.own)) {
+        /* 亲自出手：冲步挥剑动画 + 报一轮神谕 */
+        nb.appendChild(mkBtn('攻击', function () {
+          playerStrike(np);
           Z.selNpc = null; updateBuildHud();
         }, true));
       }
@@ -5041,9 +5048,7 @@
       R.torso = seg('torso', [0, J.hip, 0]);
       R.armL = seg('armL', J.armL); R.armR = seg('armR', J.armR);
       R.legL = seg('legL', J.legL); R.legR = seg('legR', J.legR);
-      /* 素材原姿是双臂外张的 A 形站姿：肩部内旋令双臂自然垂直贴体 */
-      if (R.armL) R.armL.rotation.z = 0.3;
-      if (R.armR) R.armR.rotation.z = -0.3;
+      /* 双臂垂直姿已在资材内软权重烘焙（肩0°→手17°渐变），此处不再刚性旋转以免肩缝断裂 */
       if (cfg.head && R.torso) {
         var at = lib['PW_at_' + cfg.head];
         if (at) {
@@ -5054,7 +5059,7 @@
       }
       if (cfg.shield && R.armL) {
         var sh = lib['PW_at_Roman_Shield'];
-        if (sh) { var s2 = dress(sh.clone(true)); s2.position.set(-0.14, -0.4, 0.08); s2.rotation.y = Math.PI / 2; R.armL.add(s2); }
+        if (sh) { var s2 = dress(sh.clone(true)); s2.position.set(-0.05, -0.42, 0.08); s2.rotation.y = Math.PI / 2; R.armL.add(s2); }
       }
       USED.pawn['PW_' + cfg.outfit + '_torso'] = 1;
     }
@@ -5283,7 +5288,39 @@
   }
   function rigTick(dt) {
     for (var i = 0; i < Z.pawns.length; i++) { var r = Z.pawns[i].root; if (r.parent) rigSwing(r, dt); }
-    if (Z.player) rigSwing(Z.player, dt);
+    if (Z.player && !Z.strike) rigSwing(Z.player, dt);
+  }
+  /* 亲自出手：冲步至身前一挥，结果交神谕裁断 */
+  function playerStrike(np) {
+    if (!Z.player || !np.root.parent) return;
+    var tp = np.root.position, pp = Z.player.position;
+    var dx = tp.x - pp.x, dz = tp.z - pp.z, d = Math.hypot(dx, dz) || 1;
+    Z.strike = {
+      t: 0, dur: 0.8, sx: pp.x, sz: pp.z,
+      gx: tp.x - dx / d * 1.05, gz: tp.z - dz / d * 1.05,
+      tgt: np, yaw: Math.atan2(dx, dz)
+    };
+    if (window.ZJ3D_say) ZJ3D_say('（凯撒亲自拔剑出手，攻击' + np.name + '（' + np.cat + '）！这一击已然挥出：请神谕裁断此击结果与在场众人反应。）');
+  }
+  function strikeTick(dt) {
+    var s = Z.strike; if (!s) return;
+    var pl = Z.player; if (!pl) { Z.strike = null; return; }
+    s.t += dt; var k = Math.min(1, s.t / s.dur);
+    var dash = Math.min(1, k / 0.4);
+    pl.position.x = s.sx + (s.gx - s.sx) * dash;
+    pl.position.z = s.sz + (s.gz - s.sz) * dash;
+    pl.rotation.y = s.yaw;
+    var R = pl.userData.rig;
+    if (R && R.armR) R.armR.rotation.x = k < 0.4 ? (-1.9 * (k / 0.4)) : (-1.9 + 3.1 * ((k - 0.4) / 0.6));
+    if (R && R.torso) R.torso.rotation.z = k < 0.4 ? 0 : Math.sin((k - 0.4) * 5.2) * 0.1;
+    var tg = s.tgt;
+    if (k > 0.6 && tg && tg.root.parent) tg.root.rotation.z = Math.sin((k - 0.6) * 16) * 0.14 * (1 - k);
+    if (k >= 1) {
+      if (tg && tg.root.parent) tg.root.rotation.z = 0;
+      if (R && R.armR) R.armR.rotation.x = 0;
+      if (R && R.torso) R.torso.rotation.z = 0;
+      Z.strike = null;
+    }
   }
   function pawnTick(dt, t) {
     for (var i = 0; i < Z.pawns.length; i++) {
