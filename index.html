@@ -3383,10 +3383,10 @@ function bgmPlay(i){
 function bgmStart(a,i){
   var p=a.play();
   if(p&&p.catch)p.catch(function(){
-    if(BGM._armed)return;BGM._armed=1;      /* 自動播放被攔：等第一次真實點按再放 */
-    var f=function(){document.removeEventListener('pointerdown',f);BGM._armed=0;
+    if(BGM._armed)return;BGM._armed=1;      /* 自動播放被攔：首次點按/觸碰/按鍵的瞬間補放 */
+    var f=function(){['pointerdown','touchstart','keydown'].forEach(function(ev){document.removeEventListener(ev,f,true);});BGM._armed=0;
       if(BGM.on&&BGM.a){var q=BGM.a.play();if(q&&q.catch)q.catch(function(){});}};
-    document.addEventListener('pointerdown',f);
+    ['pointerdown','touchstart','keydown'].forEach(function(ev){document.addEventListener(ev,f,true);});
   });
 }
 function bgmToggle(){
@@ -3426,6 +3426,8 @@ $('#bgVol').addEventListener('input',function(){
   BGVOL=+this.value;if(BGM.a)BGM.a.volume=BGVOL/100;
   try{localStorage.setItem('rome_bgmvol',''+BGVOL);}catch(_){}
 });
+/* 開站即樂：開場動畫與選單同步起樂（首曲開站即取即放，不等入局）；自動播放被攔則首次點按瞬間補放 */
+try{bgmPlay(0);}catch(_){}
 /* —— 全屏 —— */
 $('#gtFull').addEventListener('click',function(){
   if(document.fullscreenElement)document.exitFullscreen();
