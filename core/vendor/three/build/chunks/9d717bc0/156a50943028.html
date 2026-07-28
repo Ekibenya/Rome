@@ -900,7 +900,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
     <div class="cfgPane" id="cp_lore" style="display:none">
       <div class="sub">你写的世界书条目与本卡自带世界书一同生效：正文近几轮提到「关键词」时自动注入该条设定；勾选常驻则每轮必注入（占用篇幅，慎用）。已支持&nbsp;ST&nbsp;高级字段：「次级关键词」（须与主关键词同时命中）、注入「顺序」、触发「概率」；导入的扫描深度与递归设置也自动生效。条目只存于你这台设备的浏览器。</div>
       <div class="sub" style="margin-top:10px">注入预算：每轮注入世界书的总字数上限（默认&nbsp;9k）。世界书每轮全量重发：拉高＝更多设定同时生效，但每轮更贵更慢；拉满＝不限（配大上下文模型用）。你的自定义条目永远最先装桶不被内置挤掉。</div>
-      <div class="sRow"><span>注入预算（字）</span><span style="display:flex;gap:10px;align-items:center"><input type="range" id="loreBud" min="3000" max="30000" step="1000" value="9000"><b id="loreBudV" style="font-weight:400;color:var(--gold-hi);font-size:10px">9000</b></span></div>
+      <div class="sRow"><span>注入预算（字）</span><span style="display:flex;gap:10px;align-items:center"><input type="range" id="loreBud" min="3000" max="30000" step="1000" value="5000"><b id="loreBudV" style="font-weight:400;color:var(--gold-hi);font-size:10px">5000</b></span></div>
       <div id="loreList" style="margin-top:10px;max-height:180px;overflow-y:auto"></div>
       <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
         <span class="eBtn" id="loreNew" style="margin-top:0">新写一条</span>
@@ -2805,9 +2805,17 @@ function condereOp(line,y,nm,cn){
   var npcs=[];(PSNPC.list||[]).forEach(function(p,i){if(i!==PSNPC.sel&&npcs.length<3)npcs.push(p);});
   var idLine=nomen?('你隐去'+who+'之名，以「'+nomen+'」行走此世'+(gens?('，称出身'+gens):'')+(aetas?('，年貌作'+aetas+'岁'):'')+(ortus?('，身份是'+ortus):'')+'。'):('你以'+who+'之身悄然临于此地。');
   var body='【自定义开局】'+yl+'，'+cn+(nm?('（'+nm+'）'):'')+'。\n'+idLine+'\n这一幕自你落脚之刻写起——开口、动身，或先看看四周。';
-  var mv='<mvu_panel>\n<sec_npc>\n'
-    +npcs.map(function(p){return '◈'+p.name+'|初逢|50||'+(p.role||'')+'|'+cn;}).join('\n')
-    +'\n<sec_world>\n◇纪年|'+yl+'\n◇时地|'+cn+'\n</mvu_panel>';
+  /* 底稿的面板必须三段俱全：未接 AI 时它就是终稿，铸局失败时也回退到它。
+     原来连整个 <sec_char> 都没有，世界段也只写了两行——玩家一进自定义开局，
+     情报台就只剩一条 MENS 行，看着像坏了。 */
+  var _rm=(line!=='zhou');
+  var mv='<mvu_panel>\n<sec_char>\n'
+    +(_rm?'◆戎装|旅途风尘未洗\n◆持物|随身佩剑\n◆神躯|无伤，一切如常\n◆观瞻|无人认得这张脸\n◆神格|50\n◆血兴|40\n'
+         :'◆衣冠|玄端深衣\n◆持物|白玉大圭\n◆御体|永生之躯，一切如常\n◆观瞻|无人识得天子微行\n◆神格|50\n')
+    +'◆心声|以 ~ 开头发言，你写下的那一句就记在这里\n'
+    +'◆史笔|'+yl+'，'+cn+'。此幕自你落脚之刻写起。\n</sec_char>\n<sec_npc>\n'
+    +npcs.map(function(p){return '◈'+p.name+'|初逢|50|（尚未开口）|'+(p.role||'不详')+'|'+cn+'|不详|不详';}).join('\n')
+    +'\n<sec_world>\n◇纪年|'+yl+'\n◇时地|'+cn+'\n◇天气|晴\n◇安稳|60\n◇大势|尚未分明\n◇将临|尚未分明\n</sec_world>\n</mvu_panel>';
   return {id:'custom',year:y,era:yl,scene:cn,text:body+'\n\n'+mv};
 }
 /* 鑄局用的系統提示：與正式對局同源（卡的鐵則、文風、世界書），世界書以年代地點為檢索詞 */
@@ -2849,7 +2857,9 @@ function condereAsk(line,y,nm,cn){
     +'此地此刻正在发生什么、在场的人各自站在哪里揣着什么心思；最后把场面推到需要'+who+'表态之处停笔。\n'
     +'3. 绝不代替'+who+'说话、行动、下决定、写内心——她的一切属于玩家。\n'
     +'4. 正文之后必须输出一个完整的 <mvu_panel>，字段名、行首符号、竖线分隔与下面的范例一字不差，'
-    +'内容按你新写的这一幕据实填写（含 ◆心声 一行，写她此刻心里那一句）：\n'
+    +'内容按你新写的这一幕据实填写。◆行只记她的客观外在（戎装／持物／身躯／旁人眼中的观感）'
+    +'与史笔；◆心声那一行请照格式保留，内容写「——」占位即可，不要替她想那一句'
+    +'（与上面第 3 条一致，她的内心属于玩家，游戏会用玩家自己写的独白填这一栏）：\n'
     +refPanel+'\n'
     +'5. 只输出正文与 <mvu_panel>，不要任何解释、不要代码围栏、不要提及本指令。';
 }
@@ -3522,9 +3532,17 @@ function loreFor(text){
     if(ca!==cb)return ca-cb;
     return (a.ord||100)-(b.ord||100);
   });
-  var out=[],budget=(typeof SET!=='undefined'&&SET.loreBud)||9000;
-  for(var i=0;i<lb.length;i++){var e=lb[i];if(!e||e.on===false)continue;
-    var hit=!!e.constant;
+  var out=[],budget=(typeof SET!=='undefined'&&SET.loreBud)||5000;
+  /* 第一遍：constant（铁则）条目无条件全量注入，不参与预算竞争。
+     原来它们和普通词条按数组顺序抢同一个预算，结果排在后面的几条【铁则】
+     每回合都被前面的普通词条吃光预算、静默丢弃——其中就包括管另一个主角
+     怎么出场的那条，直接对应「AI 分不清谁是谁」。 */
+  for(var ci=0;ci<lb.length;ci++){var ce=lb[ci];
+    if(!ce||ce.on===false||!ce.constant)continue;
+    out.push('『'+ce.title+'』'+ce.content);}
+  /* 第二遍：关键词命中的条目，按预算装桶 */
+  for(var i=0;i<lb.length;i++){var e=lb[i];if(!e||e.on===false||e.constant)continue;
+    var hit=false;
     if(!hit&&e.keys)for(var k=0;k<e.keys.length;k++)
       if(e.keys[k]&&text.indexOf(e.keys[k])>=0){hit=true;break;}
     if(hit&&e.keys2&&e.keys2.length){
@@ -3539,11 +3557,66 @@ function loreFor(text){
   }
   return out.join('\n');
 }
-var ROMA_STYLE='【文体铁则·最高优先级·覆盖模型自身习惯】本卡正文分两层，各守各的腔，严禁互相污染。\n〔一〕地の文（叙述层）＝详实历史小说体。长句可用，从句可用，破折号可用；史实、器物、地理、制度、因果必须交代到位，读者不查资料也能看懂。忌辞藻堆砌，忌抒情泛滥，忌用「仿佛」「宛如」连发。凡涉政治、军制、年代、亲缘的说明，一律落到具体名物与数字（第几年、几里、几人、什么料子、谁的儿子），不许含糊带过。\n〔二〕台词（对白层）＝日本轻小说腔。铁律如下：\n①一句一个念头，句号砸死，绝不把三件事塞进一个长句；\n②关键词单独成行落地（例：「……没有心。」／「楔子不为一个人停。」／「她怕了。」）；\n③长短落差是喜剧与压迫感的引擎：稳重者、年长者、下位者说敬语长台词，铺垫绵密、慇懃而不祥；上位者、狂者、武人一句怼回去，越短越狠；\n④先说死，再收半句（例：「稳妥，不折人。」「……陛下？」）；\n⑤惨事用公事公办的报告体讲，恐怖从语气与内容的落差里渗，不许在台词里加形容词渲染（例：「谨报如下。第一头，肝叶有裂。第二头，同。第三头。……没有心。」）；\n⑥武人、老兵用短促的断言句，可带「记住了」「话我只说一遍」这类收尾；\n⑦贝罗娜的台词：狂、傲、华丽、极短，自称「本座」；夸完自己顺手夸对方一句；被刺穿时的反应是笑，不是喊；口头禅「痛吗？——痛就对了。」\n⑧对白一律用「」，引用与强调用『』；省略号用「……」保留余韵；决定性瞬间可插拟声词（咔。咔。咔。／吱呀。）。\n⑨严禁中文网文腔：不许出现「不愧是」「不由得」「心中一凛」「嘴角勾起」「眸子」「淡淡地说道」「不禁」「暗道」等套语，不许网络流行语，不许翻译腔的「哦，我的老伙计」。\n〔三〕分工：叙述负责让人看懂，对白负责有味道。说明性内容一律写进叙述层，不许塞进人物嘴里让他念资料；反过来，人物的性格与压迫感一律靠台词的长短、断句与落差呈现，不许由叙述层直接下判语。';
+var ROMA_STYLE='【文体铁则·最高优先级·覆盖模型自身习惯】本卡正文分两层，各守各的腔，严禁互相污染。\n〔一〕地の文（叙述层）＝详实历史小说体。长句可用，从句可用，破折号可用；史实、器物、地理、制度、因果必须交代到位，读者不查资料也能看懂。忌辞藻堆砌，忌抒情泛滥，忌用「仿佛」「宛如」连发。凡涉政治、军制、年代、亲缘的说明，一律落到具体名物与数字（第几年、几里、几人、什么料子、谁的儿子），不许含糊带过。\n〔二〕台词（对白层）＝日本轻小说腔。铁律如下：\n①一句一个念头，句号砸死，绝不把三件事塞进一个长句；\n②关键词单独成行落地（例：「……没有心。」／「楔子不为一个人停。」／「她怕了。」）；\n③长短落差是喜剧与压迫感的引擎：稳重者、年长者、下位者说敬语长台词，铺垫绵密、慇懃而不祥；上位者、狂者、武人一句怼回去，越短越狠；\n④先说死，再收半句（例：「稳妥，不折人。」「……陛下？」）；\n⑤惨事用公事公办的报告体讲，恐怖从语气与内容的落差里渗，不许在台词里加形容词渲染（例：「谨报如下。第一头，肝叶有裂。第二头，同。第三头。……没有心。」）；\n⑥武人、老兵用短促的断言句，可带「记住了」「话我只说一遍」这类收尾；\n⑦【铁则一·高于本节全部文体规范】主角贝罗娜的台词、动作、决定、内心，一个字都不许你写——本节①—⑥、⑧⑨的腔调规范只约束 NPC 与叙述层。玩家已经写出来的主角台词，你可以让 NPC 引用、回应、误解、记恨，但绝不许由你续写、改写、补写，或替她把话说完。需要她表态时，把场面推到她面前，停笔，交还玩家。\n⑧对白一律用「」，引用与强调用『』；省略号用「……」保留余韵；决定性瞬间可插拟声词（咔。咔。咔。／吱呀。）。\n⑨严禁中文网文腔：不许出现「不愧是」「不由得」「心中一凛」「嘴角勾起」「眸子」「淡淡地说道」「不禁」「暗道」等套语，不许网络流行语，不许翻译腔的「哦，我的老伙计」。\n〔三〕分工：叙述负责让人看懂，对白负责有味道。说明性内容一律写进叙述层，不许塞进人物嘴里让他念资料；反过来，人物的性格与压迫感一律靠台词的长短、断句与落差呈现，不许由叙述层直接下判语。';
+/* 状态栏硬清单：模型唯一的格式锚。
+   卡里的 mes_example 全文没有任何一处被读取，开局正文也不进 TURNS，
+   于是模型此前从没见过 <mvu_panel> 长什么样，只能瞎猜字段名——猜错就少一栏，
+   下一轮它又以自己上一轮那份残缺面板为范本，越写越少。这就是「每轮出不全」。 */
+function mvuSpec(){
+  var roma=(ACTIVE==='roma');
+  var chL=roma?'戎装|持物|神躯|观瞻|神格|血兴|心声|史笔':'衣冠|持物|御体|观瞻|神格|心声|史笔';
+  var chN=roma?8:7;
+  var op='';
+  try{op=(GAME.opText&&(String(GAME.opText).match(/<mvu_panel>[\s\S]*?<\/mvu_panel>/)||[''])[0])||'';}catch(_){}
+  var last='';
+  try{
+    for(var i=TURNS.length-1;i>=0;i--){
+      if(TURNS[i].role!=='assistant')continue;
+      var mm=String(TURNS[i].content).match(/<mvu_panel>[\s\S]*?<\/mvu_panel>/);
+      if(mm){last=mm[0];break;}
+    }
+  }catch(_){}
+  return '【状态栏 mvu_panel · 硬性协议 · 与铁则并列的最高优先级】正文写完之后，必须输出一个完整的 <mvu_panel>：'
+    +'三段俱全、每段每行俱全，一行都不许省略、不许合并、不许改名、不许换顺序。\n'
+    +'· 分隔符只用半角竖线 |。行首符号 ◆主角 / ◈人物 / ◇世界，一个都不能少。\n'
+    +'· <sec_char> 固定 '+chN+' 行，顺序：'+chL+'。神格'+(roma?'、血兴':'')+' 必须是 0-100 的纯数字，'
+    +'不带单位、不带百分号、不写「/100」、不加括注。\n'
+    +'· <sec_npc> 每行固定 8 字段，顺序：姓名|状态|好感(0-100纯数字)|心声|身份|所在|年龄|性别。'
+    +'此刻在场的人一个都不能漏；确实不详的字段写「不详」占位，绝不许少写一根竖线。\n'
+    +'· <sec_world> 固定 6 行，顺序：纪年|时地|天气|安稳|大势|将临。安稳为 0-100 纯数字；'
+    +'天气一栏必须含 晴/阴/雨/雪/风/雾 之一（三维画面据此取景）。\n'
+    +'· ◆心声 是主角的内心，按铁则一它属于玩家，你不得代写：玩家若刚写过以 ~ 开头的独白，'
+    +'就把那句原话照抄进来；玩家没写，就把上一幕的 ◆心声 原样抄下来。绝不许你自己替她想一句新的。\n'
+    +'· 这是全量快照：有变动的据实改写，没变动的照抄上一幕原值。'
+    +'严禁留空、严禁写「同上」「无变化」、严禁整行省略。\n'
+    +'· 不要解释、不要 markdown 代码围栏、不要输出任何「已更新变量」之类的元说明。\n'
+    +(op?('【格式范例·照此格式一字不差】\n'+op+'\n'):'')
+    +(last?('【上一幕原值·没变动的照抄】\n'+last):'');
+}
+/* 玩家输入前缀的那些方括号标签，此前从未向模型解释过含义——
+   模型不知道【CONSILIVM】是要它列可选方案，只能当普通对话处理，
+   于是「给出的选项和情境对不上」。 */
+function modeSpec(){
+  var her=(ACTIVE==='roma')?'贝罗娜':'姬瑶';
+  return '【玩家输入的模式标签·必读】玩家每句话前的方括号标签，标明她这一回合在做什么，你必须据此选择回应方式：\n'
+    +'·【SERMO】她在出声说话。以 ~ 开头的是她的内心独白——你只可让世界回应她外在的表现，'
+    +'绝不可复述、引用或续写这段心声。\n'
+    +'·【ACTVS】她在做一个具体动作，写这个动作在场面里激起的连锁反应。\n'
+    +'·【INSIDIAE】密谋暗线，只有她与同谋知情；不在场的人这一回合不得表现出知道此事。\n'
+    +'·【EPISTVLA】她在修书，@后为收件人；写信如何送出、经手何人、对方读到时的反应。\n'
+    +'·【EDICTVM】她以权威发号施令；写命令如何被传达、被执行、被阳奉阴违或被抗拒，以及为此耗掉的威望。\n'
+    +'·【CONSILIVM】她在向参谋问策。本回合以幕僚／副将／谋士之口：先据实梳理当前局势'
+    +'（谁在哪、手上有什么、时限是什么），再给出三到四条具体到人、地、时的可行方案，'
+    +'每条附上代价与风险，方案之间要真正互斥。这些是供她挑选的建议，不是既成事实；'
+    +'列完即停笔，绝不替'+her+'选、绝不替她执行。\n'
+    +'·【ITER】她启程前往某地，写路途见闻与抵达时的场面。';
+}
 function sysPrompt(){
   var G=CARDS[ACTIVE]||{};
+  /* 检索文本不要掺 gearLine()：装备名每回合都一样，会让一批兵器甲胄词条
+     恒定命中、稳定占掉预算，把真正跟当前情节相关的条目挤出去。 */
   var recent=TURNS.slice(-6).map(function(t){return t.content;}).join('\n')
-    +$('#gNarr').textContent.slice(-1500)+'\n'+gearLine();
+    +$('#gNarr').textContent.slice(-1500);
   var preFront=[],preEnd=[];
   if(typeof SET!=='undefined')(SET.presets||[]).forEach(function(p){
     if(p.on===false)return;(p.pos===1?preEnd:preFront).push(p.text);});
@@ -3554,7 +3627,10 @@ function sysPrompt(){
   var minc='【篇幅】本回正文不少于'+_minc+'字（状态栏不计入字数）。'
   return [preFront.join('\n'),
     G.system_prompt||'',
-    ROMA_STYLE,
+    /* 只给罗马卡注入：这是罗马线的文体规范，里面写着贝罗娜的名字。
+       原来无条件注入，玩周线时 system 里塞着「贝罗娜……自称本座」，
+       是「AI 分不清谁是谁」的直接来源。 */
+    (ACTIVE==='roma'?ROMA_STYLE:''),
     '【玩家角色档案】'+(G.description||''),
     '【叙事者】'+(G.personality||''),
     '【场景】'+(G.scenario||''),
@@ -3563,6 +3639,8 @@ function sysPrompt(){
     (function(){if(typeof npcFavorDigest!=='function')return '';var _fd=npcFavorDigest();return _fd?('【人物好感·续记（不得健忘）】以下为曾登场人物最近一次的好感度与近况。他们即便暂时离场，好感与关系也须【延续记忆】：再次出场时自此数值起继续自然演变，严禁凭空重置、归零或大幅跳变；确有剧情推动方可增减：\n'+_fd):'';})(),
     mems.length?('【长程记忆】\n'+mems.join('\n')):'',
     '【世界书·激活条目】\n'+loreFor(recent),
+    mvuSpec(),
+    modeSpec(),
     '【每回自查】'+(G.post_history_instructions||''),
     minc,
     CFGS.preset?('【玩家自定义常驻指令】'+CFGS.preset):'',
@@ -3679,12 +3757,27 @@ function oracleCall(messages,cb,err,opt){
 }
 function askOracle(){
   BUSY=true;genOpen('gen');
-  var msgs=[{role:'system',content:sysPrompt()}]
-    .concat(TURNS.slice(-16).map(function(t){
-      var c=t.content;
-      if(t.role==='assistant'&&typeof rxApply==='function')c=rxApply(c,true);  /* 正则·显示并发送 */
-      return{role:t.role,content:c};
-    }));
+  var hist=TURNS.slice(-16).map(function(t){
+    var c=t.content;
+    if(t.role==='assistant'&&typeof rxApply==='function')c=rxApply(c,true);  /* 正则·显示并发送 */
+    return{role:t.role,content:c};
+  });
+  /* 旧回合的状态栏只留最近一份。八份面板将近八千字，既烧 token 又把模型往
+     「这一回合的主要任务是填表」上带，正文越写越短。 */
+  for(var _i=0;_i<hist.length-1;_i++)
+    if(hist[_i].role==='assistant')hist[_i].content=stripMvu(hist[_i].content);
+  var msgs=[{role:'system',content:sysPrompt()}];
+  /* 开局那一幕从来没进过 TURNS（loadOpening 一上来就 TURNS=[]），
+     模型此前完全不知道自己要接的是哪一场戏、哪一年、谁在场——只能按卡里那段
+     一百多字的通用【场景】自己编一个开头，每局都编同一个。这就是「剧情一直循环」。 */
+  if(GAME.opText)msgs.push({role:'assistant',content:GAME.opText});
+  msgs=msgs.concat(hist);
+  /* post_history_instructions 顾名思义该落在历史之后。埋在 system 里会被前面
+     几万字稀释，铁则一和面板自查都守不住；在队尾再钉一次。 */
+  var _G2=CARDS[ACTIVE]||{},_phi=_G2.post_history_instructions||'';
+  msgs.push({role:'system',content:'【本回合落笔前·最后自查】'+_phi
+    +'\n【铁则一·压倒一切，高于任何文体规范】'+(ACTIVE==='roma'?'贝罗娜':'姬瑶')
+    +'的台词、动作、决定、内心，一个字都不许你写。需要她表态时，把场面推到她面前，停笔，交还玩家。'});
   var live=null,gen0=TYPE_GEN;
   function onDelta(full){
     if(gen0!==TYPE_GEN)return;                     /* 换局/读档/重演：旧流作废 */
@@ -3956,7 +4049,7 @@ $('#gtFull').addEventListener('click',function(){
   else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();
 });
 /* ============ 设置·控制中枢（12页签，代码级对齐 Ghost setBody） ============ */
-var SET={glass:80,forma:0,face:0,loreBud:9000,
+var SET={glass:80,forma:0,face:0,loreBud:5000,
   tts:{src:0,base:'',key:'',model:'tts-1',voice:'',rate:105,scope:0,auto:0},
   img:{on:0,base:'',key:'',model:'',size:0,style:0},   /* style 0 ＝ NovelAI，见 IMGSTY */
   sub:{base:'',key:'',model:''},
