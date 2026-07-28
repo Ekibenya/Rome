@@ -179,6 +179,11 @@ canvas{display:block}
       border-bottom:1px solid rgba(236,236,232,.4);color:var(--gold-hi);font-size:26px;
       letter-spacing:.18em;text-align:center;padding:6px 0;outline:none;font-family:inherit}
 #eraBox input:focus{border-color:var(--gold)}
+.ebEra{display:flex;gap:10px;justify-content:center;margin:12px 0 4px}
+.ebEraBtn{border:1px solid rgba(236,236,232,.3);padding:7px 16px 6px;font-size:10px;letter-spacing:.22em;
+  color:var(--mut);cursor:pointer;white-space:nowrap;transition:all .18s}
+.ebEraBtn:hover{border-color:var(--gold);color:var(--gold-hi)}
+.ebEraBtn.on{background:var(--gold);border-color:var(--gold);color:#0a0a0a;font-weight:600}
 #eraBox input.bad{border-color:#c8402e;color:#e86a52}
 .eBtn{display:inline-block;margin-top:28px;border:1px solid rgba(236,236,232,.35);
       padding:10px 34px 8px;font-size:11px;letter-spacing:.4em;color:var(--txt);cursor:pointer;
@@ -1144,9 +1149,13 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <span class="ebTab" data-line="zhou">周&nbsp;·&nbsp;天子线</span>
     </div>
     <div id="ebYearWrap" style="display:none">
-      <div class="sub">输入年代——公元前以负数书写&nbsp;·&nbsp;例&nbsp;-511&nbsp;/&nbsp;117</div>
-      <input id="eraIn" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="-511">
-      <div class="sub" style="margin-top:2px">RANGE&nbsp;&nbsp;-800&nbsp;…&nbsp;476&nbsp;／&nbsp;1800&nbsp;…&nbsp;2100（现代）&nbsp;&nbsp;·&nbsp;&nbsp;确认后转动地球拣选地点</div>
+      <div class="sub">先选纪元，再填年数（只填数字，不必写负号）</div>
+      <div class="ebEra" id="ebEra">
+        <span class="ebEraBtn on" data-era="bc">公元前&nbsp;·&nbsp;A.C.N.</span>
+        <span class="ebEraBtn" data-era="ad">公元后&nbsp;·&nbsp;A.D.</span>
+      </div>
+      <input id="eraIn" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="511">
+      <div class="sub" id="ebRange" style="margin-top:2px">公元前&nbsp;1&nbsp;…&nbsp;800&nbsp;&nbsp;·&nbsp;&nbsp;确认后转动地球拣选地点</div>
       <div class="eBtn" id="eraGo" tabindex="0">CONFIRMARE&nbsp;⏎</div>
     </div>
     <div class="ebOps" id="ebOps"></div>
@@ -2418,15 +2427,38 @@ function ebShow(mode){
   $('#ebTag').textContent=yearMode?'ANNVS':'INITIA';
   $('#ebTitle').textContent=yearMode?'自定义开局 · 输入年代':'选开局';
   if(!yearMode)ebRenderOps();
-  if(yearMode)setTimeout(function(){eIn.focus();},60);
+  if(yearMode){ebEraSet(EBERA);setTimeout(function(){eIn.focus();},60);}
 }
 function ebClose(){ebEl.style.display='none';}
 function psIsOpen(){return psEl.style.display==='flex';}
 function psClose(){psEl.style.display='none';}
 function fmtYear(y){return y<0?('前 '+(-y)+' 年 · '+(-y)+' A.C.N.'):('A.D. '+y+' · '+y+' 年');}
+var EBERA='bc';                                  /* 纪元：bc=公元前 / ad=公元后 */
+function ebEraSet(e){
+  EBERA=(e==='ad')?'ad':'bc';
+  var bs=document.querySelectorAll('#ebEra .ebEraBtn');
+  for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-era')===EBERA);
+  var r=$('#ebRange');
+  if(r)r.innerHTML=(EBERA==='bc'
+    ?'公元前&nbsp;1&nbsp;…&nbsp;800'
+    :'公元后&nbsp;1&nbsp;…&nbsp;476&nbsp;／&nbsp;1800&nbsp;…&nbsp;2100（现代）')
+    +'&nbsp;&nbsp;·&nbsp;&nbsp;确认后转动地球拣选地点';
+  if(eIn)eIn.placeholder=(EBERA==='bc'?'511':'117');
+}
+(function(){
+  var host=document.getElementById('ebEra');if(!host)return;
+  host.addEventListener('click',function(ev){
+    var b=ev.target.closest?ev.target.closest('.ebEraBtn'):null;if(!b)return;
+    ebEraSet(b.getAttribute('data-era'));
+    if(eIn)eIn.focus();
+  });
+})();
 function eraConfirm(){
-  var v=parseInt(eIn.value,10);
-  var ok=!isNaN(v)&&((v>=-800&&v<=476)||(v>=1800&&v<=2100));
+  var raw=String(eIn.value||'').trim();
+  if(/^-/.test(raw)){ebEraSet('bc');raw=raw.replace(/^-+/,'');}   /* 桌面仍可直接敲负号 */
+  var n=parseInt(raw.replace(/[^\d]/g,''),10);
+  var v=(EBERA==='bc')?-n:n;
+  var ok=!isNaN(n)&&n>0&&((v>=-800&&v<=476)||(v>=1800&&v<=2100));
   if(!ok){eIn.classList.add('bad');
     setTimeout(function(){eIn.classList.remove('bad');},700);return;}
   ebClose();
