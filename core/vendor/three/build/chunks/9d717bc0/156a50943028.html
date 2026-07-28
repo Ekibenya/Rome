@@ -180,7 +180,7 @@ canvas{display:block}
       letter-spacing:.18em;text-align:center;padding:6px 0;outline:none;font-family:inherit}
 #eraBox input:focus{border-color:var(--gold)}
 /* 年代面板定宽：否则切纪元时下方范围提示长短不同，会带着整个面板与按钮一起缩放 */
-#ebYearWrap{width:min(86vw,330px);margin:0 auto}
+#ebYearWrap{width:min(calc(86vw/var(--ui)),330px);margin:0 auto}
 #ebRange{white-space:normal;line-height:1.9;min-height:2.6em}
 .ebEra{display:flex;gap:10px;justify-content:center;margin:12px 0 4px}
 /* 两枚等宽：中文标签同为三字、拉丁写法降为副行，宽度不受文字长短影响，切换也不跳动 */
@@ -231,6 +231,12 @@ canvas{display:block}
 #menu canvas{transform:translateZ(0)}
 #menu.gbg .mItems,#menu.gbg .mFoot,#menu.gbg #eraHud{display:none}
 #game.show{display:block}
+/* ══ 全局界面缩放（字号拉杆）══
+   只缩放承载文字的 DOM 容器；三维/地球等 canvas 层不参与，命中判定保持原样。
+   与被缩放容器尺寸耦合的偏移（顶栏高度 46、情报台宽度 322）同步按倍率换算。 */
+:root{--ui:1}
+#game .gTop,#game .gNarr,#game .gModes,#game .gLine,#game .gMfd,
+.gDlg .box,#eraBox .box,#persona .box{zoom:var(--ui)}
 #game .gTop{position:absolute;left:0;top:0;right:0;height:46px;display:flex;align-items:center;
       justify-content:space-between;padding:0 18px;gap:14px;z-index:30;
       border-bottom:1px solid rgba(236,236,232,.14);background:rgba(6,6,6,.23)}
@@ -244,7 +250,7 @@ canvas{display:block}
 #game .gTools .gt{width:32px;height:26px;padding:0;display:flex;align-items:center;justify-content:center}
 #game .gTools .gt.on{color:var(--gold-hi);border-color:var(--gold)}
 #game .gTools .gt svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}
-#game .gMain{position:absolute;left:64px;right:322px;top:46px;bottom:0;display:flex;flex-direction:column}
+#game .gMain{position:absolute;left:64px;right:calc(322px*var(--ui));top:calc(46px*var(--ui));bottom:0;display:flex;flex-direction:column}
 #game .gNarr{flex:1;overflow-y:auto;padding:36px 7% 118px;font-size:13px;line-height:2.2;
       letter-spacing:.06em;color:#c8c8c2;background:transparent}
 #game .gNarr p{margin-bottom:1.5em}
@@ -277,7 +283,7 @@ canvas{display:block}
       transition:color .15s}
 .cfgTabs span.on{color:#0a0a0a;background:var(--gold);font-weight:600}
 .cfgTabs span:not(.on):hover{color:var(--gold-hi)}
-.cfgPane{max-height:52vh;overflow-y:auto;padding-top:4px}
+.cfgPane{max-height:calc(52vh/var(--ui));overflow-y:auto;padding-top:4px}
 .lRow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
       border-bottom:1px solid rgba(236,236,232,.1);padding:8px 2px;font-size:9px;
       letter-spacing:.1em;color:#b9b9b3}
@@ -399,11 +405,11 @@ canvas{display:block}
 .gDlg{position:fixed;inset:0;z-index:86;display:none;align-items:center;justify-content:center;
       background:rgba(4,4,4,.86)}
 .gDlg .box{border:1px solid rgba(236,236,232,.4);background:var(--ink);padding:34px 42px;
-      min-width:min(92vw,360px);max-width:min(94vw,680px);max-height:80vh;overflow:auto}
-/* 设置窗尺寸锁死：12 个页签内容长短不一，原本外框跟著内容伸缩，每切一页窗就跳一次。
+      min-width:min(calc(92vw/var(--ui)),360px);max-width:min(calc(94vw/var(--ui)),680px);max-height:calc(92vh/var(--ui));overflow:auto}
+/* 设置窗尺寸锁死：12 个页签内容长短不一，原本外框跟着内容伸缩，每切一页窗就跳一次。
    改成外框定高、标题与页签钉住，只有内容区自己滚。scrollbar-gutter 让滚动条常驻留白，
    免得「这页要滚那页不要滚」时正文宽度再横向抖一下。 */
-#dlgCfg .box{height:min(80vh,760px);overflow:hidden;display:flex;flex-direction:column}
+#dlgCfg .box{height:min(calc(80vh/var(--ui)),760px);overflow:hidden;display:flex;flex-direction:column}
 #dlgCfg .box>.tag{align-self:flex-start}
 #dlgCfg .box>.tag,#dlgCfg .box>h2,#dlgCfg .box>.cfgTabs,#dlgCfg .box>.esc2{flex:none}
 #dlgCfg .cfgPane{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-gutter:stable}
@@ -427,22 +433,24 @@ canvas{display:block}
       letter-spacing:.18em;color:var(--mut);transition:all .2s}
 .sSeg span.on{background:var(--gold);color:#0a0a0a;border-color:var(--gold)}
 .cxTabs{display:flex;gap:6px;margin-top:16px}
-.cxTab{flex:1;text-align:center;border:1px solid rgba(236,236,232,.22);padding:9px 0 7px;
-      font-size:10px;letter-spacing:.34em;color:var(--mut);cursor:pointer;transition:all .2s}
+.cxTab{flex:1;text-align:center;border:1px solid rgba(236,236,232,.22);padding:10px 0 8px;
+      font-size:11.5px;letter-spacing:.26em;color:var(--mut);cursor:pointer;transition:all .2s}
 .cxTab.on{background:var(--gold);color:#0a0a0a;border-color:var(--gold);font-weight:600}
 .cxTab:not(.on):hover{color:var(--gold-hi);border-color:var(--gold)}
-.cxWrap{display:flex;min-height:300px;max-height:52vh;margin-top:12px}
-.cxCats{width:104px;flex:none;border-right:1px solid rgba(236,236,232,.14);overflow-y:auto}
-.cxCat{font-size:10px;letter-spacing:.3em;color:var(--mut);padding:9px 10px;cursor:pointer;transition:all .15s}
+.cxWrap{display:flex;min-height:300px;max-height:calc(56vh/var(--ui));margin-top:12px}
+#dlgBook .box{max-height:calc(88vh/var(--ui));overflow:hidden;display:flex;flex-direction:column}
+#dlgBook .cxWrap{flex:1 1 auto;min-height:0;max-height:none;height:calc(58vh/var(--ui))}
+.cxCats{width:118px;flex:none;border-right:1px solid rgba(236,236,232,.14);overflow-y:auto}
+.cxCat{font-size:12px;letter-spacing:.22em;color:var(--mut);padding:10px 11px;cursor:pointer;transition:all .15s}
 .cxCat.on{color:#0a0a0a;background:var(--paper)}
 .cxCat:not(.on):hover{color:var(--txt)}
-.cxEnts{width:168px;flex:none;border-right:1px solid rgba(236,236,232,.14);overflow-y:auto;padding:0 4px}
-.cxEnt{font-size:9px;letter-spacing:.12em;line-height:1.6;color:var(--mut);padding:7px 8px;cursor:pointer}
+.cxEnts{width:194px;flex:none;border-right:1px solid rgba(236,236,232,.14);overflow-y:auto;padding:0 4px}
+.cxEnt{font-size:11px;letter-spacing:.06em;line-height:1.7;color:var(--mut);padding:8px 9px;cursor:pointer}
 .cxEnt.on{color:var(--gold-hi);background:rgba(201,155,63,.10)}
 .cxEnt:not(.on):hover{color:var(--txt)}
 .cxBody{flex:1;padding:2px 0 2px 20px;overflow-y:auto}
-.cxBody h3{font-size:12px;letter-spacing:.26em;color:var(--gold-hi);font-weight:400;margin-bottom:14px}
-.cxBody p{font-size:10.5px;letter-spacing:.08em;line-height:2.15;color:#b9b9b3;white-space:pre-wrap}
+.cxBody h3{font-size:14px;letter-spacing:.2em;color:var(--gold-hi);font-weight:400;margin-bottom:14px}
+.cxBody p{font-size:12.5px;letter-spacing:.04em;line-height:2.05;color:#cfcfc9;white-space:pre-wrap}
 /* era box: line tabs + direct opening chips */
 .ebTabs{display:flex;gap:6px;margin:18px 0 4px}
 .ebTab{flex:1;text-align:center;border:1px solid rgba(236,236,232,.22);padding:8px 0 6px;
@@ -623,7 +631,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 #arrTx:hover{color:var(--gold-hi);border-color:var(--gold)}
 #arrTx .a{font-size:11px;transition:transform .35s}
 #arrTx .t{font-size:8px;letter-spacing:.3em}
-#pnTx{position:absolute;left:0;right:322px;top:46px;height:min(24vh,215px);z-index:25;background:#0b0906;border-bottom:1px solid rgba(236,236,232,.14);visibility:hidden;transform:translateY(-103%) translateZ(0);transition:transform .45s cubic-bezier(.2,.85,.25,1),height .3s,visibility .45s;overflow:hidden;font-family:var(--mono)}
+#pnTx{position:absolute;left:0;right:calc(322px*var(--ui));top:calc(46px*var(--ui));height:min(24vh,215px);z-index:25;background:#0b0906;border-bottom:1px solid rgba(236,236,232,.14);visibility:hidden;transform:translateY(-103%) translateZ(0);transition:transform .45s cubic-bezier(.2,.85,.25,1),height .3s,visibility .45s;overflow:hidden;font-family:var(--mono)}
 #game.tx2 #pnTx{height:min(58vh,540px)}
 #game.txBig #pnTx{height:min(84vh,760px)}
 #game.txOpen #pnTx{visibility:visible;transform:translateZ(0)}
@@ -730,7 +738,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="gLine">
         <span class="gAux" id="gMic" title="语音输入"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M8.5 21h7"/></svg></span>
         <input id="gIn" autocomplete="off" spellcheck="false" placeholder="出声「…」 · ~开头=内心独白 · @名字 指定对象">
-        <span class="gAux" id="gTts" title="朗读这一幕">诵</span>
+        <span class="gAux" id="gTts" title="朗读这一幕"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.2L12 18.6V5.4L7.2 9.5H4Z"/><path d="M15.6 9.1a4 4 0 0 1 0 5.8"/><path d="M18.3 6.3a7.8 7.8 0 0 1 0 11.4"/></svg></span>
         <span class="gAux" id="gRedo" title="重新演绎这一幕">↻</span>
         <span class="gAux" id="gBack" title="舍弃其后剧情，回到上一幕">⤺</span>
         <span class="gSend" id="gSend">➤</span>
@@ -796,7 +804,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 </div>
 
 <div class="gDlg" id="dlgCfg">
-  <div class="box" style="width:min(94vw,720px)">
+  <div class="box" style="width:min(calc(94vw/var(--ui)),720px)">
     <span class="tag">OPTIONES</span>
     <h2>设置&nbsp;·&nbsp;控制中枢</h2>
     <div class="cfgTabs" id="cfgTabs">
@@ -807,7 +815,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="sRow"><span>MVSICA&nbsp;·&nbsp;配乐</span><input type="range" id="cfgBgm" min="0" max="100" value="55"></div>
       <div class="sRow"><span>MOTVS&nbsp;·&nbsp;动效</span><span class="sSeg" id="sgMotus"><span class="on">全开</span><span>减弱（低配）</span></span></div>
       <div class="sRow"><span>VELOCITAS&nbsp;·&nbsp;文字速度</span><span class="sSeg" id="sgVelo"><span>缓</span><span class="on">中</span><span>疾</span><span>瞬</span></span></div>
-      <div class="sRow"><span>LITTERAE&nbsp;·&nbsp;字号</span><span class="sSeg" id="sgFont"><span>小</span><span class="on">中</span><span>大</span><span>特大</span></span></div>
+      <div class="sRow"><span>LITTERAE&nbsp;·&nbsp;字号</span><span style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end"><input type="range" id="cfgUi" min="80" max="170" step="5" value="100" style="max-width:220px"><b id="cfgUiVal" style="font-weight:400;font-size:10px;letter-spacing:.1em;color:var(--gold-hi);min-width:3.2em;text-align:right">100%</b></span></div><div class="sub">字号拉杆整体缩放界面——正文、情报台状态栏、顶栏、输入区与全部弹窗（含本设置与世界书）一同放大缩小；三维场景不受影响。</div>
       <div class="sub">透明度：拖动即时生效——拉到最左＝完全透明（直接看穿到后面的动态背景）；拉到最右＝完全不透明（纯色纸底，彻底看不穿）。开低配模式时模糊被关闭。版式：自动依屏幕宽窄选择版式，也可强制使用电脑或手机布局。</div>
       <div class="sRow"><span>OBSCVRITAS&nbsp;·&nbsp;面板透明度</span><input type="range" id="cfgGlass" min="0" max="100" value="80"></div>
       <div class="sRow"><span>FORMA&nbsp;·&nbsp;版式</span><span class="sSeg" id="sgForma"><span class="on">自动</span><span>桌面</span><span>手机</span></span></div>
@@ -1008,7 +1016,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   </div>
 </div>
 <div class="gDlg" id="dlgBook">
-  <div class="box" style="width:min(94vw,680px)">
+  <div class="box" style="width:min(calc(94vw/var(--ui)),680px)">
     <span class="tag">LIBER</span>
     <h2>资料库&nbsp;[DB]&nbsp;·&nbsp;世界书</h2>
     <div class="cxTabs">
@@ -1082,7 +1090,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   </div>
 </div>
 <div class="gDlg" id="dlgVoc">
-  <div class="box" style="width:min(92vw,460px)">
+  <div class="box" style="width:min(calc(92vw/var(--ui)),460px)">
     <span class="tag">VOCES</span>
     <h2>密语频道</h2>
     <div class="sub">与在场之人的闲谈侧线&nbsp;·&nbsp;不推进正剧</div>
@@ -1095,7 +1103,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   </div>
 </div>
 <div class="gDlg" id="dlgBgm">
-  <div class="box" style="width:min(94vw,540px)">
+  <div class="box" style="width:min(calc(94vw/var(--ui)),540px)">
     <span class="tag">MVSICA</span>
     <h2>幕间乐&nbsp;·&nbsp;播放器</h2>
     <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
@@ -3320,10 +3328,25 @@ var CFGS={velo:1,font:1,preset:''};
 try{Object.assign(CFGS,JSON.parse(localStorage.getItem('rome_cfg')||'{}'));}catch(_){}
 function cfgStore(){try{localStorage.setItem('rome_cfg',JSON.stringify(CFGS));}catch(_){}}
 var VELOMAP=[26,13,4,0],FONTMAP=['11.5px','13px','14.5px','16.5px'];
+/* 界面缩放：一根拉杆放大缩小全部文字层（正文／情报台／顶栏／输入区／所有弹窗） */
+function uiScaleGet(){
+  var v=parseInt((CFGS&&CFGS.ui)||100,10);
+  if(isNaN(v))v=100;return Math.max(80,Math.min(170,v));
+}
+function uiScaleApply(v){
+  v=Math.max(80,Math.min(170,parseInt(v,10)||100));
+  CFGS.ui=v;
+  document.documentElement.style.setProperty('--ui',(v/100).toFixed(3));
+  var lab=$('#cfgUiVal');if(lab)lab.textContent=v+'%';
+  var sl=$('#cfgUi');if(sl&&+sl.value!==v)sl.value=v;
+  try{cfgStore();}catch(_){}
+  try{if(GAME.on)setTimeout(gmapSize,60);}catch(_){}
+}
 function setSeg(sel,idx){var ch=$(sel).children;for(var i=0;i<ch.length;i++)ch[i].classList.toggle('on',i===idx);}
 function applyCfg(){
   $('#gNarr').style.fontSize=FONTMAP[CFGS.font]||'13px';
-  setSeg('#sgVelo',CFGS.velo);setSeg('#sgFont',CFGS.font);
+  setSeg('#sgVelo',CFGS.velo);
+  uiScaleApply(uiScaleGet());
 }
 applyCfg();
 function narrAdd(cls,html,tIdx){
@@ -3873,6 +3896,9 @@ $('#bgVol').addEventListener('input',function(){
 /* 开站即乐：开场动画与选单同步起乐（首曲开站即取即放，不等入局）；自动播放被拦则首次点按瞬间补放 */
 try{bgmPlay(0);}catch(_){}
 /* —— 全屏 —— */
+(function(){var sl=$('#cfgUi');if(!sl)return;
+  sl.addEventListener('input',function(){uiScaleApply(this.value);});
+})();
 $('#gtFull').addEventListener('click',function(){
   if(document.fullscreenElement)document.exitFullscreen();
   else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();
@@ -5108,7 +5134,7 @@ $('#cxFile').addEventListener('change',function(){
         c.classList.add('on');
         if(sg.id==='sgMotus')REDUCED=c.textContent.indexOf('减弱')>=0;
         if(sg.id==='sgVelo'){CFGS.velo=idx;cfgStore();}
-        if(sg.id==='sgFont'){CFGS.font=idx;$('#gNarr').style.fontSize=FONTMAP[idx];cfgStore();}
+
         if(typeof SET!=='undefined'){
           if(sg.id==='sgForma'){SET.forma=idx;applyForma();setStore();}
           if(sg.id==='sgFace'){SET.face=idx;try{localStorage.removeItem('rome_font');}catch(_){}applyFace();setStore();}
