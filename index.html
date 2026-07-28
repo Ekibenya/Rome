@@ -218,6 +218,9 @@ canvas{display:block}
 #game .gt{font-size:9px;letter-spacing:.24em;color:var(--mut);border:1px solid rgba(236,236,232,.22);
       padding:5px 10px 4px;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap}
 #game .gt:hover{color:var(--gold-hi);border-color:var(--gold)}
+#game .gTools .gt{width:32px;height:26px;padding:0;display:flex;align-items:center;justify-content:center}
+#game .gTools .gt.on{color:var(--gold-hi);border-color:var(--gold)}
+#game .gTools .gt svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}
 #game .gMain{position:absolute;left:64px;right:322px;top:46px;bottom:0;display:flex;flex-direction:column}
 #game .gNarr{flex:1;overflow-y:auto;padding:36px 7% 118px;font-size:13px;line-height:2.2;
       letter-spacing:.06em;color:#c8c8c2;background:transparent}
@@ -590,7 +593,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
     <span class="gBrand">SPQR&nbsp;//&nbsp;ROMA.SYS</span>
     <span class="gLoc" id="gLoc"></span>
     <span class="gTools">
-      <span class="gt" id="gtSnd" title="幕間樂·播放/暫停">♪&nbsp;MVSICA</span><span class="gt" id="gtVoc" title="密語頻道">VOCES</span><span class="gt" id="gtApi" title="接入神諭（AI）">ORACVLVM</span><span class="gt" id="gtCfg">CFG&nbsp;設置</span><span class="gt" id="gtBook">LIBER&nbsp;世界書</span><span class="gt" id="gtSave">SERVA&nbsp;存檔</span><span class="gt" id="gtFull" title="全屏">⛶</span><span class="gt" id="gtExit">EXIT</span>
+      <span class="gt" id="gtSnd" title="MVSICA · 幕間樂 播放/暫停"><svg viewBox="0 0 24 24"><path d="M9 18V5.5L19 4v12.5"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></span><span class="gt" id="gtVoc" title="VOCES · 密語頻道"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-4 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg></span><span class="gt" id="gtApi" title="ORACVLVM · 接入神諭（AI）"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.6"/></svg></span><span class="gt" id="gtCfg" title="CFG · 設置"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15.5" cy="12" r="2"/><circle cx="7" cy="17" r="2"/></svg></span><span class="gt" id="gtBook" title="LIBER · 世界書"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.6-4.6-2-8-2v14c3.4 0 6 .4 8 2 2-1.6 4.6-2 8-2V4c-3.4 0-6 .4-8 2z"/><path d="M12 6v14"/></svg></span><span class="gt" id="gtSave" title="SERVA · 存檔"><svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M8 4v5h8V4M8 20v-6h8v6"/></svg></span><span class="gt" id="gtFull" title="全屏"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></span><span class="gt" id="gtExit" title="EXIT · 離開棋局"><svg viewBox="0 0 24 24"><path d="M14 4H5v16h9"/><path d="M10 12h11M17 8l4 4-4 4"/></svg></span>
     </span>
   </div>
 
@@ -1065,7 +1068,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.5.2';
+  var ZJ3D_VER='1.5.3';
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
