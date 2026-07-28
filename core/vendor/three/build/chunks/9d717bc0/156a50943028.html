@@ -739,15 +739,6 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="sub" id="dispMsg" style="margin-top:8px"></div>
     </div>
     <div class="cfgPane" id="cp_img" style="display:none">
-      <div class="sub">給每幕正文配&nbsp;AI&nbsp;插畫。接口、密鑰與參數只存本機瀏覽器。開「每幕自動生圖」後每出一幕自動作畫，失敗自動重試一次。</div>
-      <div class="sRow"><span>啟用生圖</span><span class="sSeg" id="sgImgOn"><span class="on">關</span><span>開</span></span></div>
-      <div class="sRow"><span>每幕自動生圖（關則手動點「繪此幕」）</span><span class="sSeg" id="sgImgAuto"><span class="on">關</span><span>開</span></span></div>
-      <div class="sRow"><span>每輪生幾張</span><span class="sSeg" id="sgImgCount"><span class="on">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></span></div>
-      <div class="sub">超過&nbsp;1&nbsp;張時由副模型據本幕劇情拆出不同切入點（主場景／人物特寫／別處&nbsp;NPC／換機位），各生一張——需配好副模型，否則以不同種子重繪。</div>
-      <div class="sRow"><span>鏡頭&nbsp;·&nbsp;風格（內置提示詞）</span><span class="sSeg" id="sgImgCam"><span class="on">自動</span><span>電影感</span><span>插畫</span><span>油畫</span><span>第一人稱</span><span>寫實</span></span></div>
-      <div class="sRow"><span>圖片顯示尺寸</span><span class="sSeg" id="sgImgDisp"><span>迷你</span><span>小</span><span class="on">中</span><span>大</span></span></div>
-      <div class="sub">管單圖在正文裡顯示多大；多圖那輪自動小圖並排。</div>
-      <div class="sRow"><span>接口風格</span><span class="sSeg" id="sgImgStyle"><span class="on">OpenAI&nbsp;兼容</span><span>NovelAI&nbsp;官方</span><span>SD·A1111</span><span>本地&nbsp;ComfyUI</span><span>自定義&nbsp;JSON</span></span></div>
       <div id="imgNaiHelp" style="display:none;border:1px solid rgba(201,155,63,.4);padding:12px;margin-top:10px">
         <div style="font-size:10px;letter-spacing:.2em;color:var(--gold-hi)">NovelAI&nbsp;必做&nbsp;·&nbsp;先建你的專屬中轉</div>
         <div class="sub" style="margin-top:8px;line-height:2">NovelAI&nbsp;不允許網頁直接連（瀏覽器會攔掉），<b style="color:#e86a52">不做就一張圖都看不到</b>。需一個免費中轉，約&nbsp;2&nbsp;分鐘。中轉建在<b style="color:var(--gold-hi)">你自己的賬號</b>裡——token&nbsp;與圖片只走你專屬的通道，不經任何人轉手。不用&nbsp;NovelAI&nbsp;出圖可無視本節。</div>
@@ -768,6 +759,15 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
         <div class="sRow" style="margin-top:10px"><span>NAI&nbsp;模型</span><span class="sSeg" id="sgNaiModel"><span class="on">V4.5&nbsp;Full</span><span>V4.5&nbsp;Curated</span><span>V4&nbsp;Full</span><span>V3（舊版）</span></span></div>
         <div class="sub">點選即可。V4.5／V4&nbsp;需&nbsp;NAI&nbsp;Opus&nbsp;訂閱；沒訂閱選&nbsp;V3。請求體本遊戲自動區分，返回的&nbsp;zip&nbsp;內置解壓自動變&nbsp;PNG。密鑰填&nbsp;NAI&nbsp;持久&nbsp;token。</div>
       </div>
+      <div class="sub">給每幕正文配&nbsp;AI&nbsp;插畫。接口、密鑰與參數只存本機瀏覽器。開「每幕自動生圖」後每出一幕自動作畫，失敗自動重試一次。</div>
+      <div class="sRow"><span>啟用生圖</span><span class="sSeg" id="sgImgOn"><span class="on">關</span><span>開</span></span></div>
+      <div class="sRow"><span>每幕自動生圖（關則手動點「繪此幕」）</span><span class="sSeg" id="sgImgAuto"><span class="on">關</span><span>開</span></span></div>
+      <div class="sRow"><span>每輪生幾張</span><span class="sSeg" id="sgImgCount"><span class="on">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></span></div>
+      <div class="sub">超過&nbsp;1&nbsp;張時由副模型據本幕劇情拆出不同切入點（主場景／人物特寫／別處&nbsp;NPC／換機位），各生一張——需配好副模型，否則以不同種子重繪。</div>
+      <div class="sRow"><span>鏡頭&nbsp;·&nbsp;風格（內置提示詞）</span><span class="sSeg" id="sgImgCam"><span class="on">自動</span><span>電影感</span><span>插畫</span><span>油畫</span><span>第一人稱</span><span>寫實</span></span></div>
+      <div class="sRow"><span>圖片顯示尺寸</span><span class="sSeg" id="sgImgDisp"><span>迷你</span><span>小</span><span class="on">中</span><span>大</span></span></div>
+      <div class="sub">管單圖在正文裡顯示多大；多圖那輪自動小圖並排。</div>
+      <div class="sRow"><span>接口風格</span><span class="sSeg" id="sgImgStyle"><span class="on">NovelAI&nbsp;官方</span><span>OpenAI&nbsp;兼容</span><span>SD·A1111</span><span>本地&nbsp;ComfyUI</span><span>自定義&nbsp;JSON</span></span></div>
       <div id="imgComfyHelp" style="display:none;border:1px solid rgba(201,155,63,.4);padding:12px;margin-top:10px">
         <div class="sub" style="line-height:2.1">本地&nbsp;ComfyUI：啟動時加&nbsp;<b style="color:var(--gold-hi)">--enable-cors-header</b>&nbsp;允許網頁調用（127.0.0.1&nbsp;不受&nbsp;https&nbsp;混合內容限制）。「接口地址」填&nbsp;<b style="color:var(--gold-hi)">http://127.0.0.1:8188</b>，「模型」填&nbsp;checkpoint&nbsp;文件名（如&nbsp;sd_xl_base_1.0.safetensors），採樣參數照常填。<br>進階：下方可貼你自己的&nbsp;API&nbsp;格式工作流（ComfyUI&nbsp;裡&nbsp;Save&nbsp;(API&nbsp;Format)&nbsp;導出），用&nbsp;%prompt%&nbsp;%negative%&nbsp;%seed%&nbsp;%steps%&nbsp;%cfg%&nbsp;%width%&nbsp;%height%&nbsp;%ckpt%&nbsp;作佔位符；留空用內置默認&nbsp;txt2img。</div>
         <div style="display:flex;gap:12px;margin-top:8px"><span class="eBtn" id="comfyPull" style="margin-top:0">拉取模型</span><select id="comfyModels" style="display:none;background:#0a0a0a;border:1px solid rgba(236,236,232,.2);color:var(--gold-hi);font-family:inherit;font-size:10px;padding:5px;max-width:240px"></select></div>
@@ -3516,7 +3516,7 @@ $('#gtFull').addEventListener('click',function(){
 /* ============ 設置·控制中樞（12頁签，代碼級對齊 Ghost setBody） ============ */
 var SET={glass:80,forma:0,face:0,loreBud:9000,
   tts:{src:0,base:'',key:'',model:'tts-1',voice:'',rate:105,scope:0,auto:0},
-  img:{on:0,base:'',key:'',model:'',size:0},
+  img:{on:0,base:'',key:'',model:'',size:0,style:0},   /* style 0 ＝ NovelAI，見 IMGSTY */
   sub:{base:'',key:'',model:''},
   samp:{temp:'',topp:'',maxt:'',minc:'',reason:0},
   profs:{},presets:[],mems:[],rx:[],js:[],cards:[]};
@@ -3652,16 +3652,19 @@ $('#ttsStop').addEventListener('click',function(){
 var NAI_MODELS=['nai-diffusion-4-5-full','nai-diffusion-4-5-curated','nai-diffusion-4-full','nai-diffusion-3'];
 var CAM_PROMPT=['','cinematic film still, dramatic lighting, ','detailed illustration, clean lineart, ','classical oil painting, chiaroscuro, ','first person POV shot, ','photorealistic, 35mm photo, '];
 var NAI_WORKER_CODE="const UPSTREAM='https://image.novelai.net';\nexport default {\n  async fetch(request){\n    const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization, content-type','Access-Control-Max-Age':'86400'};\n    if(request.method==='OPTIONS')return new Response(null,{headers:cors});\n    if(request.method!=='POST')return new Response('NovelAI proxy is running. Point the game here.',{headers:cors});\n    const url=new URL(request.url);\n    try{\n      const upstream=await fetch(UPSTREAM+url.pathname+url.search,{method:'POST',headers:{'authorization':request.headers.get('authorization')||'','content-type':request.headers.get('content-type')||'application/json','accept':'application/x-zip-compressed'},body:await request.arrayBuffer()});\n      const buf=await upstream.arrayBuffer();\n      return new Response(buf,{status:upstream.status,headers:{...cors,'content-type':upstream.headers.get('content-type')||'application/octet-stream'}});\n    }catch(e){\n      return new Response('proxy error: '+((e&&e.message)||String(e)),{status:502,headers:cors});\n    }\n  }\n};";
+/* 接口風格序號 —— NovelAI 打頭（本作最常用的一檔，預設即選它）。
+   段落是按位序取值的，序號改了就得跟著改，所以在這裡具名一次，別再散落魔數。 */
+var IMGSTY={nai:0,oai:1,sd:2,comfy:3,custom:4};
 function imgDefaults(style){
-  return [{steps:'',cfg:'',w:'1024',h:'1024'},
-          {steps:'28',cfg:'5',w:'832',h:'1216'},
-          {steps:'28',cfg:'7',w:'896',h:'1152'},
-          {steps:'25',cfg:'6.5',w:'1024',h:'1024'},
-          {steps:'',cfg:'',w:'',h:''}][style]||{};
+  return [{steps:'28',cfg:'5',w:'832',h:'1216'},      /* NovelAI */
+          {steps:'',cfg:'',w:'1024',h:'1024'},        /* OpenAI 兼容 */
+          {steps:'28',cfg:'7',w:'896',h:'1152'},      /* SD · A1111 */
+          {steps:'25',cfg:'6.5',w:'1024',h:'1024'},   /* ComfyUI */
+          {steps:'',cfg:'',w:'',h:''}][style]||{};    /* 自定義 JSON */
 }
 function imgStyleShow(){
-  $('#imgNaiHelp').style.display=SET.img.style===1?'':'none';
-  $('#imgComfyHelp').style.display=SET.img.style===3?'':'none';
+  $('#imgNaiHelp').style.display=SET.img.style===IMGSTY.nai?'':'none';
+  $('#imgComfyHelp').style.display=SET.img.style===IMGSTY.comfy?'':'none';
 }
 function imgLoad(){
   var g=SET.img;
@@ -3674,6 +3677,22 @@ function imgLoad(){
   setSeg('#sgImgCam',g.cam);setSeg('#sgImgDisp',g.disp);setSeg('#sgImgStyle',g.style);
   var ni=NAI_MODELS.indexOf(g.model);setSeg('#sgNaiModel',ni<0?0:ni);
   imgStyleShow();iloreRender();
+}
+/* 接口風格改成 NovelAI 打頭後 0 與 1 對調了。老配置存的是舊序號，
+   照搬會把原本選 NovelAI 的人默默切到 OpenAI 去，所以遷移一次並打標記。 */
+if(SET.imgSty!==2){
+  /* 判據要看「存檔裡原本寫了什麼」，不能看 SET.img.style——後者已經帶上新的預設值 0，
+     照它判會把全新用戶當成舊的 OpenAI 使用者又換回去。沒存過就是新人，留在 NovelAI。 */
+  var _os=(_s&&_s.img)?_s.img.style:undefined;
+  SET.img.style=(typeof _os==='number')?(_os===0?1:(_os===1?0:_os)):0;
+  /* 新用戶落在 NovelAI 上，順手把該接口的推薦採樣填好，開箱就能出圖；
+     已經填過參數的一概不碰。模型欄空著會讓 UI 顯示 V4.5 而請求悄悄退回 V3，一併對齊。 */
+  if(!SET.img.steps&&!SET.img.w){
+    var _d=imgDefaults(SET.img.style);
+    SET.img.steps=_d.steps;SET.img.cfg=_d.cfg;SET.img.w=_d.w;SET.img.h=_d.h;
+  }
+  if(SET.img.style===0&&!SET.img.model)SET.img.model=NAI_MODELS[0];
+  SET.imgSty=2;setStore();
 }
 imgLoad();
 [['imgBase','base'],['imgKey','key'],['imgModel','model'],['imgSteps','steps'],
@@ -3776,7 +3795,7 @@ function genOne(prompt,seed,cb,err){
   var g=SET.img,base=(g.base||'').replace(/\/+$/,'');
   var W=+g.w||1024,H=+g.h||1024,steps=+g.steps||28,cfg=+g.cfg||7;
   if(seed==null||seed===''||+seed<0)seed=Math.floor(Math.random()*1e9);
-  if(g.style===0){          /* OpenAI 兼容 */
+  if(g.style===IMGSTY.oai){        /* OpenAI 兼容 */
     fetch(base+'/images/generations',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+g.key},
       body:JSON.stringify({model:g.model,prompt:prompt,n:1,size:W+'x'+H,response_format:'b64_json'})})
@@ -3784,7 +3803,7 @@ function genOne(prompt,seed,cb,err){
     .then(function(d){var b=d.data&&d.data[0];
       cb(b.b64_json?('data:image/png;base64,'+b.b64_json):b.url);})
     .catch(function(e){err(e&&e.message||e);});
-  }else if(g.style===1){    /* NovelAI（經中轉） */
+  }else if(g.style===IMGSTY.nai){  /* NovelAI（經中轉） */
     var v3=g.model==='nai-diffusion-3';
     var params={width:W,height:H,scale:cfg,steps:steps,seed:+seed,n_samples:1,
       sampler:'k_euler_ancestral',qualityToggle:true,params_version:v3?1:3,
@@ -3797,7 +3816,7 @@ function genOne(prompt,seed,cb,err){
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();})
     .then(function(buf){unzipFirstPNG(buf,function(png){bufToDataUrl(png,cb);},err);})
     .catch(function(e){err(e&&e.message||e);});
-  }else if(g.style===2){    /* SD · A1111 */
+  }else if(g.style===IMGSTY.sd){   /* SD · A1111 */
     fetch(base+'/sdapi/v1/txt2img',{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({prompt:prompt,negative_prompt:'lowres, bad quality',
@@ -3805,7 +3824,7 @@ function genOne(prompt,seed,cb,err){
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(d){cb('data:image/png;base64,'+d.images[0]);})
     .catch(function(e){err(e&&e.message||e);});
-  }else if(g.style===3){    /* ComfyUI */
+  }else if(g.style===IMGSTY.comfy){/* ComfyUI */
     var graph;
     if(g.workflow){
       try{graph=JSON.parse(g.workflow
