@@ -59,13 +59,14 @@
 
   /* ---------------- asset loading ---------------- */
   var MANI = [
-    ['ancient', 'ancient.glb'], ['historic', 'historic.glb'], ['interior', 'interior.glb']
+    ['ancient', 'ancient.glb'], ['historic', 'historic.glb'], ['interior', 'interior.glb'], ['nature', 'nature.glb']
   ];
   var TEXES = ['LowpolyChineseBuilding_Texture_01.png', 'LowpolyChineseBuilding_Texture_02.png', 'LowpolyChineseBuilding_Texture_03.png', 'LowpolyChineseBuilding_Texture_04.png', 'LowpolyChineseBuilding_Texture_05.png',
     'Ancient_Tex_Zhao.png', 'Ancient_Tex_Wei.png',
     'LowpolyHistoric_Texture_01.png', 'LowpolyHistoric_Texture_02.png', 'LowpolyHistoric_Texture_03.png', 'LowpolyHistoric_Texture_04.png', 'LowpolyHistoric_Texture_05.png',
     'LowpolyHistoric_Sculpture_01.png',
-    'LowpolyHistoricInterior_Texture_01.png', 'LowpolyHistoricInterior_Texture_02.png', 'LowpolyHistoricInterior_Texture_03.png'];
+    'LowpolyHistoricInterior_Texture_01.png', 'LowpolyHistoricInterior_Texture_02.png', 'LowpolyHistoricInterior_Texture_03.png',
+    'T_Trees_temp_climate.png', 'T_Tree_tropical.png', 'T_Mountains_temperate_climate_32.png'];
 
   /* 资材包：单文件容器（滚动异或编码），解出各 GLB 与贴图字节 */
   function unpack(ab) {
@@ -146,7 +147,7 @@
     return tinfo[k] = { size: s, center: c, minY: bb.min.y, name: name, pack: pack };
   }
 
-  var USED = { ancient: {}, historic: {}, interior: {} };
+  var USED = { ancient: {}, historic: {}, interior: {}, nature: {} };
   function spawn(pack, name, texName, opts) {
     opts = opts || {};
     var lib = Z.packs[pack].lib;
@@ -389,6 +390,17 @@
     geo.setAttribute('color', new T.BufferAttribute(col, 3));
     return new T.Mesh(geo, mtnMat());
   }
+  /* ---------------- 自然资材（树/棕榈/山 61 模型全用） ---------------- */
+  function natN(pre, a, b) { var o = []; for (var i = a; i <= b; i++) o.push(pre + (i < 10 ? '00' : '0') + i); return o; }
+  var NATBROAD = ['Tree_temp_climate_001', 'Tree_temp_climate_002', 'Tree_temp_climate_003', 'Tree_temp_climate_007', 'Tree_temp_climate_008', 'Tree_temp_climate_009', 'Tree_temp_climate_012', 'Tree_temp_climate_015', 'Tree_temp_climate_016', 'Tree_temp_climate_017', 'Tree_temp_climate_018'];
+  var NATCONIF = ['Tree_temp_climate_004', 'Tree_temp_climate_005', 'Tree_temp_climate_006', 'Tree_temp_climate_010', 'Tree_temp_climate_011', 'Tree_temp_climate_013', 'Tree_temp_climate_014', 'Tree_temp_climate_019', 'Tree_temp_climate_020', 'Tree_temp_climate_021'];
+  var NATPALM = natN('Tree_Tropic_', 1, 20);
+  var NATMTN = { hill: natN('Hill_temperate_climate_', 1, 5), mtn: natN('Mountains_temperate_climate_', 1, 10), plat: natN('Plateau_temperate_climate_', 1, 5) };
+  NATMTN.mix = NATMTN.plat.concat(NATMTN.hill);
+  function natTex(name) {
+    return /Tropic/.test(name) ? 'T_Tree_tropical.png' : /^Tree_/.test(name) ? 'T_Trees_temp_climate.png' : 'T_Mountains_temperate_climate_32.png';
+  }
+
   function mountainGroup(w, h, seed) {
     var r = rng('mt' + seed);
     var g = new T.Group();
@@ -441,8 +453,21 @@
     return g;
   }
   function mountain(x, z, w, h, seed) {
-    var g = mountainGroup(w, h, seed + x + z);
-    g.position.set(x, 0, z);
+    var hh = hash('nm' + seed + x + z);
+    var pool = h >= 34 ? NATMTN.mtn : (h >= 16 ? NATMTN.mix : NATMTN.hill);
+    var name = pool[hh % pool.length];
+    var lib = Z.packs.nature && Z.packs.nature.lib;
+    if (!lib || !lib[name]) return;
+    USED.nature[name] = 1;
+    var inf = info('nature', name);
+    var o = lib[name].clone(true);
+    var mat = matFor('T_Mountains_temperate_climate_32.png');
+    o.traverse(function (ch) { if (ch.isMesh) { ch.material = mat; ch.castShadow = true; ch.receiveShadow = true; } });
+    var g = new T.Group(); g.add(o);
+    o.position.y = -inf.minY;
+    var sxz = (w * 2.4) / Math.max(inf.size.x, inf.size.z), sy = h / inf.size.y;
+    g.scale.set(sxz, sy, sxz);
+    g.position.set(x, 0, z); g.rotation.y = (hh % 628) / 100;
     Z.scene.add(g);
     (Z.mtnSpots = Z.mtnSpots || []).push({ x: x, z: z, w: w }); // 供地块绘制山根砾石裙
   }
@@ -488,32 +513,13 @@
     pine: [0x3e7e48, 0x357040, 0x468852]
   };
   function tree(x, z, kind, seed) {
-    var r = rng('tr' + seed + x + z), g = new T.Group();
-    var cols = TREECOL[kind || 'green'];
-    var th = 1.2 + r() * 1.1;
-    var trunk = new T.Mesh(new T.CylinderGeometry(0.18, 0.3, th, 5), nmat(0x6c4b2f));
-    trunk.position.y = th / 2; trunk.castShadow = true; g.add(trunk);
-    if (kind === 'pine') {
-      for (var i = 0; i < 3; i++) {
-        var cone = new T.Mesh(new T.ConeGeometry(1.15 - i * 0.3, 1.35, 7), nmat(cols[i % cols.length]));
-        cone.position.y = th + 0.4 + i * 0.85; cone.castShadow = true; g.add(cone);
-      }
-    } else {
-      var blobs = 3 + (hash(seed + 'b' + x) % 3);
-      for (var b = 0; b < blobs; b++) {
-        var br = 0.8 + r() * 0.6;
-        var blob = new T.Mesh(new T.IcosahedronGeometry(br, 0), nmat(cols[(b + hash(seed)) % cols.length]));
-        blob.position.set((r() - .5) * 1.3, th + 0.5 + r() * 1.3, (r() - .5) * 1.3);
-        blob.rotation.set(r() * 3, r() * 3, r() * 3);
-        blob.castShadow = true; g.add(blob);
-      }
-      var top = new T.Mesh(new T.IcosahedronGeometry(0.55 + r() * 0.3, 0), nmat(cols[0]));
-      top.position.set(0, th + 1.7 + r() * 0.5, 0); top.castShadow = true; g.add(top);
-    }
-    g.position.set(x, 0, z); g.rotation.y = r() * 6.28;
-    g.scale.setScalar(0.85 + r() * 0.75);
-    Z.scene.add(g);
-    return natReg(g, { green: '常青树', pink: '樱树', autumn: '金枫', red: '红枫', pine: '苍松' }[kind || 'green'] || '树木');
+    var r = rng('tr' + seed + x + z);
+    var off = { green: 0, pink: 3, autumn: 6, red: 9, pine: 0 }[kind || 'green'] || 0;
+    var pool = kind === 'pine' ? NATCONIF : NATBROAD;
+    var name = pool[(hash('tk' + seed + x + z) + off) % pool.length];
+    var g = spawn('nature', name, natTex(name), { x: x, z: z, ry: r() * 6.28, s: 0.8 + r() * 0.55, solid: false, autodoor: false, shadow: true });
+    if (!g) return null;
+    return natReg(g, kind === 'pine' ? '松柏' : '乔木');
   }
   function treeCluster(x, z, kinds, seed) {
     var r = rng('tc' + seed);
@@ -1628,12 +1634,12 @@
      每城独立蓝图（史实形制）＋ 低多边形活海（顶点波动）＋ 航船巡弋
      ============================================================ */
   var MTEX = 'LowpolyHistoric_Texture_01.png';
-  var MDL = {"palace": ["ancient", "SM_Palace_01"], "senate": ["ancient", "SM_Main_Hall"], "univ": ["historic", "SM_Palace_02"], "amphi": ["historic", "SM_Threater_Stage_01"], "circus": ["historic", "SM_Palace_03"], "arch": ["historic", "SM_Palace_04"], "parthenon": ["historic", "SM_Gazeebo_04"], "oracle": ["historic", "SM_Gazeebo_05"], "temple": ["ancient", "SM_Eternal_Life"], "temple2": ["historic", "SM_Gazeebo_02"], "temple3": ["historic", "SM_Gazeebo_03"], "bridge": ["historic", "SM_Bridge_01"], "watchtower": ["historic", "SM_Tower_01"], "walltower": ["historic", "SM_Tower_02"], "colossus": ["historic", "SM_Tower_03"], "aqueduct": ["ancient", "SM_Private_House_03"], "dock": ["ancient", "SM_Env_Floor_07"], "trireme": ["ancient", "SM_Env_Misc_01"], "trireme2": ["ancient", "SM_Env_Misc_02"], "trireme3": ["ancient", "SM_Env_Misc_03"], "sail": ["ancient", "SM_Env_Misc_04"], "sail2": ["ancient", "SM_Env_Misc_05"], "sail3": ["ancient", "SM_Env_Misc_06"], "rowboat": ["ancient", "SM_Env_Misc_07"], "rowboat2": ["ancient", "SM_Env_Misc_08"], "fishboat": ["ancient", "SM_Env_Misc_09"], "granary": ["ancient", "SM_Granary_01"], "silo": ["ancient", "SM_Warehouse_01"], "farm": ["historic", "SM_Env_Base_03"], "vineyard": ["historic", "SM_Env_Base_09"], "watermill": ["interior", "SM_Table_01"], "mill": ["ancient", "SM_Env_Stair_05"], "sawmill": ["ancient", "SM_Resturant_01"], "stable": ["ancient", "SM_Horse_Room_01"], "forge": ["ancient", "SM_Foundry_Room"], "well": ["interior", "SM_Table_06"], "well2": ["interior", "SM_Table_04"], "fountain": ["ancient", "SM_Gazeebo_01"], "fountain2": ["historic", "SM_Env_Base_07"], "zeus": ["historic", "SM_Sculpture_01"], "zeusSeat": ["historic", "SM_Sculpture_02"], "poseidon": ["historic", "SM_Sculpture_04"], "athena": ["historic", "SM_Sculpture_05"], "hera": ["historic", "SM_Sculpture_03"], "artemis": ["historic", "SM_Sculpture_06"], "aphrodite": ["historic", "SM_Sculpture_07"], "demeter": ["historic", "SM_Sculpture_08"], "hades": ["historic", "SM_Sculpture_09"], "hermes": ["historic", "SM_Sculpture_10"], "hercules": ["historic", "SM_Sculpture_12"], "achilles": ["historic", "SM_Sculpture_13"], "statue": ["interior", "SM_Cover_02"], "statueHalf": ["historic", "SM_Env_Base_10"], "discobolus": ["ancient", "SM_Env_Floor_06"], "thinker": ["interior", "SM_Screen_02"], "spartanStatue": ["interior", "SM_Case_01"], "medusa": ["historic", "SM_Env_Roof_21"], "omphalos": ["historic", "SM_Env_Stairs_04"], "lion": ["historic", "SM_Env_Roof_11"], "angel": ["historic", "SM_Sculpture_14"], "base": ["ancient", "SM_Env_Base_01"], "base2": ["ancient", "SM_Env_Base_02"], "base3": ["ancient", "SM_Env_Base_03"], "baseSm": ["ancient", "SM_Env_Base_04"], "cobble": ["ancient", "SM_Env_Base_05"], "colCor": ["ancient", "SM_Env_Pillar_01"], "colPlain": ["ancient", "SM_Env_Pillar_02"], "colRuin": ["ancient", "SM_Env_Pillar_03"], "colRuin2": ["ancient", "SM_Env_Pillar_04"], "railing": ["ancient", "SM_Env_Pillar_05"], "stairs": ["ancient", "SM_Env_Stair_01"], "gate": ["ancient", "SM_Env_Stair_02"], "palm": ["ancient", "SM_Env_Roof_07"], "palm2": ["ancient", "SM_Env_Roof_08"], "pine": ["ancient", "SM_Env_Roof_04"], "pine2": ["ancient", "SM_Env_Roof_05"], "tree": ["ancient", "SM_Env_Roof_01"], "olive": ["ancient", "SM_Env_Roof_02"], "fruitTree": ["ancient", "SM_Env_Roof_11"], "barracks": ["historic", "SM_Env_Extra_06"], "barracks2": ["historic", "SM_Env_Extra_07"], "ballista": ["historic", "SM_Env_Extra_01"], "catapult": ["historic", "SM_Env_Extra_03"], "trebuchet": ["historic", "SM_Env_Extra_04"], "ram": ["historic", "SM_Env_Extra_05"], "siegeTower": ["historic", "SM_Env_Extra_14"], "tentBig": ["historic", "SM_Env_Extra_08"], "tentOpen": ["historic", "SM_Env_Extra_09"], "tentSm": ["historic", "SM_Env_Extra_10"], "trojan": ["interior", "SM_Screen_05"], "warElephant": ["historic", "SM_Env_Extra_11"], "campfire": ["ancient", "SM_Env_Brick_11"], "cart": ["ancient", "SM_Env_Brick_12"], "horseCart": ["historic", "SM_Env_Base_17"], "horse": ["ancient", "SM_Env_Pillar_07"], "riding": ["ancient", "SM_Env_Wall_38"], "shop": ["ancient", "SM_Blacksmith_01"], "shop2": ["ancient", "SM_Bookstore_01"], "house": ["ancient", "SM_Bookstore_02"], "house1": ["ancient", "SM_Butcher_01"], "house2": ["ancient", "SM_Clothing_Store_01"], "house3": ["ancient", "SM_Clothing_Store_02"], "house4": ["ancient", "SM_Gold_Shop_01"], "house5": ["ancient", "SM_Grocery_01"], "house6": ["ancient", "SM_Hotel_01"], "houseGarden": ["ancient", "SM_Jewlry_Store_01"], "house2f": ["ancient", "SM_Jewlry_Store_02"], "houseSlope": ["ancient", "SM_Parlor_01"], "houseLong": ["ancient", "SM_Pharmacy_01"], "banner": ["historic", "SM_Plaque_01"], "banner2": ["historic", "SM_Plaque_02"], "flag": ["historic", "SM_Plaque_05"], "torch": ["ancient", "SM_Env_Brick_08"], "torchMon": ["historic", "SM_Env_Stairs_01"], "lamp": ["interior", "SM_Cover_04"], "hay": ["ancient", "SM_Env_Wood_04"], "straw": ["ancient", "SM_Env_Wood_05"], "cage": ["ancient", "SM_Tathed_Cage_01"], "potter": ["ancient", "SM_Pottery_Workshop_01"], "anvil": ["ancient", "SM_Weapon_Shop_01"], "bench": ["ancient", "SM_Env_Window_05"], "circleBench": ["ancient", "SM_Env_Window_04"], "centaur": ["interior", "SM_Table_07"], "minotaur": ["interior", "SM_Table_10"], "gorgon": ["interior", "SM_Table_09"], "faun": ["interior", "SM_Table_08"], "sundial": ["interior", "SM_Desk_01"], "maskTheatre": ["interior", "SM_Screen_01"], "jar": ["ancient", "SM_Env_Stall_12"], "jarMon": ["ancient", "SM_Env_Stair_07"], "basket": ["ancient", "SM_Env_Stall_05"], "barrel": ["ancient", "SM_Env_Floor_02"], "shopBox": ["ancient", "SM_Env_Stall_01"], "altarStone": ["ancient", "SM_Env_Base_03"]};
+  var MDL = {"palace": ["ancient", "SM_Palace_01"], "senate": ["ancient", "SM_Main_Hall"], "univ": ["historic", "SM_Palace_02"], "amphi": ["historic", "SM_Threater_Stage_01"], "circus": ["historic", "SM_Palace_03"], "arch": ["historic", "SM_Palace_04"], "parthenon": ["historic", "SM_Gazeebo_04"], "oracle": ["historic", "SM_Gazeebo_05"], "temple": ["ancient", "SM_Eternal_Life"], "temple2": ["historic", "SM_Gazeebo_02"], "temple3": ["historic", "SM_Gazeebo_03"], "bridge": ["historic", "SM_Bridge_01"], "watchtower": ["historic", "SM_Tower_01"], "walltower": ["historic", "SM_Tower_02"], "colossus": ["historic", "SM_Tower_03"], "aqueduct": ["ancient", "SM_Private_House_03"], "dock": ["ancient", "SM_Env_Floor_07"], "trireme": ["ancient", "SM_Env_Misc_01"], "trireme2": ["ancient", "SM_Env_Misc_02"], "trireme3": ["ancient", "SM_Env_Misc_03"], "sail": ["ancient", "SM_Env_Misc_04"], "sail2": ["ancient", "SM_Env_Misc_05"], "sail3": ["ancient", "SM_Env_Misc_06"], "rowboat": ["ancient", "SM_Env_Misc_07"], "rowboat2": ["ancient", "SM_Env_Misc_08"], "fishboat": ["ancient", "SM_Env_Misc_09"], "granary": ["ancient", "SM_Granary_01"], "silo": ["ancient", "SM_Warehouse_01"], "farm": ["historic", "SM_Env_Base_03"], "vineyard": ["historic", "SM_Env_Base_09"], "watermill": ["interior", "SM_Table_01"], "mill": ["ancient", "SM_Env_Stair_05"], "sawmill": ["ancient", "SM_Resturant_01"], "stable": ["ancient", "SM_Horse_Room_01"], "forge": ["ancient", "SM_Foundry_Room"], "well": ["interior", "SM_Table_06"], "well2": ["interior", "SM_Table_04"], "fountain": ["ancient", "SM_Gazeebo_01"], "fountain2": ["historic", "SM_Env_Base_07"], "zeus": ["historic", "SM_Sculpture_01"], "zeusSeat": ["historic", "SM_Sculpture_02"], "poseidon": ["historic", "SM_Sculpture_04"], "athena": ["historic", "SM_Sculpture_05"], "hera": ["historic", "SM_Sculpture_03"], "artemis": ["historic", "SM_Sculpture_06"], "aphrodite": ["historic", "SM_Sculpture_07"], "demeter": ["historic", "SM_Sculpture_08"], "hades": ["historic", "SM_Sculpture_09"], "hermes": ["historic", "SM_Sculpture_10"], "hercules": ["historic", "SM_Sculpture_12"], "achilles": ["historic", "SM_Sculpture_13"], "statue": ["interior", "SM_Cover_02"], "statueHalf": ["historic", "SM_Env_Base_10"], "discobolus": ["ancient", "SM_Env_Floor_06"], "thinker": ["interior", "SM_Screen_02"], "spartanStatue": ["interior", "SM_Case_01"], "medusa": ["historic", "SM_Env_Roof_21"], "omphalos": ["historic", "SM_Env_Stairs_04"], "lion": ["historic", "SM_Env_Roof_11"], "angel": ["historic", "SM_Sculpture_14"], "base": ["ancient", "SM_Env_Base_01"], "base2": ["ancient", "SM_Env_Base_02"], "base3": ["ancient", "SM_Env_Base_03"], "baseSm": ["ancient", "SM_Env_Base_04"], "cobble": ["ancient", "SM_Env_Base_05"], "colCor": ["ancient", "SM_Env_Pillar_01"], "colPlain": ["ancient", "SM_Env_Pillar_02"], "colRuin": ["ancient", "SM_Env_Pillar_03"], "colRuin2": ["ancient", "SM_Env_Pillar_04"], "railing": ["ancient", "SM_Env_Pillar_05"], "stairs": ["ancient", "SM_Env_Stair_01"], "gate": ["ancient", "SM_Env_Stair_02"], "palm": ["nature", "Tree_Tropic_012", "T_Tree_tropical.png"], "palm2": ["nature", "Tree_Tropic_002", "T_Tree_tropical.png"], "pine": ["nature", "Tree_temp_climate_019", "T_Trees_temp_climate.png"], "pine2": ["nature", "Tree_temp_climate_004", "T_Trees_temp_climate.png"], "tree": ["nature", "Tree_temp_climate_001", "T_Trees_temp_climate.png"], "olive": ["nature", "Tree_temp_climate_017", "T_Trees_temp_climate.png"], "fruitTree": ["nature", "Tree_temp_climate_008", "T_Trees_temp_climate.png"], "barracks": ["historic", "SM_Env_Extra_06"], "barracks2": ["historic", "SM_Env_Extra_07"], "ballista": ["historic", "SM_Env_Extra_01"], "catapult": ["historic", "SM_Env_Extra_03"], "trebuchet": ["historic", "SM_Env_Extra_04"], "ram": ["historic", "SM_Env_Extra_05"], "siegeTower": ["historic", "SM_Env_Extra_14"], "tentBig": ["historic", "SM_Env_Extra_08"], "tentOpen": ["historic", "SM_Env_Extra_09"], "tentSm": ["historic", "SM_Env_Extra_10"], "trojan": ["interior", "SM_Screen_05"], "warElephant": ["historic", "SM_Env_Extra_11"], "campfire": ["ancient", "SM_Env_Brick_11"], "cart": ["ancient", "SM_Env_Brick_12"], "horseCart": ["historic", "SM_Env_Base_17"], "horse": ["ancient", "SM_Env_Pillar_07"], "riding": ["ancient", "SM_Env_Wall_38"], "shop": ["ancient", "SM_Blacksmith_01"], "shop2": ["ancient", "SM_Bookstore_01"], "house": ["ancient", "SM_Bookstore_02"], "house1": ["ancient", "SM_Butcher_01"], "house2": ["ancient", "SM_Clothing_Store_01"], "house3": ["ancient", "SM_Clothing_Store_02"], "house4": ["ancient", "SM_Gold_Shop_01"], "house5": ["ancient", "SM_Grocery_01"], "house6": ["ancient", "SM_Hotel_01"], "houseGarden": ["ancient", "SM_Jewlry_Store_01"], "house2f": ["ancient", "SM_Jewlry_Store_02"], "houseSlope": ["ancient", "SM_Parlor_01"], "houseLong": ["ancient", "SM_Pharmacy_01"], "banner": ["historic", "SM_Plaque_01"], "banner2": ["historic", "SM_Plaque_02"], "flag": ["historic", "SM_Plaque_05"], "torch": ["ancient", "SM_Env_Brick_08"], "torchMon": ["historic", "SM_Env_Stairs_01"], "lamp": ["interior", "SM_Cover_04"], "hay": ["ancient", "SM_Env_Wood_04"], "straw": ["ancient", "SM_Env_Wood_05"], "cage": ["ancient", "SM_Tathed_Cage_01"], "potter": ["ancient", "SM_Pottery_Workshop_01"], "anvil": ["ancient", "SM_Weapon_Shop_01"], "bench": ["ancient", "SM_Env_Window_05"], "circleBench": ["ancient", "SM_Env_Window_04"], "centaur": ["interior", "SM_Table_07"], "minotaur": ["interior", "SM_Table_10"], "gorgon": ["interior", "SM_Table_09"], "faun": ["interior", "SM_Table_08"], "sundial": ["interior", "SM_Desk_01"], "maskTheatre": ["interior", "SM_Screen_01"], "jar": ["ancient", "SM_Env_Stall_12"], "jarMon": ["ancient", "SM_Env_Stair_07"], "basket": ["ancient", "SM_Env_Stall_05"], "barrel": ["ancient", "SM_Env_Floor_02"], "shopBox": ["ancient", "SM_Env_Stall_01"], "altarStone": ["ancient", "SM_Env_Base_03"]};
   function mput(key, x, z, ry, o) {
     var d = MDL[key]; if (!d) return null;
     o = o || {}; o.x = x; o.z = z; o.ry = ry || 0;
     if (o.shadow === undefined) o.shadow = true;
-    return spawn(d[0], d[1], MTEX, o);
+    return spawn(d[0], d[1], d[2] || MTEX, o);
   }
   function minfo(key) { var d = MDL[key]; return d ? info(d[0], d[1]) : null; }
   function mrow(keys, x0, z0, dx, dz, n, ry, o) {
@@ -1757,8 +1763,11 @@
     }
   }
   function palmRow(cx, cz, dx, dz, n, seed) {
-    var r = rng('pr' + seed);
-    for (var i = 0; i < n; i++) mput(i % 2 ? 'palm2' : 'palm', cx + dx * i + (r() - .5) * 2, cz + dz * i + (r() - .5) * 2, r() * 6.28, { solid: false, autodoor: false });
+    var r = rng('pr' + seed), h0 = hash('pr' + seed);
+    for (var i = 0; i < n; i++) {
+      var nm = NATPALM[(h0 + i) % NATPALM.length];
+      spawn('nature', nm, natTex(nm), { x: cx + dx * i + (r() - .5) * 2, z: cz + dz * i + (r() - .5) * 2, ry: r() * 6.28, s: 0.85 + r() * 0.35, solid: false, autodoor: false, shadow: true });
+    }
   }
   function crowd(cx, cz, rad, n, seed) {
     var r = rng('cw' + seed);
@@ -3506,6 +3515,11 @@
     Cover: '罩门', Desk: '书案', Partition: '多宝阁', Screen: '屏风', Table: '案几'
   };
   function dispName(pack, name) {
+    if (pack === 'nature') {
+      var nm2 = name.match(/_(\d+)$/), ni = nm2 ? +nm2[1] : 0;
+      var base2 = /Tropic/.test(name) ? '棕榈' : /^Tree_/.test(name) ? '乔木' : /^Hill/.test(name) ? '丘陵' : /^Plateau/.test(name) ? '台山' : '山岳';
+      return base2 + (ni ? '·' + (ni <= 10 ? cnum(ni) : ni) : '');
+    }
     var lbl = shopLabel(name);
     if (lbl !== '屋舍') {
       var m0 = name.match(/_(\d+)$/);
@@ -3681,7 +3695,7 @@
       {
         tab: '草木', items: Object.keys(FLORA).map(function (k) {
           return { kind: 'flora', name: k, disp: FLORA[k].disp, price: FLORA[k].price };
-        })
+        }).concat(pack2items('nature', function () { return true; }))
       },
       {
         tab: '人物', items: Object.keys(NPC_TYPES).map(function (k) {
@@ -3920,7 +3934,7 @@
     var st = Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
     var root = null;
     if (rec.kind === 'model') {
-      var tex = rec.pack === 'ancient' ? st.anc : rec.pack === 'historic' ? st.his : 'LowpolyHistoricInterior_Texture_01.png';
+      var tex = rec.pack === 'ancient' ? st.anc : rec.pack === 'historic' ? st.his : rec.pack === 'nature' ? natTex(rec.name) : 'LowpolyHistoricInterior_Texture_01.png';
       root = spawn(rec.pack, rec.name, tex, { x: rec.cx * CELL, z: rec.cz * CELL, ry: rec.ry, s: rec.s || undefined, shadow: true, shrink: 0.92, bid: rec.id });
       if (root) {
         var cl = Z.colliders[Z.colliders.length - 1];
@@ -5681,6 +5695,19 @@
     updateHud();
   };
   // dev: jump straight to a city / interior
+  Z.debugNature = function () {
+    var st = medSt('latium');
+    SEA = null; SHIPS = []; RIVER = null;
+    newScene(0x9fc9e4, 0xd6dfc9, 200, 1600, false);
+    addGround(st, 320, [], [], []);
+    var names = Z.packs.nature.names.slice().sort();
+    for (var i = 0; i < names.length; i++) {
+      var nm = names[i], mt = /Hill|Mount|Plat/.test(nm);
+      spawn('nature', nm, natTex(nm), { x: (i % 9) * 30 - 120, z: Math.floor(i / 9) * 30 - 90, s: mt ? 14 : 1, solid: false, autodoor: false, shadow: true });
+    }
+    placePlayer(0, 160, Math.PI);
+    hudCity(st, 'NATVRA');
+  };
   Z.debugCity = function (locName, night) {
     Z.night = !!night; Z.mode = 'city'; Z.cityKey = '';
     buildFor(locName); Z.cityKey = locName;
@@ -5689,7 +5716,7 @@
   // coverage report (dev)
   Z.coverage = function () {
     var out = {};
-    ['ancient', 'historic', 'interior'].forEach(function (pk) {
+    ['ancient', 'historic', 'interior', 'nature'].forEach(function (pk) {
       var un = Z.packs[pk].names.filter(function (n) { return !USED[pk][n]; });
       out[pk] = { total: Z.packs[pk].names.length, used: Z.packs[pk].names.length - un.length, unused: un };
     });
