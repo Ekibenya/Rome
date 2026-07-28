@@ -431,6 +431,13 @@ canvas{display:block}
 #svRing{position:absolute;left:50%;top:50%;z-index:2;will-change:transform}
 .svChip{position:absolute;left:0;top:0;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:2px}
 .svChip .vt{transform:rotate(90deg);white-space:nowrap;font-size:6.5px;letter-spacing:.16em;font-weight:400}
+/* U 盤造型：插頭朝外「插」進色環，機身載編號與工作燈 */
+.svUsb{flex-direction:column;justify-content:flex-start;overflow:visible}
+.svUsb .pin{position:relative;flex:none;border-radius:1.5px 1.5px 0 0}
+.svUsb .pin:after{content:'';position:absolute;left:25%;right:25%;top:30%;height:32%;background:rgba(8,8,10,.9);border-radius:1px}
+.svUsb .neck{flex:none;width:74%;background:rgba(120,124,132,.5)}
+.svUsb .body{position:relative;width:100%;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0a0a0a;border:1px solid;border-radius:2px 2px 5px 5px}
+.svUsb .led{position:absolute;bottom:3px;left:50%;margin-left:-1.5px;width:3px;height:3px;border-radius:50%}
 #svCore{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;text-align:center;pointer-events:none;width:min(52vw,340px)}
 #svCoreT{font-size:clamp(16px,3vw,25px);letter-spacing:.55em;text-indent:.55em;color:#ececec}
 #svCoreSub{display:inline-block;margin:14px auto 0;font-size:8px;letter-spacing:.22em;color:var(--mut);line-height:1.7;border:1px solid rgba(236,236,232,.2);background:rgba(14,14,14,.75);padding:7px 16px;max-width:min(46vw,230px)}
@@ -5777,7 +5784,7 @@ function svRender(){
   ring.innerHTML='';
   var m=Math.min(innerWidth,innerHeight);
   /* 四層同心（比例取自參考稿）：淡彩帶 1.00 · 外卡圈 .85 · 濃彩帶 .70 · 內卡圈 .55 */
-  var Rp=m*.40,R1=m*.34,Rv=m*.28,R2=m*.22;
+  var Rp=m*.40,R1=m*.352,Rv=m*.28,R2=m*.235;  /* R1 上推：U 盤插頭正插入外色環；R2 上推：標籤牌貼住內色環 */
   var bt=Math.max(3,m*.0125),SEG=72;
   function band(R,sat,lig,th){
     var w=2*Math.PI*R/SEG*.86;
@@ -5793,7 +5800,7 @@ function svRender(){
   band(Rp,68,79,bt);   /* 外：粉彩色帶 */
   band(Rv,94,55,bt);   /* 內：飽和色帶 */
   /* 兩圈暗卡：徑向長條、圓角、細描邊、徑向小字 */
-  var cw1=2*Math.PI*R1/SVN*.52,cl1=cw1*2.05;
+  var cw1=2*Math.PI*R1/SVN*.50,cl1=cw1*2.55;
   var cw2=2*Math.PI*R2/SVN*.68,cl2=cw2*1.95;
   for(var i=0;i<SVN;i++)(function(n){
     var v=svGet(n+1),a=(n/SVN*360).toFixed(2),sel=SVSEL===n+1;
@@ -5807,8 +5814,21 @@ function svRender(){
       d.innerHTML='<span class="vt" style="color:'+col+'">'+txt+'</span>';
       ring.appendChild(d);
     }
-    mk(cw1,cl1,R1,(v?'●&nbsp;':'')+'#'+SV_ROMAN[n],v?'#ececec':'rgba(150,150,145,.85)',
-       sel?'#fff':'rgba(236,236,232,'+(v?'.62':'.26')+')');
+    /* 外圈＝U 盤：金屬插頭朝外，機身內為槽號與工作燈 */
+    var pinH=cl1*.26,neckH=cl1*.05,bodyH=cl1-pinH-neckH,hue=Math.round(n/SVN*360);
+    var u=document.createElement('div');u.className='svChip svUsb';u.setAttribute('data-n',n+1);
+    u.style.cssText='width:'+cw1.toFixed(2)+'px;height:'+cl1.toFixed(2)+'px;'
+      +'margin:'+(-cl1/2).toFixed(2)+'px 0 0 '+(-cw1/2).toFixed(2)+'px;'
+      +'transform:rotate('+a+'deg) translateY('+(-R1).toFixed(1)+'px)';
+    u.innerHTML='<i class="pin" style="width:'+(cw1*.6).toFixed(1)+'px;height:'+pinH.toFixed(1)+'px;background:linear-gradient(180deg,'
+        +(v?'#d4d8de':'#666a72')+','+(v?'#878c95':'#393c43')+')"></i>'
+      +'<i class="neck" style="height:'+neckH.toFixed(1)+'px"></i>'
+      +'<b class="body" style="height:'+bodyH.toFixed(1)+'px;border-color:'+(sel?'#fff':'rgba(236,236,232,'+(v?'.6':'.24')+')')+';'
+      +(sel?'box-shadow:0 0 10px rgba(255,255,255,.45);':(v?'box-shadow:0 0 8px rgba(236,236,232,.16);':''))+'">'
+      +'<span class="vt" style="color:'+(v?'#ececec':'rgba(150,150,145,.8)')+'">#'+SV_ROMAN[n]+'</span>'
+      +(v?'<i class="led" style="background:hsl('+hue+',92%,62%);box-shadow:0 0 6px hsl('+hue+',92%,62%)"></i>':'')
+      +'</b>';
+    ring.appendChild(u);
     mk(cw2,cl2,R2,v?esc2(String(v.t||'').replace(/\s+/g,'').slice(0,7)):'VACVVM',
        v?'var(--gold-hi)':'rgba(150,150,145,.7)',
        sel?'#fff':'rgba(236,236,232,'+(v?'.48':'.2')+')');
