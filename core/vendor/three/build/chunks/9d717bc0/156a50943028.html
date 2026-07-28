@@ -2635,13 +2635,18 @@ function psRenderNpcs(){
   });
 }
 $('#pcRe').addEventListener('pointerup',function(e){e.stopPropagation();psRenderNpcs();});
+/* 固定角色卡：以本尊之身入局——同样走铸局，只是不取化名。
+   （旧实现直接套「年代最接近的既有开局」，既绕过生成、也无视玩家选的年代与地点） */
+function psFieldsClear(){
+  ['#pfNomen','#pfGens','#pfAetas','#pfOrtus'].forEach(function(id){var el=$(id);if(el)el.value='';});
+  try{PSNPC.sel=-1;var cs=document.querySelectorAll('#psNpcs .npcCard');
+    for(var i=0;i<cs.length;i++)cs[i].classList.remove('on');}catch(_){}
+}
 $('#pcRoma').addEventListener('pointerup',function(e){e.stopPropagation();
-  var op=nearestOpening('roma',(ERA.year==null?117:ERA.year));
-  if(op){loadOpening('roma',op);gameShow();}
+  psFieldsClear();gameEnter('roma');
 });
 $('#pcZhou').addEventListener('pointerup',function(e){e.stopPropagation();
-  var op=nearestOpening('zhou',ERA.year||-420);
-  if(op){ERA.act=[];loadOpening('zhou',op);gameShow();}
+  psFieldsClear();ERA.act=[];gameEnter('zhou');
 });
 function psOpenSite(s){
   ERA.sel=s;
@@ -2833,9 +2838,9 @@ function condereAsk(line,y,nm,cn){
     +refPanel+'\n'
     +'5. 只输出正文与 <mvu_panel>，不要任何解释、不要代码围栏、不要提及本指令。';
 }
-function gameEnter(){
+function gameEnter(lineOverride){
   var y=(ERA.year==null?117:ERA.year);
-  var line=RING_LINE||'roma';
+  var line=lineOverride||RING_LINE||'roma';
   var nm=ERA.sel?ERA.sel.n:(line==='zhou'?'SERICA':'ROMA'),cn=ERA.sel?ERA.sel.cn:(line==='zhou'?'洛阳':'罗马');
   var loc=(y<0?(-y)+' A.C.N.':'A.D. '+y)+' · '+nm;
   var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
