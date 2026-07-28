@@ -1,0 +1,144 @@
+羅馬紀 · 兩千年後的舉牌 —— 版權聲明與使用條款
+ROMA.SYS: Rome, Two Thousand Years On — Copyright Notice & Terms of Use
+
+© 2026 Ekibenya. 保留所有權利。 All Rights Reserved.
+
+═══════════════════════════════════════════════════════════════════
+
+【中文條款】
+
+本倉庫中的全部內容——包括但不限於遊戲程序（HTML / JavaScript）、
+劇情與世界書文本、界面與視覺設計、城邦藍圖與生成邏輯、
+三維模型與貼圖的運行時轉換產物、樂曲文件、截圖與文檔——
+均為專有作品，受著作權法保護。
+本文件不是開源許可證，不授予任何開源許可。
+
+一、允許的行為
+
+  1. 在線遊玩：通過官方頁面
+     https://rome-olive.vercel.app/ 遊玩本遊戲。
+  2. 個人離線遊玩：在你個人的設備上運行本作品供自己遊玩。
+  3. 分享鏈接：向他人分享本倉庫地址或在線遊玩地址。
+
+二、禁止的行為（未經版權所有者事先書面許可）
+
+  1. 複製、修改、翻譯本作品或製作任何衍生作品（含「二創」、
+     改版、換皮、移植至其他語種或平台等）。
+  2. 以任何形式再分發本倉庫中的任何文件，包括鏡像、轉載、
+     打包上傳至其他平台或網盤。
+  3. 將本作品或其任何部分用於任何商業用途。
+  4. 抽取、解密、轉換或單獨使用本作品中的三維模型、貼圖、
+     樂曲或其他素材（見第三條）。
+  5. 移除或篡改本聲明及作品內的版權信息。
+
+三、第三方素材
+
+  本作品運行時所用的三維模型、貼圖與樂曲並非本項目原創，
+  其著作權分別歸各自權利方所有。此類素材在本倉庫中僅以
+  運行時所需的轉換與封裝形式存在，供本遊戲在瀏覽器中呈現，
+  不作為素材庫提供，也不授予任何再使用權利：
+
+  1. 三維模型與貼圖來自商業素材包，受原素材方的授權條款約束。
+  2. 樂曲的錄音與作曲權利歸各自權利方所有，僅作為本遊戲的
+     背景配樂使用。
+  3. 任何人不得從本倉庫抽取、還原或轉用上述素材；如需使用，
+     請自行向原權利方取得授權。
+  4. 若任何權利方對本項目中的素材使用提出異議，
+     相關素材將被移除。
+
+四、關於 AI
+
+  本作品是純客戶端靜態前端，不包含、不提供、不代理、
+  不轉售任何人工智能服務。玩家所接入的第三方 AI 接口
+  由玩家自行配置，由此產生的全部費用與生成的全部內容，
+  均由該玩家自行負責，與本項目無關。
+
+五、其他說明
+
+  1. 本倉庫在 GitHub 上公開託管僅為提供在線遊玩渠道，
+     不構成對上述禁止行為的任何授權。
+  2. 依 GitHub 服務條款所允許的 fork 行為，僅限於在 GitHub
+     平台內查看之用，不得據此行使本條款禁止的任何權利。
+  3. 本作品按「現狀」提供，不附帶任何明示或默示的擔保。
+  4. 如需獲得本條款之外的授權（如二創、轉載、商用），
+     請通過本倉庫的 Issues 頁面與版權所有者聯繫。
+
+═══════════════════════════════════════════════════════════════════
+
+[English Terms]
+
+All contents of this repository — including but not limited to the
+game program (HTML / JavaScript), narrative and lorebook texts, UI
+and visual design, city blueprints and generation logic,
+runtime-converted 3D models and textures, music files, screenshots,
+and documentation — are proprietary works protected by copyright
+law. This file is NOT an open-source license and grants no
+open-source rights.
+
+1. Permitted
+
+  1. Online play: playing the game via the official page at
+     https://rome-olive.vercel.app/.
+  2. Personal offline play: running this work on your own devices
+     for your own play.
+  3. Sharing links: sharing the repository URL or the online play
+     URL with others.
+
+2. Prohibited (without prior written permission from the copyright
+   holder)
+
+  1. Copying, modifying, or translating this work, or creating any
+     derivative works (including fan remakes, modified versions,
+     re-skins, or ports to other languages or platforms).
+  2. Redistributing any file in this repository in any form,
+     including mirroring, re-uploading, or repackaging to other
+     platforms or file-sharing services.
+  3. Using this work or any part of it for any commercial purpose.
+  4. Extracting, decrypting, converting, or separately using the 3D
+     models, textures, music, or other assets contained in this work
+     (see Section 3).
+  5. Removing or altering this notice or any copyright information
+     within the work.
+
+3. Third-Party Assets
+
+  The 3D models, textures, and music used at runtime are not
+  original to this project; their copyrights belong to their
+  respective rights holders. Such assets exist in this repository
+  only in the converted and packaged form required for runtime
+  presentation in the browser. They are not offered as an asset
+  library, and no right of reuse is granted:
+
+  1. 3D models and textures originate from commercial asset packs
+     and remain bound by their original vendors' license terms.
+  2. Rights in the musical recordings and compositions belong to
+     their respective holders; they are used solely as background
+     music for this game.
+  3. No one may extract, restore, or repurpose these assets from
+     this repository. To use them, obtain a license from the
+     original rights holders yourself.
+  4. Should any rights holder object to the use of an asset in this
+     project, the material in question will be removed.
+
+4. Regarding AI
+
+  This work is a purely client-side, static front-end. It does not
+  include, provide, proxy, or resell any artificial intelligence
+  service. Any third-party AI endpoint a player connects to is
+  configured at that player's sole discretion; all costs incurred
+  and all content generated thereby are that player's sole
+  responsibility and are unrelated to this project.
+
+5. Miscellaneous
+
+  1. The public hosting of this repository on GitHub exists solely
+     to provide an online play channel, and does not constitute any
+     authorization of the prohibited acts above.
+  2. Forking as permitted by the GitHub Terms of Service is limited
+     to viewing within the GitHub platform and confers none of the
+     rights prohibited by these terms.
+  3. This work is provided "AS IS", without warranty of any kind,
+     express or implied.
+  4. For permissions beyond these terms (e.g., derivative works,
+     redistribution, commercial use), please contact the copyright
+     holder via this repository's Issues page.
