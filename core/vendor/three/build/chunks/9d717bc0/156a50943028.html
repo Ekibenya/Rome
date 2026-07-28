@@ -423,6 +423,25 @@ canvas{display:block}
 .svSlot:hover{border-color:var(--gold)}
 .svSlot .n{font-size:11px;letter-spacing:.3em;color:var(--txt)}
 .svSlot .d{font-size:9px;letter-spacing:.18em;color:var(--mut)}
+/* ══ ARCHIVVM 環形存檔盤：雙層色環 · 可旋轉（CRYPTAR1S 式）══ */
+#dlgSave{background:#050505;overflow:hidden;touch-action:none}
+#svBg{position:absolute;inset:0;width:100%;height:100%}
+.svhud{position:absolute;font-size:9px;letter-spacing:.3em;color:var(--mut);z-index:3}
+.svhud i{font-style:normal;color:var(--gold)}
+#svRing{position:absolute;left:50%;top:50%;z-index:2;will-change:transform}
+.svChip{position:absolute;left:0;top:0;cursor:pointer}
+.svChip .lb{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:4px;font-size:7px;letter-spacing:.1em;color:var(--mut);white-space:nowrap}
+#svCore{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;text-align:center;pointer-events:none;width:min(52vw,340px)}
+#svCoreT{font-size:clamp(16px,3vw,25px);letter-spacing:.55em;text-indent:.55em;color:#ececec}
+#svCoreSub{margin-top:9px;font-size:8px;letter-spacing:.28em;color:var(--mut);line-height:1.9}
+#svCoreBtns{margin-top:13px;display:flex;gap:9px;justify-content:center;flex-wrap:wrap;pointer-events:auto}
+.svAct{border:1px solid rgba(236,236,232,.35);padding:7px 14px 6px;font-size:9px;letter-spacing:.26em;color:var(--txt);cursor:pointer;background:rgba(5,5,5,.7)}
+.svAct:hover{border-color:var(--gold);color:var(--gold-hi)}
+.svAct.warn{border-color:rgba(200,64,46,.5);color:#c8402e}
+#svClock{margin-top:15px;font-size:12px;letter-spacing:.4em;text-indent:.4em;color:var(--gold-hi)}
+#svFootBar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;justify-content:space-between;align-items:center;gap:10px 14px;padding:9px 16px;font-size:8px;letter-spacing:.22em;color:var(--mut);border-top:1px solid rgba(236,236,232,.12);flex-wrap:wrap}
+.svfbtn{cursor:pointer;color:var(--txt);white-space:nowrap}
+.svfbtn:hover{color:var(--gold-hi)}
 .gNav{display:none}
 @media (max-width:760px){
   #game .gTop .gBrand{display:none}
@@ -921,18 +940,21 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   </div>
 </div>
 <div class="gDlg" id="dlgSave">
-  <div class="box">
-    <span class="tag">ARCHIVVM</span>
-    <h2>存檔</h2>
-    <div class="sub">空槽點擊寫入快照&nbsp;·&nbsp;有檔點擊讀取&nbsp;·&nbsp;✕&nbsp;刪除&nbsp;·&nbsp;僅存於此瀏覽器</div>
-    <div id="svSlots"></div>
-    <div style="display:flex;gap:12px;margin-top:14px">
-      <span class="eBtn" id="svExp" style="margin-top:0">匯出</span>
-      <span class="eBtn" id="svImp" style="margin-top:0">匯入</span>
-      <input type="file" id="svFile" accept=".json" style="display:none">
-    </div>
-    <div class="esc2">ESC&nbsp;//&nbsp;RETVRN</div>
+  <canvas id="svBg"></canvas>
+  <div class="svhud" style="left:16px;top:14px">SPQR&nbsp;<i>ROMA.SYS</i></div>
+  <div class="svhud" style="right:16px;top:14px">✦&nbsp;ARCHIVVM</div>
+  <div id="svRing"></div>
+  <div id="svCore">
+    <div id="svCoreT">ARCHIVVM</div>
+    <div id="svCoreSub">拖動旋轉&nbsp;·&nbsp;點卡選槽</div>
+    <div id="svCoreBtns"></div>
+    <div id="svClock">00:00:00</div>
   </div>
+  <div id="svFootBar">
+    <span>●&nbsp;ROMA.SYS&nbsp;·&nbsp;ARCHIVVM&nbsp;·&nbsp;TABVLAE&nbsp;XXIV&nbsp;·&nbsp;僅存於此瀏覽器</span>
+    <span style="display:flex;gap:20px;align-items:center"><span class="svfbtn" id="svExp">匯出</span><span class="svfbtn" id="svImp">匯入</span><span class="svfbtn" id="svEsc">✕&nbsp;RETVRN</span></span>
+  </div>
+  <input type="file" id="svFile" accept=".json" style="display:none">
 </div>
 <div class="gDlg" id="dlgApi">
   <div class="box">
@@ -2553,11 +2575,7 @@ psEl.addEventListener('pointerup',function(e){if(e.target===psEl)psClose();});
 $('#miMiss').addEventListener('pointerup',function(e){e.stopPropagation();menuExit();});
 $('#miCont').addEventListener('pointerup',function(e){e.stopPropagation();if(GAME.op)gameShow();});
 $('#miOrac').addEventListener('pointerup',function(e){e.stopPropagation();apiOpen();});
-$('#miArch').addEventListener('pointerup',function(e){e.stopPropagation();
-  $('#lkTitle').textContent='ARCHIVVM — 存檔';
-  $('#lkBody').textContent='世界書 891 條 ／ SHELL-DIAG 協議 ／ 引擎殼待接入';
-  $('#link').style.display='flex';linked=true;
-});
+$('#miArch').addEventListener('pointerup',function(e){e.stopPropagation();svOpen();});
 
 /* ================= game stage: Ghost layout in ROME dress ================ */
 var BUILD=63;
@@ -4433,14 +4451,14 @@ document.querySelector('#game .gMfd').addEventListener('click',function(e){
 function gDlgShow(id){$(id).style.display='flex';}
 $('#gtCfg').addEventListener('click',function(){applyCfg();gDlgShow('#dlgCfg');});
 $('#gtBook').addEventListener('click',function(){bookRender();gDlgShow('#dlgBook');});
-$('#gtSave').addEventListener('click',function(){svRender();gDlgShow('#dlgSave');});
+$('#gtSave').addEventListener('click',function(){svOpen();});
 $('#gtExit').addEventListener('click',function(){gDlgShow('#dlgExit');});
 $('#gtApi').addEventListener('click',function(){apiOpen();});
 $('#gtVoc').addEventListener('click',function(){gDlgShow('#dlgVoc');});
 $('#exYes').addEventListener('click',function(){$('#dlgExit').style.display='none';gameExit();});
 $('#exNo').addEventListener('click',function(){$('#dlgExit').style.display='none';});
 (function(){
-  var ds=['#dlgCfg','#dlgBook','#dlgSave','#dlgExit','#dlgApi','#dlgVoc','#dlgBgm'];
+  var ds=['#dlgCfg','#dlgBook','#dlgExit','#dlgApi','#dlgVoc','#dlgBgm']; /* dlgSave 環盤自帶 RETVRN/ESC：pointer capture 令 up.target 恒為 dlg，不能用點自身關閉 */
   for(var i=0;i<ds.length;i++)(function(sel){
     var el2=$(sel);
     el2.addEventListener('pointerup',function(e){if(e.target===el2)el2.style.display='none';});
@@ -5688,27 +5706,127 @@ function svLoad(v){
   $('#dlgSave').style.display='none';
   if(!GAME.on)gameShow();
 }
+/* ── ARCHIVVM 環形存檔盤：24 槽雙層色環（外環彩虹色卡＝檔位，內環灰卡＝標籤），拖動/滾輪旋轉＋慣性＋閒時自轉 ── */
+var SVN=24,SVSEL=0,SVR={rot:0,vel:0,drag:null,raf:0};
+var SV_ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII','XXIII','XXIV'];
+function svBgDraw(){
+  var cv=$('#svBg');if(!cv)return;
+  var W=cv.width=Math.round(innerWidth*DPR),H=cv.height=Math.round(innerHeight*DPR),g=cv.getContext('2d');
+  var cx=W/2,cy=H/2;g.clearRect(0,0,W,H);
+  g.lineWidth=1;g.strokeStyle='rgba(236,236,232,.05)';
+  for(var i=0;i<72;i++){var a=i/72*Math.PI*2,r0=(.05+Math.random()*.1)*H,r1=(.5+Math.random()*.5)*H;
+    g.beginPath();g.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0);g.lineTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);g.stroke();}
+  g.strokeStyle='rgba(236,236,232,.08)';
+  for(var c=0;c<26;c++){var x=Math.random()*W,y=Math.random()*H,ss=(3+Math.random()*4)*DPR;
+    g.beginPath();g.moveTo(x-ss,y);g.lineTo(x+ss,y);g.moveTo(x,y-ss);g.lineTo(x,y+ss);g.stroke();}
+}
+function svGeom(){
+  var m=Math.min(innerWidth,innerHeight);
+  return {R1:m*.365,R2:m*.27,w1:Math.max(13,m*.043),h1:Math.max(20,m*.072),w2:Math.max(30,m*.078),h2:Math.max(13,m*.036)};
+}
 function svRender(){
-  var host=$('#svSlots');host.innerHTML='';
-  for(var i=1;i<=3;i++)(function(n){
-    var v=svGet(n);
-    var d=document.createElement('div');d.className='svSlot';
-    d.innerHTML='<span class="n">TABVLA&nbsp;'+['I','II','III'][n-1]+'</span>'
-      +'<span class="d">'+(v?esc2(v.t)+'&nbsp;·&nbsp;'+esc2(v.when):'— 空 · 點擊寫入 —')+'</span>'
-      +(v?'<span class="d" data-del="'+n+'" style="cursor:pointer;color:#c8402e">✕</span>':'');
-    d.addEventListener('click',function(e){
-      if(e.target.getAttribute&&e.target.getAttribute('data-del')){
-        svPut(n,null);svRender();return;
-      }
-      var cur=svGet(n);
-      if(cur)svLoad(cur);
-      else{svPut(n,svSnap());svRender();}
-    });
-    host.appendChild(d);
+  var ring=$('#svRing');if(!ring)return;
+  ring.innerHTML='';
+  var G=svGeom();
+  for(var i=0;i<SVN;i++)(function(n){
+    var v=svGet(n+1),a=n/SVN*360,hue=Math.round(n/SVN*360),sel=SVSEL===n+1;
+    var d=document.createElement('div');d.className='svChip';d.setAttribute('data-n',n+1);
+    d.style.cssText='width:'+G.w1.toFixed(1)+'px;height:'+G.h1.toFixed(1)+'px;margin:'+(-G.h1/2).toFixed(1)+'px 0 0 '+(-G.w1/2).toFixed(1)+'px;'
+      +'transform:rotate('+a+'deg) translateY('+(-G.R1).toFixed(1)+'px);'
+      +'background:'+(v?('hsl('+hue+',88%,58%)'):('hsl('+hue+',48%,27%)'))+';'
+      +(v?('box-shadow:0 0 12px hsla('+hue+',90%,55%,.4);'):'')
+      +'border:1px solid '+(sel?'#fff':'rgba(236,236,232,'+(v?'.55':'.16')+')');
+    var lb=document.createElement('span');lb.className='lb';lb.textContent='#'+SV_ROMAN[n];
+    d.appendChild(lb);ring.appendChild(d);
+    var d2=document.createElement('div');d2.className='svChip';d2.setAttribute('data-n',n+1);
+    d2.style.cssText='width:'+G.w2.toFixed(1)+'px;height:'+G.h2.toFixed(1)+'px;margin:'+(-G.h2/2).toFixed(1)+'px 0 0 '+(-G.w2/2).toFixed(1)+'px;'
+      +'transform:rotate('+a+'deg) translateY('+(-G.R2).toFixed(1)+'px);'
+      +'background:rgba(10,10,10,.92);display:flex;align-items:center;justify-content:center;overflow:hidden;'
+      +'font-size:7px;letter-spacing:.05em;white-space:nowrap;color:'+(v?'var(--txt)':'var(--mut)')+';'
+      +'border:1px solid '+(sel?'#fff':'rgba(236,236,232,'+(v?'.4':'.14')+')');
+    d2.textContent=v?String(v.t||'').replace(/\s+/g,' ').slice(0,10):'VACVVM';
+    ring.appendChild(d2);
   })(i);
 }
+function svCoreUpd(){
+  var tt=$('#svCoreT'),sb=$('#svCoreSub'),bt=$('#svCoreBtns');
+  if(!SVSEL){tt.textContent='ARCHIVVM';sb.innerHTML='拖動旋轉&nbsp;·&nbsp;點卡選槽';bt.innerHTML='';return;}
+  var v=svGet(SVSEL);
+  tt.textContent='TABVLA·'+SV_ROMAN[SVSEL-1];
+  sb.textContent=v?((v.t||'')+' · '+(v.when||'')):'VACVVM · 空槽';
+  var h='';
+  if(v)h+='<span class="svAct" data-sv="load">LEGERE·讀取</span>';
+  if(GAME.on)h+='<span class="svAct" data-sv="save">'+(v?'SCRIBERE·覆寫':'SCRIBERE·寫入')+'</span>';
+  if(v)h+='<span class="svAct warn" data-sv="del">DELERE·刪除</span>';
+  if(!h)h='<span style="font-size:8px;letter-spacing:.24em;color:var(--mut)">空槽 · 入局後方可寫入</span>';
+  bt.innerHTML=h;
+}
+function svTick(){
+  var dlg=$('#dlgSave');
+  if(!dlg||dlg.style.display!=='flex'){SVR.raf=0;return;}
+  if(!SVR.drag){
+    if(Math.abs(SVR.vel)>.004){SVR.rot+=SVR.vel;SVR.vel*=.95;}
+    else SVR.rot+=.02;
+  }
+  $('#svRing').style.transform='rotate('+SVR.rot.toFixed(3)+'deg)';
+  var t=new Date();
+  $('#svClock').textContent=[t.getHours(),t.getMinutes(),t.getSeconds()].map(function(x){return (x<10?'0':'')+x;}).join(':');
+  SVR.raf=requestAnimationFrame(svTick);
+}
+function svOpen(){
+  svBgDraw();SVSEL=0;svCoreUpd();svRender();
+  gDlgShow('#dlgSave');
+  if(!SVR.raf)SVR.raf=requestAnimationFrame(svTick);
+}
+(function(){
+  var dlg=$('#dlgSave');
+  function ang(e){return Math.atan2(e.clientY-innerHeight/2,e.clientX-innerWidth/2)*180/Math.PI;}
+  dlg.addEventListener('pointerdown',function(e){
+    if(e.target.closest&&e.target.closest('.svAct,.svfbtn,#svFootBar'))return;
+    SVR.drag={moved:0,la:ang(e),lt:performance.now(),tgt:e.target};
+    try{dlg.setPointerCapture(e.pointerId);}catch(_){}
+    e.preventDefault();
+  });
+  dlg.addEventListener('pointermove',function(e){
+    if(!SVR.drag)return;
+    var a=ang(e),d=a-SVR.drag.la;d=((d+540)%360)-180;
+    SVR.rot+=d;SVR.drag.moved+=Math.abs(d);
+    var now=performance.now(),dt=Math.max(1,now-SVR.drag.lt);
+    SVR.vel=d/dt*16;SVR.drag.la=a;SVR.drag.lt=now;
+    $('#svRing').style.transform='rotate('+SVR.rot.toFixed(3)+'deg)';
+  });
+  function up(e){
+    if(!SVR.drag)return;
+    var mv=SVR.drag.moved;SVR._t=SVR.drag.tgt;SVR.drag=null;
+    if(mv<2.5){
+      /* setPointerCapture 後 up 的 target 恒為 dlg：用按下時記錄的目標判定點選 */
+      var t0=SVR._t||e.target;
+      var ch=t0&&t0.closest?t0.closest('.svChip'):null;
+      if(ch){SVSEL=parseInt(ch.getAttribute('data-n'),10);svRender();svCoreUpd();}
+    }
+  }
+  dlg.addEventListener('pointerup',up);
+  dlg.addEventListener('pointercancel',function(){SVR.drag=null;});
+  dlg.addEventListener('wheel',function(e){e.preventDefault();SVR.vel+=e.deltaY*.02;},{passive:false});
+  $('#svEsc').addEventListener('click',function(){dlg.style.display='none';});
+  addEventListener('keydown',function(e){if(e.key==='Escape'&&dlg.style.display==='flex')dlg.style.display='none';},true); /* 選單態也可 ESC 關盤 */
+  $('#svCoreBtns').addEventListener('click',function(e){
+    var b=e.target.closest?e.target.closest('.svAct'):null;if(!b||!SVSEL)return;
+    var act=b.getAttribute('data-sv'),v=svGet(SVSEL);
+    if(act==='load'&&v)svLoad(v);
+    else if(act==='save'){
+      if(!GAME.on)return;
+      if(v&&!confirm('TABVLA·'+SV_ROMAN[SVSEL-1]+' 已有存檔，覆寫？'))return;
+      svPut(SVSEL,svSnap());svRender();svCoreUpd();
+    }else if(act==='del'&&v){
+      if(!confirm('刪除 TABVLA·'+SV_ROMAN[SVSEL-1]+'？'))return;
+      svPut(SVSEL,null);svRender();svCoreUpd();
+    }
+  });
+  addEventListener('resize',function(){if(dlg.style.display==='flex'){svBgDraw();svRender();}});
+})();
 $('#svExp').addEventListener('click',function(){
-  var all={};for(var i=1;i<=3;i++)all['slot'+i]=svGet(i);
+  var all={};for(var i=1;i<=SVN;i++)all['slot'+i]=svGet(i);
   var b=new Blob([JSON.stringify(all,null,1)],{type:'application/json'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);
   a.download='roma_archivvm.json';a.click();
@@ -5720,7 +5838,7 @@ $('#svFile').addEventListener('change',function(){
   rd.onload=function(){
     try{
       var all=JSON.parse(rd.result);
-      for(var i=1;i<=3;i++)if(all['slot'+i])svPut(i,all['slot'+i]);
+      for(var i=1;i<=SVN;i++)if(all['slot'+i])svPut(i,all['slot'+i]);
       svRender();
     }catch(_){}
   };
