@@ -99,7 +99,7 @@
     var texLoader = new T.TextureLoader();
     var done = 0, total = MANI.length + TEXES.length + 1;
     function tick() { done++; Z.prog = done / total; updateHud(); }
-    fetch('core/res/data/idx/v1/cdcf9bb63a.dat?v=46').then(function (r) {
+    fetch('core/res/data/idx/v1/cdcf9bb63a.dat?v=47').then(function (r) {
       if (!r.ok) throw new Error('pack http ' + r.status);
       return r.arrayBuffer();
     }).then(function (ab) {
@@ -5314,14 +5314,17 @@
     pl.position.z = s.sz + (s.gz - s.sz) * dash;
     pl.rotation.y = s.yaw;
     var R = pl.userData.rig;
-    if (R && R.armR) R.armR.rotation.x = k < 0.4 ? (-1.9 * (k / 0.4)) : (-1.9 + 3.1 * ((k - 0.4) / 0.6));
-    if (R && R.torso) R.torso.rotation.z = k < 0.4 ? 0 : Math.sin((k - 0.4) * 5.2) * 0.1;
+    /* 摆角限于肩盖可遮范围内，力度感由全身前倾补足（大角度会撕开肩缝） */
+    if (R && R.armR) R.armR.rotation.x = k < 0.4 ? (-0.85 * (k / 0.4)) : (-0.85 + 1.35 * ((k - 0.4) / 0.6));
+    if (R && R.torso) R.torso.rotation.z = k < 0.4 ? 0 : Math.sin((k - 0.4) * 5.2) * 0.08;
+    pl.rotation.x = Math.sin(k * Math.PI) * 0.12;
     var tg = s.tgt;
     if (k > 0.6 && tg && tg.root.parent) tg.root.rotation.z = Math.sin((k - 0.6) * 16) * 0.14 * (1 - k);
     if (k >= 1) {
       if (tg && tg.root.parent) tg.root.rotation.z = 0;
       if (R && R.armR) R.armR.rotation.x = 0;
       if (R && R.torso) R.torso.rotation.z = 0;
+      pl.rotation.x = 0;
       Z.strike = null;
     }
   }
