@@ -790,11 +790,18 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="sRow"><span>尺寸&nbsp;寬×高</span><span style="display:flex;gap:8px"><input class="aIn" id="imgW" style="width:70px"><input class="aIn" id="imgH" style="width:70px"></span></div>
       <div class="sRow"><span>種子&nbsp;seed（-1&nbsp;或留空＝隨機）</span><input class="aIn" id="imgSeed" style="width:100px"></div>
       <div class="sub" style="margin-top:12px">生圖世界書&nbsp;——&nbsp;觸發詞命中本幕正文時，把英文片段追加進畫面提示詞（留空觸發詞＝常駐）</div>
+      <div class="sub">可直接導入：本欄自己的導出檔、ST&nbsp;世界書&nbsp;JSON（取&nbsp;keys／content），或一行一條的純文本（「觸發詞：英文片段」，無冒號則視為常駐）。重複條目自動跳過。</div>
       <div id="iloreList" style="margin-top:6px;max-height:110px;overflow-y:auto"></div>
       <div style="display:flex;gap:8px;margin-top:6px">
         <input class="aIn" id="ilKeys" placeholder="觸發詞（頓號分隔，留空=常駐）" style="width:180px">
         <input class="aIn" id="ilFrag" placeholder="英文片段 如 wearing crimson royal robe" style="flex:1">
         <span class="gt" id="ilAdd">添加</span>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;align-items:center">
+        <span class="eBtn" id="ilImp" style="margin-top:0">導入</span>
+        <span class="eBtn" id="ilExp" style="margin-top:0">導出</span>
+        <input type="file" id="ilFile" accept=".json,.txt" style="display:none">
+        <span class="sub" id="ilMsg"></span>
       </div>
       <div style="display:flex;gap:12px;margin-top:14px"><span class="eBtn" id="imgDraw" style="margin-top:0">PINGERE&nbsp;繪此幕</span><span class="sub" id="imgMsg"></span></div>
     </div>
@@ -3756,10 +3763,68 @@ function iloreRender(){
     host.appendChild(d);
   });
 }
+function iloreArr(){return SET.img.ilore||(SET.img.ilore=[]);}  /* 老配置的 img 裡沒這個鍵，取用前補上 */
 $('#ilAdd').addEventListener('click',function(){
   var f=$('#ilFrag').value.trim();if(!f)return;
-  SET.img.ilore.push({k:$('#ilKeys').value.trim(),f:f,on:true});
+  iloreArr().push({k:$('#ilKeys').value.trim(),f:f,on:true});
   $('#ilKeys').value='';$('#ilFrag').value='';setStore();iloreRender();
+});
+/* 導入：吃三種東西——本欄自己的導出檔、ST 世界書、一行一條的純文本 */
+function iloreParse(txt){
+  var out=[];
+  function push(k,f,on){
+    f=String(f==null?'':f).trim();if(!f)return;
+    if(Array.isArray(k))k=k.join('、');
+    out.push({k:String(k==null?'':k).trim(),f:f,on:on!==false});
+  }
+  var j=null;try{j=JSON.parse(txt);}catch(_){}
+  if(j&&typeof j==='object'){
+    var list=Array.isArray(j)?j:(j.ilore||j.entries||j.lorebook||j.data||null);
+    if(list&&!Array.isArray(list))list=Object.keys(list).map(function(k){return list[k];});
+    if(list){
+      list.forEach(function(e){
+        if(typeof e==='string'){push('',e,true);return;}
+        if(!e||typeof e!=='object')return;
+        push(e.k!=null?e.k:(e.keys||e.key||e.keywords||''),
+             e.f!=null?e.f:(e.content||e.frag||e.prompt||e.value||''),
+             e.on!==false&&e.enabled!==false&&!e.disable);
+      });
+    }else Object.keys(j).forEach(function(k){if(typeof j[k]==='string')push(k,j[k],true);});
+  }else{
+    txt.split(/\r?\n/).forEach(function(ln){
+      ln=ln.trim();if(!ln||ln.charAt(0)==='#')return;
+      /* 「觸發詞：片段」——但英文片段裡的冒號（如網址、權重寫法）不能誤切，
+         所以只認短且不含逗號的左半邊當觸發詞，其餘整行都是片段 */
+      var m=ln.match(/^(.+?)\s*[:：]\s*(.+)$/);
+      if(m&&m[1].length<=40&&m[1].indexOf(',')<0&&m[1].indexOf('，')<0&&m[2].indexOf('//')!==0)push(m[1],m[2],true);
+      else push('',ln,true);
+    });
+  }
+  return out;
+}
+$('#ilImp').addEventListener('click',function(){$('#ilFile').click();});
+$('#ilFile').addEventListener('change',function(){
+  var f=this.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var got=iloreParse(String(rd.result||''));
+    if(!got.length){$('#ilMsg').textContent='沒讀到可用條目';return;}
+    var arr=iloreArr(),seen={},add=0;
+    arr.forEach(function(e){seen[(e.k||'')+' '+e.f]=1;});
+    got.forEach(function(e){
+      var kk=(e.k||'')+' '+e.f;
+      if(seen[kk])return;seen[kk]=1;arr.push(e);add++;
+    });
+    setStore();iloreRender();
+    $('#ilMsg').textContent='匯入 '+add+' 條'+(got.length>add?('（跳過 '+(got.length-add)+' 條重複）'):'');
+  };
+  rd.readAsText(f);this.value='';
+});
+$('#ilExp').addEventListener('click',function(){
+  var b=new Blob([JSON.stringify(iloreArr(),null,1)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='roma_img_lore.json';a.click();
+  $('#ilMsg').textContent='已導出 '+iloreArr().length+' 條';
 });
 /* zip 解壓（NAI 返回 zip；store 直取，deflate 走 DecompressionStream） */
 function unzipFirstPNG(buf,cb,err){
