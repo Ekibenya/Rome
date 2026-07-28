@@ -982,7 +982,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   <div id="svClock">00:00:00</div>
   <div id="svRedX" title="RETVRN">✕</div>
   <div id="svFootBar">
-    <span>●&nbsp;ROMA.SYS&nbsp;·&nbsp;DIRECTORIVM&nbsp;·&nbsp;TABVLAE&nbsp;XXXII&nbsp;·&nbsp;移動滑鼠／傾斜手機以巡覽</span>
+    <span>●&nbsp;ROMA.SYS&nbsp;·&nbsp;DIRECTORIVM&nbsp;·&nbsp;TABVLAE&nbsp;XXXII&nbsp;·&nbsp;移動滑鼠／觸控拖曳以巡覽&nbsp;·&nbsp;靜置自動巡游</span>
     <span style="display:flex;gap:20px;align-items:center"><span class="svfbtn" id="svExp">匯出</span><span class="svfbtn" id="svImp">匯入</span><span class="svfbtn" id="svEsc">✕&nbsp;RETVRN</span></span>
   </div>
   <input type="file" id="svFile" accept=".json" style="display:none">
@@ -1219,14 +1219,17 @@ function fbm(x,y){var v=0,a=.55,f=1;for(var o=0;o<3;o++){v+=a*noise(x*f,y*f);f*=
 function ridge(x,y){var n=fbm(x,y);return 1-Math.abs(2*n-1);}
 var COLS=84,ROWS=42,XSPAN=1900,Z0=130,Z1=3000;
 var mouseX=0,mouseY=0,parX=0;
-/* device tilt (phones): gamma=left/right, beta=front/back */
-var gyroX=0,gyroY=0,hasGyro=false;
-addEventListener('deviceorientation',function(e){
-  if(e.gamma==null||e.beta==null)return;
-  gyroX=Math.max(-1,Math.min(1,e.gamma/28));
-  gyroY=Math.max(-1,Math.min(1,(e.beta-45)/28));
-  hasGyro=true;
-});
+/* 視差來源：指標／觸控拖曳；靜置 2.4s 後自動巡游。
+   陀螺儀已棄用——iOS 需授權常年不觸發，安卓各機持握基準角不同會偏移跳動，穩定性不足。 */
+var lastPtr=0;
+function parTarget(){
+  var now=performance.now();
+  if(now-lastPtr>2400){
+    var d=now/1000;
+    return [Math.sin(d*.152)*.55+Math.sin(d*.071)*.24, Math.cos(d*.118)*.42+Math.sin(d*.059)*.18];
+  }
+  return [mouseX,mouseY];
+}
 function terrainDraw(t){
   var W=tc.width,H=tc.height;
   tg.clearRect(0,0,W,H);
@@ -1533,6 +1536,7 @@ function onMove(e){
   if(e.isPrimary!==false){
     mouseX=(e.clientX/innerWidth-.5)*2;
     mouseY=(e.clientY/innerHeight-.5)*2;
+    lastPtr=performance.now();
   }
   if(!drag||e.pointerId!==drag.id)return;
   var dx=e.clientX-drag.x;
@@ -1972,7 +1976,7 @@ var miEl=$('#menu .mItems'),mfEl=$('#menu .mFoot');
 var PX=0,PY=0;
 function eraDraw(){
   var now=performance.now(),mt=now-ERA.t0;
-  var tx=hasGyro?gyroX:mouseX,ty=hasGyro?gyroY:mouseY;
+  var _pt=parTarget(),tx=_pt[0],ty=_pt[1];
   PX+=(tx-PX)*(REDUCED?1:.06);PY+=(ty-PY)*(REDUCED?1:.06);
   if(REDUCED){PX=0;PY=0;}
   /* free-spin globe, centred — the era stage is ABOUT the map */
@@ -2157,8 +2161,8 @@ function gbgDraw(){
 function menuDraw(){
   if(ERA.on){eraDraw();return;}
   var now=performance.now(),mt=now-MENU.t0;
-  /* full-scene parallax: pointer on desktop, device tilt on phones */
-  var tx=hasGyro?gyroX:mouseX,ty=hasGyro?gyroY:mouseY;
+  /* full-scene parallax: 指標／拖曳，靜置自動巡游（不用陀螺儀） */
+  var _pt=parTarget(),tx=_pt[0],ty=_pt[1];
   PX+=(tx-PX)*(REDUCED?1:.06);PY+=(ty-PY)*(REDUCED?1:.06);
   if(REDUCED){PX=0;PY=0;}
   /* globe: oversized bleed layout — sphere bigger than the frame, centre pushed
@@ -6004,6 +6008,12 @@ function svCoreUpd(){
 function svTick(){
   var dlg=$('#dlgSave');
   if(!dlg||dlg.style.display!=='flex'){SVP.raf=0;return;}
+  var now=performance.now();
+  if(now-(SVP.lastIn||0)>2400){          /* 靜置即自動巡游：手機無需陀螺儀也始終在動 */
+    var dt=now/1000;
+    SVP.tx=Math.sin(dt*.152)*.60+Math.sin(dt*.071)*.26;
+    SVP.ty=Math.cos(dt*.118)*.46+Math.sin(dt*.059)*.20;
+  }
   SVP.px+=(SVP.tx-SVP.px)*.075;SVP.py+=(SVP.ty-SVP.py)*.075;
   for(var i=0;i<SVP.cards.length;i++){
     var c=SVP.cards[i];
@@ -6019,21 +6029,8 @@ function svTick(){
 function svOpen(){
   svBgDraw();SVSEL=0;svCoreUpd();svRender();
   gDlgShow('#dlgSave');
+  SVP.lastIn=performance.now();
   if(!SVP.raf)SVP.raf=requestAnimationFrame(svTick);
-  try{ /* 手機：陀螺儀視差（iOS 需授權，失敗則退回觸控拖曳） */
-    if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission&&!SVP._askedTilt){
-      SVP._askedTilt=1;DeviceOrientationEvent.requestPermission().then(function(r){if(r==='granted')svTiltOn();},function(){});
-    }else if(window.DeviceOrientationEvent)svTiltOn();
-  }catch(e){}
-}
-function svTiltOn(){
-  if(SVP._tilt)return;SVP._tilt=1;
-  addEventListener('deviceorientation',function(e){
-    if($('#dlgSave').style.display!=='flex')return;
-    if(e.gamma==null||e.beta==null)return;
-    SVP.tx=Math.max(-1,Math.min(1,e.gamma/28));
-    SVP.ty=Math.max(-1,Math.min(1,(e.beta-42)/28));
-  });
 }
 (function(){
   var dlg=$('#dlgSave');
@@ -6041,13 +6038,15 @@ function svTiltOn(){
     if(SVP.drag){
       var dx=(e.clientX-SVP.drag.x)/innerWidth*2.4,dy=(e.clientY-SVP.drag.y)/innerHeight*2.4;
       SVP.tx=Math.max(-1.6,Math.min(1.6,SVP.drag.tx+dx));SVP.ty=Math.max(-1.6,Math.min(1.6,SVP.drag.ty+dy));
-      SVP.drag.moved+=Math.abs(dx)+Math.abs(dy);return;
+      SVP.drag.moved+=Math.abs(dx)+Math.abs(dy);SVP.lastIn=performance.now();return;
     }
+    if(e.pointerType==='touch')return;                                   /* 觸控只認拖曳，避免點按瞬移 */
+    SVP.lastIn=performance.now();
     SVP.tx=(e.clientX/innerWidth-.5)*2;SVP.ty=(e.clientY/innerHeight-.5)*2;  /* 滑鼠視差 */
   });
   dlg.addEventListener('pointerdown',function(e){
     if(e.target.closest&&e.target.closest('.svAct,.svfbtn,#svFootBar,#svRedX'))return;
-    SVP.drag={x:e.clientX,y:e.clientY,tx:SVP.tx,ty:SVP.ty,moved:0,t:e.target};
+    SVP.drag={x:e.clientX,y:e.clientY,tx:SVP.tx,ty:SVP.ty,moved:0,t:e.target};SVP.lastIn=performance.now();
     try{dlg.setPointerCapture(e.pointerId);}catch(_){}
   });
   function up(){
@@ -6058,7 +6057,7 @@ function svTiltOn(){
       if(f){SVSEL=parseInt(f.getAttribute('data-n'),10);svRender();svCoreUpd();}
     }
   }
-  dlg.addEventListener('pointerup',up);
+  dlg.addEventListener('pointerup',function(e){SVP.lastIn=performance.now();up(e);});
   dlg.addEventListener('pointercancel',function(){SVP.drag=null;});
   $('#svEsc').addEventListener('click',function(){dlg.style.display='none';});
   $('#svRedX').addEventListener('click',function(e){e.stopPropagation();dlg.style.display='none';});
