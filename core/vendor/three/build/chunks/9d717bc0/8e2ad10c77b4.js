@@ -1615,6 +1615,27 @@
 
   /* ---------------- 活海：低多边形水面 + 波动 + 航船 ---------------- */
   var SEA = null, SHIPS = [];
+  /* 水域登记：海半空间 / 河带 / 河样条折线 —— 供无限地形避水 */
+  var AQUA = [];
+  function inWater(x, z) {
+    for (var i = 0; i < AQUA.length; i++) {
+      var a = AQUA[i];
+      if (a.kind === 'half') {
+        if (((a.ax === 'x' ? x : z) - a.edge) * a.sgn > 0) return true;
+      } else if (a.kind === 'strip') {
+        if (Math.abs((a.ax === 'x' ? x : z) - a.c) < a.hw) return true;
+      } else if (a.kind === 'poly') {
+        for (var j = 0; j < a.pts.length - 1; j++) {
+          var ax = a.pts[j][0], az = a.pts[j][1], bx = a.pts[j + 1][0], bz = a.pts[j + 1][1];
+          var dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz;
+          var t = L2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)) : 0;
+          var qx = ax + dx * t - x, qz = az + dz * t - z;
+          if (qx * qx + qz * qz < a.hw * a.hw) return true;
+        }
+      }
+    }
+    return false;
+  }
   function seaField(cx, cz, w, d, color) {
     var lod = PERF.low ? 0.6 : 1;
     var sx = Math.max(12, Math.round(w / 7 * lod)), sz = Math.max(12, Math.round(d / 7 * lod));
@@ -1630,6 +1651,33 @@
       new T.MeshLambertMaterial({ color: 0x14506e }));
     deep.rotation.x = -Math.PI / 2; deep.position.set(cx, -1.1, cz); Z.scene.add(deep);
     SEA = { m: m, geo: geo, t: 0 };
+    /* —— 无限接天：海(宽片)铺半空间裙板，河带(窄条)沿长轴续到雾外 —— */
+    var W2 = Math.min(w, d), skirtMat = new T.MeshLambertMaterial({ color: new T.Color(color || 0x2e86ad).multiplyScalar(0.68) });
+    if (W2 >= 80) {
+      var ax = d <= w ? 'z' : 'x';                       /* 短轴=离岸方向 */
+      var cc = ax === 'z' ? cz : cx;
+      var sgn = cc >= 0 ? 1 : -1;
+      var edge = cc - sgn * W2 * 0.48;
+      var sk = new T.Mesh(new T.PlaneGeometry(ax === 'z' ? 5200 : 2400, ax === 'z' ? 2400 : 5200), skirtMat);
+      sk.rotation.x = -Math.PI / 2;
+      sk.position.set(ax === 'z' ? cx : edge + sgn * 1200, 0.03, ax === 'z' ? edge + sgn * 1200 : cz);
+      Z.scene.add(sk);
+      AQUA.push({ kind: 'half', ax: ax, sgn: sgn, edge: edge });
+    } else {
+      var ax2 = w < d ? 'x' : 'z';                       /* 短轴=河宽方向 */
+      var cc2 = ax2 === 'x' ? cx : cz;
+      var sk2 = new T.Mesh(new T.PlaneGeometry(ax2 === 'x' ? W2 : 5200, ax2 === 'x' ? 5200 : W2), skirtMat);
+      sk2.rotation.x = -Math.PI / 2;
+      sk2.position.set(ax2 === 'x' ? cx : 0, 0.03, ax2 === 'x' ? 0 : cz);
+      Z.scene.add(sk2);
+      AQUA.push({ kind: 'strip', ax: ax2, c: cc2, hw: W2 * 0.46 });
+      var Lh = Math.max(w, d) / 2;
+      for (var ci = 0; ci < 2; ci++) for (var dd = Lh + 30; dd < 900; dd += 60) {
+        var sgn2 = ci ? -1 : 1;
+        if (ax2 === 'x') Z.colliders.push({ x: cx, z: cz + sgn2 * dd, hw: W2 * 0.5, hd: 30, ry: 0, cx: 0, cz: 0 });
+        else Z.colliders.push({ x: cx + sgn2 * dd, z: cz, hw: 30, hd: W2 * 0.5, ry: 0, cx: 0, cz: 0 });
+      }
+    }
     return m;
   }
   function seaY(x, z) {
@@ -2598,9 +2646,30 @@
   }
   function riverSpline(ptsXZ, width, opts) {
     opts = opts || {};
+    /* 两端顺势蜿蜒续出雾外，河不再戛然而止 */
+    if (opts.extend !== false) {
+      var ext = ptsXZ.slice(), K = 7, step = 150;
+      var h0 = hash('rvx' + ptsXZ.length + width);
+      var stretch = function (pA, pB, push) {
+        var ang = Math.atan2(pA[0] - pB[0], pA[1] - pB[1]);
+        var px = pA[0], pz = pA[1];
+        for (var i2 = 1; i2 <= K; i2++) {
+          ang += Math.sin(i2 * 0.9 + h0 % 7) * 0.24;
+          px += Math.sin(ang) * step; pz += Math.cos(ang) * step;
+          push([px, pz]);
+        }
+      };
+      var head = []; stretch(ptsXZ[0], ptsXZ[1], function (p) { head.unshift(p); });
+      var tail = []; stretch(ptsXZ[ptsXZ.length - 1], ptsXZ[ptsXZ.length - 2], function (p) { tail.push(p); });
+      var plen = function (arr) { var L = 0; for (var q = 1; q < arr.length; q++) L += Math.hypot(arr[q][0] - arr[q - 1][0], arr[q][1] - arr[q - 1][1]); return L; };
+      var hl = plen(head.concat([ptsXZ[0]])), ol = plen(ptsXZ), tl = plen([ptsXZ[ptsXZ.length - 1]].concat(tail));
+      opts._t0 = hl / (hl + ol + tl); opts._t1 = (hl + ol) / (hl + ol + tl);
+      ptsXZ = head.concat(ext, tail);
+      AQUA.push({ kind: 'poly', pts: ptsXZ, hw: width * 0.75 });
+    }
     var pts = ptsXZ.map(function (q) { return new T.Vector3(q[0], 0, q[1]); });
     var curve = new T.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
-    var N = PERF.low ? 64 : 120;
+    var N = PERF.low ? 120 : 220;
     /* 沙岸（最宽 · 最贴地） */
     var bank = new T.Mesh(ribbonGeo(curve, width * 1.5, N), nmat(opts.sand || 0xd3c396));
     bank.position.y = 0.04; Z.scene.add(bank);
@@ -2611,21 +2680,29 @@
     var wgeo = ribbonGeo(curve, width, N);
     var wat = new T.Mesh(wgeo, new T.MeshLambertMaterial({ color: opts.color || 0x3b86a6, flatShading: true, transparent: true, opacity: 0.93 }));
     wat.position.y = 0.34; Z.scene.add(wat);
-    RIVER = { curve: curve, geo: wgeo, mesh: wat, t: 0, width: width, amp: opts.amp || 0.16 };
-    /* 走不进河：沿样条布圆形碰撞 */
-    for (var i = 0; i <= 24; i++) {
-      var p = curve.getPointAt(i / 24);
+    RIVER = { curve: curve, geo: wgeo, mesh: wat, t: 0, width: width, amp: opts.amp || 0.16, t0: opts._t0 || 0, t1: opts._t1 != null ? opts._t1 : 1 };
+    /* 走不进河：全河稀布 + 城中原段加密 */
+    for (var i = 0; i <= 88; i++) {
+      var p = curve.getPointAt(i / 88);
       Z.colliders.push({ x: p.x, z: p.z, hw: width * 0.52, hd: width * 0.52, ry: 0, cx: 0, cz: 0 });
+    }
+    for (var i2 = 0; i2 <= 40; i2++) {
+      var tt = RIVER.t0 + (RIVER.t1 - RIVER.t0) * i2 / 40;
+      var p2 = curve.getPointAt(tt);
+      Z.colliders.push({ x: p2.x, z: p2.z, hw: width * 0.52, hd: width * 0.52, ry: 0, cx: 0, cz: 0 });
     }
     return curve;
   }
+  function rvT(t2) { return RIVER.t0 + (RIVER.t1 - RIVER.t0) * t2; }
   function riverBridge(t2, opts) {
     if (!RIVER) return;
+    t2 = rvT(t2);
     var p = RIVER.curve.getPointAt(t2), tan = RIVER.curve.getTangentAt(t2);
     mput('bridge', p.x, p.z, Math.atan2(tan.x, tan.z) + Math.PI / 2, Object.assign({ s: 0.9, solid: false, autodoor: false }, opts || {}));
   }
   function riverIsland(t2, rx, rz, seed) {
     if (!RIVER) return null;
+    t2 = rvT(t2);
     var p = RIVER.curve.getPointAt(t2);
     var isl = new T.Mesh(new T.CylinderGeometry(1, 1.15, 1.5, 14), nmat(0xc9bd92));
     isl.scale.set(rx, 1, rz); isl.position.set(p.x, 0.62, p.z); Z.scene.add(isl);
@@ -2636,7 +2713,7 @@
     if (!RIVER) return;
     var g = mput(key, 0, 0, 0, Object.assign({ solid: false, autodoor: false, shadow: false }, o || {}));
     if (!g) return;
-    (RIVER.ships = RIVER.ships || []).push({ g: g, t: t0 || 0, sp: (sp || 0.012) * (dir === -1 ? -1 : 1), ph: (RIVER.ships ? RIVER.ships.length : 0) * 1.9 });
+    (RIVER.ships = RIVER.ships || []).push({ g: g, t: rvT(t0 || 0), sp: (sp || 0.012) * (RIVER.t1 - RIVER.t0) * (dir === -1 ? -1 : 1), ph: (RIVER.ships ? RIVER.ships.length : 0) * 1.9 });
   }
   function riverTick(dt) {
     if (!RIVER) return;
@@ -2925,7 +3002,7 @@
     '塔克西拉': ['orient', 'graecia'], '华氏城': ['orient', 'gallia']
   };
   function medBuild(locName) {
-    SEA = null; SHIPS = []; RIVER = null;
+    SEA = null; SHIPS = []; RIVER = null; AQUA = [];
     var f = MEDCITY[locName];
     if (f) { f(); return true; }
     var g = MEDGEN[locName];
@@ -3438,7 +3515,7 @@
     plane.userData.shared = true;
     g.add(plane);
     // 御道向南北无限延伸
-    if (Math.abs(x0) < CHUNK / 2 + 5) {
+    if (Math.abs(x0) < CHUNK / 2 + 5 && !inWater(0, z0 - CHUNK / 2) && !inWater(0, z0 + CHUNK / 2)) {
       if (!CH.rg) CH.rg = new T.PlaneGeometry(9, CHUNK + 0.5);
       if (!CH.rm) CH.rm = new T.MeshLambertMaterial({ color: 0xd9c69a });
       var road = new T.Mesh(CH.rg, CH.rm);
@@ -3456,6 +3533,7 @@
       var px = x0 + (r() - .5) * CHUNK, pz = z0 + (r() - .5) * CHUNK;
       if (!outside(px, pz)) continue;
       if (Math.abs(px) < 8) continue; // 御道净空
+      if (inWater(px, pz)) continue; // 水面不生草木
       var t0 = r(), obj = null;
       if (t0 < 0.48) obj = tree(px, pz, ['green', 'green', 'pink', 'autumn', 'pine'][Math.floor(r() * 5)], 'ck' + key + i);
       else if (t0 < 0.64) obj = tree(px, pz, 'pine', 'ckb' + key + i);
@@ -3472,7 +3550,7 @@
       if (r() < hillP) {
         var mw = 10 + r() * 20, mh = 8 + r() * (distC > R * 2 ? 40 : 22);
         var px2 = x0 + (r() - .5) * (CHUNK - mw), pz2 = z0 + (r() - .5) * (CHUNK - mw);
-        if (Math.abs(px2) > mw + 10) {
+        if (Math.abs(px2) > mw + 10 && !inWater(px2, pz2)) {
           var mg = massif(mw, mh, 'ck' + key);
           mg.position.set(px2, 0, pz2);
           g.add(mg);
@@ -5783,7 +5861,7 @@
   // dev: jump straight to a city / interior
   Z.debugNature = function () {
     var st = medSt('latium');
-    SEA = null; SHIPS = []; RIVER = null;
+    SEA = null; SHIPS = []; RIVER = null; AQUA = [];
     newScene(0x9fc9e4, 0xd6dfc9, 200, 1600, false);
     addGround(st, 320, [], [], []);
     var names = Z.packs.nature.names.slice().sort();
