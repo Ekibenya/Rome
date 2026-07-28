@@ -1,5 +1,5 @@
 /* ============================================================
-   周纪 · 千年天下 —— 天下三维 · 八城游历模块 (zj3d)
+   罗马 · 地中海 —— 天下三维 · 环海城邦模块 (med3d)
    罗马(周)金顶 + 七国城郭各具国色：秦黑 楚赤 齐紫 燕蓝 韩绿 赵土金 魏青碧
    资产：AncientChina / HistoricChina / HistoricChineseInterior 全量 457 模型
    ============================================================ */
@@ -768,7 +768,7 @@
     g.userData.isPlayer = true;
     return g;
   }
-  /* ---------------- 王室卫队：天子仪仗常随 ---------------- */
+  /* ---------------- 王室卫队：凯撒仪仗常随 ---------------- */
   Z.escort = [];
   var GUARD_CFG = { robe: 0x2c2836, band: 0xc9a063, chest: 0x3a3444, hat: 'plume', hatC: 0x2c2836, prop: 'spear', s: 0.94 };
   function escortOffsets(n) {
@@ -809,7 +809,7 @@
     Z.escortBusy = false;
     if (!Z.player || !Z.scene) return;
     if (Z.captive) return; // 软禁之身，无卫可随
-    var n = Z.escortN; // 员额由天子钦定（默认四卫：前二后二）
+    var n = Z.escortN; // 员额由凯撒钦定（默认四卫：前二后二）
     var offs = escortOffsets(n);
     var py = Z.player.rotation.y, sy = Math.sin(py), cy = Math.cos(py);
     for (var i = 0; i < n; i++) {
@@ -825,8 +825,8 @@
       g.userData.off = offs[i];
       Z.scene.add(g);
       Z.escort.push(g);
-      // 卫士可点：选中即为「御前卫队」号令对象
-      regPawn(g, { name: '御前卫队', cat: '羽林近卫', desc: '闻警则出，护驾而还', tag: 'escort', own: true });
+      // 卫士可点：选中即为「禁卫军」号令对象
+      regPawn(g, { name: '禁卫军', cat: '羽林近卫', desc: '闻警则出，护驾而还', tag: 'escort', own: true });
     }
   }
   function escortKill(k) {
@@ -846,7 +846,7 @@
     if (tgt.tag !== 'unit') {
       var nm = tgt.name, cat = tgt.cat;
       killPawn(tgt);
-      msg = '（周天子敕命御前卫队出击——' + nm + '（' + cat + '）于' + city + '城' + pos + '为卫士所格杀，卫队无伤，归列护驾。）';
+      msg = '（凯撒敕命禁卫军出击——' + nm + '（' + cat + '）于' + city + '城' + pos + '为卫士所格杀，卫队无伤，归列护驾。）';
     } else {
       var dC = tgt.count;
       var aS = n * 16 * (0.9 + Math.random() * 0.25); // 羽林近卫，以一当二
@@ -857,7 +857,7 @@
       escortKill(gCas);
       if (dLeft <= 0) killPawn(tgt); else shrinkUnit(tgt, dLeft);
       var res = dLeft <= 0 ? tgt.name + '全军覆没' : tgt.name + '余' + dLeft + '人退却';
-      msg = '（周天子敕命御前卫队出击' + tgt.name + '。过程：卫队突阵于' + city + '城' + pos + '，' + tgt.name + '伤亡' + dCas + '人，卫士殉职' + gCas + '人。结果：' + res + '，卫队归列护驾。影响：天子亲兵见血，都中侧目。）';
+      msg = '（凯撒敕命禁卫军出击' + tgt.name + '。过程：卫队突阵于' + city + '城' + pos + '，' + tgt.name + '伤亡' + dCas + '人，卫士殉职' + gCas + '人。结果：' + res + '，卫队归列护驾。影响：禁卫见血，都中侧目。）';
     }
     Z.escortBusy = false;
     if (window.ZJ3D_say) ZJ3D_say(msg);
@@ -931,9 +931,9 @@
           var gCas = Math.random() < 0.35 ? 1 : 0;
           gCas = Math.min(gCas, Math.max(0, Z.escort.length - 1));
           if (gCas > 0) escortKill(gCas);
-          msg = '（变起仓促——' + k + '名刺客扑向御驾，御前卫队立时合围搏杀。刺客' + k + '人尽数格杀' + (gCas > 0 ? '，卫士殉职' + gCas + '人' : '，卫队无一伤亡') + '，天子无恙。太史令记：有贼犯驾于' + city + '。）';
+          msg = '（变起仓促——' + k + '名刺客扑向御驾，禁卫军立时合围搏杀。刺客' + k + '人尽数格杀' + (gCas > 0 ? '，卫士殉职' + gCas + '人' : '，卫队无一伤亡') + '，凯撒无恙。史官记：有贼犯驾于' + city + '。）';
         } else {
-          msg = '（变起仓促——' + k + '名刺客扑向御驾，左右竟无一卫！兵刃加身，天子却立而不倒，创口于众目之下弥合如初。刺客骇然掷刃，仓皇遁走。' + city + '城中悄声相传：天子果然不可杀。）';
+          msg = '（变起仓促——' + k + '名刺客扑向御驾，左右竟无一卫！兵刃加身，凯撒却立而不倒，创口于众目之下弥合如初。刺客骇然掷刃，仓皇遁走。' + city + '城中悄声相传：凯撒果然不可杀。）';
         }
         Z.escortBusy = false;
         EV = null;
@@ -961,7 +961,7 @@
         g.position.y = Math.abs(Math.sin(t * 8 + i * 1.7)) * 0.045;
       } else {
         g.position.y *= 0.8;
-        // 立定后转向与天子同向
+        // 立定后转向与凯撒同向
         var d0 = py - g.rotation.y;
         while (d0 > Math.PI) d0 -= Math.PI * 2;
         while (d0 < -Math.PI) d0 += Math.PI * 2;
@@ -3898,7 +3898,7 @@
       }
     },
     yudao: {
-      disp: '御道', price: 70, make: function (x, z, s) {
+      disp: '大道', price: 70, make: function (x, z, s) {
         var g = new T.Group();
         g.add(roadBase(0.08, 0xd9c69a));
         for (var b = 0; b < 2; b++) {
@@ -3937,7 +3937,7 @@
       var back = 0; LEDGER.razed.forEach(function (e) { back += e.g || 0; });
       parts.push('除旧——' + group(LEDGER.razed).map(function (e) { return e.v + e.d + (e.n > 1 ? '×' + e.n : ''); }).join('、') + (back ? '，共返金' + back : ''));
     }
-    var msg = '（周天子颁营造清单于太史，本轮于' + (cities.join('、') || Z.cityKey) + '：' + parts.join('；') + '。国库现余金' + ECON.gold + '，役夫既发，坊市为之一新。）';
+    var msg = '（凯撒颁营造清单于史官，本轮于' + (cities.join('、') || Z.cityKey) + '：' + parts.join('；') + '。国库现余金' + ECON.gold + '，役夫既发，坊市为之一新。）';
     if (window.ZJ3D_say) ZJ3D_say(msg);
     LEDGER = { built: [], razed: [] }; ledgerSave(); updateBuildHud();
   }
@@ -3945,8 +3945,13 @@
   function catalog() {
     if (CATALOG) return CATALOG;
     function pack2items(pk, filt) {
-      return Z.packs[pk].names.filter(filt).sort().map(function (nm) {
+      return Z.packs[pk].names.filter(filt).map(function (nm) {
         return { kind: 'model', pack: pk, name: nm, disp: dispName(pk, nm), price: priceOf(pk, nm) };
+      }).sort(function (a, b) {
+        var fa = a.disp.split('·')[0], fb = b.disp.split('·')[0];
+        if (fa !== fb) return fa.localeCompare(fb, 'zh');
+        var na = +(a.name.match(/_(\d+)$/) || [0, 0])[1], nb = +(b.name.match(/_(\d+)$/) || [0, 0])[1];
+        return (na - nb) || (a.name < b.name ? -1 : 1);
       });
     }
     CATALOG = [
@@ -4432,7 +4437,7 @@
       }
       if (gdrag) { gdrag = false; return; }
       if (!wasClick) return;
-      // 点击人物/军旅/周天子：弹窗或预备移驾
+      // 点击人物/军旅/凯撒：弹窗或预备移驾
       if (!Z.B) {
         var proots = Z.pawns.map(function (p) { return p.root; });
         if (Z.player && Z.player.parent) proots.push(Z.player);
@@ -4440,7 +4445,7 @@
         if (ph) {
           var oo = ph, isP = false;
           while (oo) { if (oo.userData && oo.userData.isPlayer) { isP = true; break; } oo = oo.parent; }
-          if (isP) { // 点中周天子 → 预备移驾（点目标格瞬移）
+          if (isP) { // 点中凯撒 → 预备移驾（点目标格瞬移）
             Z.tp = { phase: 'armed' };
             Z.sel = null; Z.actor = null; Z.selNpc = null;
             updateBuildHud();
@@ -4450,7 +4455,7 @@
           if (pw) {
             if (pw.own && pw.tag === 'unit' && Z.actor !== pw) setActor(pw);
             if (pw.tag === 'escort') {
-              Z.actor = { escort: true, name: '御前卫队', root: Z.player, tag: 'unit', own: true };
+              Z.actor = { escort: true, name: '禁卫军', root: Z.player, tag: 'unit', own: true };
               updateBuildHud();
             }
             openNpcBar(pw);
@@ -4493,7 +4498,7 @@
           }
         }
       }
-      // 点空地：已选军旅即行军（御前卫队不离驾巡地）
+      // 点空地：已选军旅即行军（禁卫军不离驾巡地）
       if (Z.actor && !Z.actor.escort && Z.actor.root.parent) {
         var gp0 = groundPoint(e);
         if (gp0) {
@@ -4539,7 +4544,7 @@
     updateBuildHud();
   }
 
-  /* 移驾：周天子瞬移至目标格，卫队随驾列位 */
+  /* 移驾：凯撒瞬移至目标格，卫队随驾列位 */
   function doTeleport() {
     if (!Z.tp || Z.tp.phase !== 'confirm' || !Z.player) return;
     puff(Z.player.position.x, 0.7, Z.player.position.z, 0xd8b23a, 2, 1.6, 0.8);
@@ -4761,7 +4766,7 @@
       nl.title = np.desc || '';
       nb.appendChild(nl);
       nb.appendChild(mkBtn('对话', function () {
-        if (window.ZJ3D_say) ZJ3D_say('（周天子与' + np.name + '（' + np.cat + '）开启对话。）');
+        if (window.ZJ3D_say) ZJ3D_say('（凯撒与' + np.name + '（' + np.cat + '）开启对话。）');
         Z.selNpc = null; updateBuildHud();
       }));
       if (np.tag === 'escort' && inBuild()) {
@@ -4891,7 +4896,7 @@
         sb.appendChild(mkBtn('✓ 移驾', function () { doTeleport(); }));
         sb.appendChild(mkBtn('✕', function () { Z.tp = null; updateBuildHud(); }, true));
       } else {
-        tl.textContent = '已选 周天子 · 点目标地点即可移驾';
+        tl.textContent = '已选 凯撒 · 点目标地点即可移驾';
         sb.appendChild(tl);
         sb.appendChild(mkBtn('✕', function () { Z.tp = null; updateBuildHud(); }, true));
       }
@@ -4899,7 +4904,7 @@
       sb.style.display = 'flex'; sb.innerHTML = '';
       var al = document.createElement('div');
       al.style.cssText = 'color:#a9cbb8;font-size:12.5px;letter-spacing:.06em;white-space:nowrap';
-      al.textContent = Z.actor.escort ? '已选 御前卫队（' + Z.escort.length + '人）· 点目标即出击' : '已选 ' + Z.actor.name + ' · 点地行军，点目标可攻可谈';
+      al.textContent = Z.actor.escort ? '已选 禁卫军（' + Z.escort.length + '人）· 点目标即出击' : '已选 ' + Z.actor.name + ' · 点地行军，点目标可攻可谈';
       sb.appendChild(al);
       sb.appendChild(mkBtn('✕', function () { setActor(null); }));
     } else if (on && Z.sel && !Z.B) {
@@ -5016,7 +5021,7 @@
     youxia: { disp: '游侠', cat: '侠', price: 200, cfg: { robe: 0x4a4a52, band: 0xa63b26, hat: 'scarf', prop: 'sword' }, desc: '其言必信，其行必果' },
     rusheng: { disp: '儒生', cat: '儒', price: 100, cfg: { robe: 0x6e8ea8, band: 0x3e5e78, hat: 'flat', prop: 'slip' }, desc: '诵诗三百，习礼大树下' },
     mozhe: { disp: '墨者', cat: '墨', price: 100, cfg: { robe: 0x3a3a32, band: 0x5a5a4a, hat: 'scarf', prop: 'staff' }, desc: '短褐草鞋，兼爱非攻' },
-    shuike: { disp: '说客', cat: '纵横', price: 260, cfg: { robe: 0x8e6e3e, band: 0xc9a063, hat: 'flat', prop: 'fan' }, desc: '一怒而诸侯惧，安居而天下熄' },
+    shuike: { disp: '说客', cat: '纵横', price: 260, cfg: { robe: 0x8e6e3e, band: 0xc9a063, hat: 'flat', prop: 'fan' }, desc: '一言纵横列国，谈笑可弭刀兵' },
     yizhe: { disp: '医者', cat: '医', price: 160, cfg: { robe: 0x5e7e5e, band: 0x3e5e3e, hat: 'scarf', prop: 'bundle', bundleC: 0x8ec455 }, desc: '望闻问切，起死人肉白骨' },
     buzhe: { disp: '卜者', cat: '卜', price: 130, cfg: { robe: 0x7e7e6e, band: 0x5e5e4e, hat: 'bun', prop: 'slip' }, desc: '灼龟观兆，蓍草在袖' },
     yufu: { disp: '渔父', cat: '渔', price: 40, cfg: { robe: 0x4e6e7e, band: 0x3e5a66, hat: 'cone', prop: 'rod' }, desc: '沧浪之水清兮，可以濯吾缨' },
@@ -5141,7 +5146,7 @@
     root.rotation.y = rec.ry || 0;
     Z.scene.add(root);
     root.userData.buildId = rec.id;
-    regPawn(root, { name: rec.disp, cat: '王师·' + rec.count + '人', desc: '闻鼓则进，闻金则退', tag: 'unit', recId: rec.id, own: true, count: rec.count, state: 'idle' });
+    regPawn(root, { name: rec.disp, cat: '军团·' + rec.count + '人', desc: '闻鼓则进，闻金则退', tag: 'unit', recId: rec.id, own: true, count: rec.count, state: 'idle' });
     return root;
   }
   /* 城中众生（种子化，非存档） */
@@ -5310,7 +5315,7 @@
       // 对平民/人物：一击而殁
       var nm = tgt.name, cat = tgt.cat;
       killPawn(tgt);
-      msg = '（周天子敕命' + atk.name + '攻击' + nm + '（' + cat + '）。过程：兵刃骤起于' + city + '城' + pos + '，' + nm + '不及走避。结果：' + nm + '殒命，' + atk.name + '无伤。影响：城中震恐，市井奔散，民心动摇——太史令秉笔直书，此事必载于史。）';
+      msg = '（凯撒敕命' + atk.name + '攻击' + nm + '（' + cat + '）。过程：兵刃骤起于' + city + '城' + pos + '，' + nm + '不及走避。结果：' + nm + '殒命，' + atk.name + '无伤。影响：城中震恐，市井奔散，民心动摇——史官秉笔直书，此事必载于史。）';
     } else {
       var aC = atk.count, dC = tgt.count;
       var aS = aC * 10 * (0.85 + Math.random() * 0.3);
@@ -5320,14 +5325,14 @@
       var dLeft = dC - dCas, aLeft = aC - aCas;
       var proc = '两军于' + city + '城' + pos + '交锋，戈矛相击，' + atk.name + '伤亡' + aCas + '人，' + tgt.name + '伤亡' + dCas + '人';
       var res, imp;
-      if (dLeft <= 0 && aLeft > 0) { res = tgt.name + '全军覆没，' + atk.name + '余' + aLeft + '人'; imp = '王师大胜，军威震于四方，然杀伐之气盈城'; }
-      else if (aLeft <= 0 && dLeft > 0) { res = atk.name + '全军覆没，' + tgt.name + '余' + dLeft + '人'; imp = '王师折戟，朝野哗然，诸侯侧目'; }
+      if (dLeft <= 0 && aLeft > 0) { res = tgt.name + '全军覆没，' + atk.name + '余' + aLeft + '人'; imp = '军团大胜，鹰旗威震四方，然杀伐之气盈城'; }
+      else if (aLeft <= 0 && dLeft > 0) { res = atk.name + '全军覆没，' + tgt.name + '余' + dLeft + '人'; imp = '军团折戟，罗马哗然，列邦侧目'; }
       else if (aLeft <= 0 && dLeft <= 0) { res = '两军俱灭，尸横遍地'; imp = '惨胜如败，城中缟素'; }
       else { res = atk.name + '余' + aLeft + '人，' + tgt.name + '余' + dLeft + '人，胜负未分而两军暂却'; imp = '兵连祸结，民心惶惶'; }
       // 应用伤亡
       if (dLeft <= 0) killPawn(tgt); else shrinkUnit(tgt, dLeft);
       if (aLeft <= 0) killPawn(atk); else if (aCas > 0) { var na = shrinkUnit(atk, aLeft); if (Z.actor === atk) setActor(na); }
-      msg = '（周天子敕命' + atk.name + '攻击' + tgt.name + '。过程：' + proc + '。结果：' + res + '。影响：' + imp + '。）';
+      msg = '（凯撒敕命' + atk.name + '攻击' + tgt.name + '。过程：' + proc + '。结果：' + res + '。影响：' + imp + '。）';
     }
     if (window.ZJ3D_say) ZJ3D_say(msg);
     updateBuildHud();
@@ -5545,11 +5550,11 @@
     var isNature = !!tgt.root.userData.natId;
     razeBuilding(tgt.root);
     if (window.ZJ3D_say && isNature) {
-      ZJ3D_say('（周天子敕命' + atk.name + '于' + city + '城' + pos + '纵火焚除' + disp + '，草木化为焦炭，烟起数里。）');
+      ZJ3D_say('（凯撒敕命' + atk.name + '于' + city + '城' + pos + '纵火焚除' + disp + '，草木化为焦炭，烟起数里。）');
     } else if (window.ZJ3D_say) {
-      ZJ3D_say('（周天子敕命' + atk.name + '攻毁' + city + '城' + pos + '之' + disp +
+      ZJ3D_say('（凯撒敕命' + atk.name + '攻毁' + city + '城' + pos + '之' + disp +
         '。过程：兵卒鼓噪而进，纵火焚椽，槌墙毁柱，梁木轰然而倒。结果：' + disp +
-        '焚毁倾颓，化为瓦砾焦土。影响：烟尘蔽日，市人夺路奔走，物议汹汹——太史令直书天子毁城，民心为之一沉。）');
+        '焚毁倾颓，化为瓦砾焦土。影响：烟尘蔽日，市人夺路奔走，物议汹汹——史官直书凯撒毁城，民心为之一沉。）');
     }
     updateBuildHud();
   }
@@ -5882,7 +5887,7 @@
       Z.orders = Z.orders.filter(function (o) { return o.unit !== unit; });
       Z.orders.push({ unit: unit, type: 'attackB', target: { root: root, disp: disp }, phase: 'march' });
       cmdPan(root.position.x, root.position.z);
-      return { ok: true, report: unit.name + '已奉令开赴，兵锋直指' + disp + '——战果太史令将另行奏报' };
+      return { ok: true, report: unit.name + '已奉令开赴，兵锋直指' + disp + '——战果史官将另行奏报' };
     }
     var np = null, nd = 1e9;
     Z.pawns.forEach(function (p) {
@@ -5896,7 +5901,7 @@
     Z.orders = Z.orders.filter(function (o) { return o.unit !== unit; });
     Z.orders.push({ unit: unit, type: 'attack', target: np, phase: 'march' });
     cmdPan(np.root.position.x, np.root.position.z);
-    return { ok: true, report: unit.name + '已奉令开赴，直取' + np.name + '——战果太史令将另行奏报' };
+    return { ok: true, report: unit.name + '已奉令开赴，直取' + np.name + '——战果史官将另行奏报' };
   }
   function cmdGo(part) {
     var w = String(part || '').trim().replace(/[，。！\s]/g, '');
@@ -5986,6 +5991,13 @@
   };
   Z.debugInterior = function (kind) { enterInterior(kind, kind); };
   // coverage report (dev)
+  Z.debugCatalog = function () {
+    var c = catalog(), out = {}, models = 0;
+    c.forEach(function (t) { out[t.tab] = t.items.length; t.items.forEach(function (it) { if (it.kind === 'model') models++; }); });
+    out['模型合计'] = models;
+    out['资材包合计'] = ['ancient', 'historic', 'interior', 'nature'].reduce(function (a, k) { return a + Z.packs[k].names.length; }, 0);
+    return out;
+  };
   Z.coverage = function () {
     var out = {};
     ['ancient', 'historic', 'interior', 'nature'].forEach(function (pk) {
