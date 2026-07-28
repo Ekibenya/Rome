@@ -444,6 +444,12 @@ canvas{display:block}
 .svFold .num{font-size:14px;font-weight:400;letter-spacing:.04em;color:rgba(220,220,215,.55);
   border:1px solid rgba(236,236,232,.22);padding:1px 5px 0}
 .svFold .lb{font-size:6.5px;letter-spacing:.2em;line-height:1.6;color:rgba(200,200,196,.55)}
+/* 手機：卡片縮小、標題移上方，避免擠壓 */
+#svField.sm .svFold{padding:4px 7px 4px 4px;gap:5px}
+#svField.sm .svFold .num{font-size:11px;padding:0 4px}
+#svField.sm .svFold .lb{font-size:5.5px;letter-spacing:.14em;line-height:1.5}
+#svField.sm .svFold .tab{top:-6px;height:6px}
+
 .svFold.on{border-color:rgba(236,236,232,.7)}
 .svFold.on .tab{border-color:rgba(236,236,232,.7)}
 .svFold.on .num{color:#ececec;border-color:rgba(236,236,232,.5)}
@@ -467,6 +473,16 @@ canvas{display:block}
   gap:10px 14px;padding:9px 16px;font-size:8px;letter-spacing:.22em;color:var(--mut);flex-wrap:wrap}
 .svfbtn{cursor:pointer;color:var(--txt);white-space:nowrap}
 .svfbtn:hover{color:var(--gold-hi)}
+@media(max-width:760px){
+  #svCore{top:14%;width:min(88vw,340px)}
+  #svCoreT{font-size:17px;letter-spacing:.42em;text-indent:.42em}
+  #svCoreSub{margin-top:8px;font-size:7px;padding:5px 12px;max-width:82vw}
+  #svCoreBtns{margin-top:10px;gap:7px}
+  .svAct{padding:6px 11px 5px;font-size:8.5px;letter-spacing:.2em}
+  #svFootBar{font-size:7.5px;letter-spacing:.14em;padding:7px 12px;justify-content:center;gap:16px}
+  #svFootBar .fhint{display:none}   /* 手機收起長提示，讓頁腳保持單行 */
+  #svClock{font-size:11px;letter-spacing:.3em}
+}
 .gNav{display:none}
 @media (max-width:760px){
   #game .gTop .gBrand{display:none}
@@ -989,7 +1005,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   <div id="svClock">00:00:00</div>
   <div id="svRedX" title="RETVRN">✕</div>
   <div id="svFootBar">
-    <span>●&nbsp;ROMA.SYS&nbsp;·&nbsp;DIRECTORIVM&nbsp;·&nbsp;TABVLAE&nbsp;XXXII&nbsp;·&nbsp;移動滑鼠／觸控拖曳以巡覽&nbsp;·&nbsp;靜置自動巡游</span>
+    <span class="fhint">●&nbsp;ROMA.SYS&nbsp;·&nbsp;DIRECTORIVM&nbsp;·&nbsp;TABVLAE&nbsp;XXXII&nbsp;·&nbsp;移動滑鼠／觸控拖曳以巡覽&nbsp;·&nbsp;靜置自動巡游</span>
     <span style="display:flex;gap:20px;align-items:center"><span class="svfbtn" id="svExp">匯出</span><span class="svfbtn" id="svImp">匯入</span><span class="svfbtn" id="svEsc">✕&nbsp;RETVRN</span></span>
   </div>
   <input type="file" id="svFile" accept=".json" style="display:none">
@@ -5920,14 +5936,15 @@ function svBgDraw(){
   var cv=$('#svBg');if(!cv)return;
   cv.width=Math.round(innerWidth*DPR);cv.height=Math.round(innerHeight*DPR);
   SVL=[];
-  for(var i=0;i<190;i++)SVL.push({
+  for(var i=0;i<108;i++)SVL.push({
     a:svRnd(i,1)*Math.PI*2,                    /* 起始角 */
     r0:.02+svRnd(i,2)*.13,                     /* 內端（灭點附近） */
     r1:.55+svRnd(i,3)*.85,                     /* 外端（越出畫面邊界，永不斷開） */
     w:(svRnd(i,4)<.12?1.7:1),
-    al:.05+svRnd(i,5)*.15,
-    sp:(svRnd(i,6)-.5)*.022,                   /* 角速度：整片扇面緩慢旋擰 */
-    bp:svRnd(i,7)*6.283,bs:.22+svRnd(i,8)*.55  /* 明暗呼吸相位／頻率 */
+    al:.05+svRnd(i,5)*.14,
+    sp:(svRnd(i,6)-.5)*.014,                   /* 角速度：扇面極緩旋擰 */
+    bp:svRnd(i,7)*6.283,bs:.22+svRnd(i,8)*.55, /* 明暗呼吸 */
+    hp:svRnd(i,9),hs:.20+svRnd(i,10)*.42       /* 高光行進相位／速度＝穿梭感 */
   });
   SVLS=[];
   for(var q=0;q<34;q++)SVLS.push({y:svRnd(q,7),x:svRnd(q,8),len:.05+svRnd(q,9)*.30,
@@ -5946,9 +5963,20 @@ function svFx(t){
     var r0=L.r0*H*(1+.07*Math.sin(t*.55+L.bp));       /* 內端輕微伸縮 */
     var r1=L.r1*DIAG;
     var ca=Math.cos(aa),sa=Math.sin(aa);
-    g.strokeStyle='rgba(236,236,232,'+(L.al*sh).toFixed(3)+')';
-    g.lineWidth=L.w*DPR*.85;
+    /* 底線：全長連續、恆在（不斷線） */
+    g.strokeStyle='rgba(236,236,232,'+(L.al*sh*.45).toFixed(3)+')';
+    g.lineWidth=L.w*DPR*.8;
     g.beginPath();g.moveTo(cx+ca*r0,cy+sa*r0);g.lineTo(cx+ca*r1,cy+sa*r1);g.stroke();
+    /* 高光：沿同一條線由內向外加速奔行＝穿梭動感（疊加在底線上，底線不受影響） */
+    var hp=(L.hp+t*L.hs)%1,span=r1-r0;
+    var h0=r0+span*hp*hp,h1=h0+span*(.09+hp*.26);
+    if(h1>r1)h1=r1;
+    var hf=Math.min(1,hp*6)*Math.max(0,Math.min(1,(1-hp)/.30));
+    if(hf>0){
+      g.strokeStyle='rgba(248,248,245,'+(L.al*1.9*hf).toFixed(3)+')';
+      g.lineWidth=L.w*DPR*1.05;
+      g.beginPath();g.moveTo(cx+ca*h0,cy+sa*h0);g.lineTo(cx+ca*h1,cy+sa*h1);g.stroke();
+    }
   }
   for(var q=0;q<SVLS.length;q++){
     var S=SVLS[q],x=((S.x+t*S.sp)%1-.05)*W,y=S.y*H,ln=S.len*W;
@@ -5964,8 +5992,29 @@ function svRender(){
   var host=$('#svField');if(!host)return;
   host.innerHTML='';SVP.cards=[];
   var m=Math.min(innerWidth,innerHeight),cx=innerWidth/2,cy=innerHeight/2;
-  /* 佈點：環形散佈 → 夾入安全邊 → 鬆弛推開，避免疊卡與出血 */
+  var narrow=innerWidth<760;
+  host.classList.toggle('sm',narrow);
   var P=[];
+  if(narrow){
+    /* 手機：抖動網格——列數依寬度自適應，均勻鋪滿標題以下，永不擠成一團 */
+    var cols=Math.max(3,Math.floor(innerWidth/128)),rows=Math.ceil(SVN/cols);
+    var gx0=innerWidth*.10,gx1=innerWidth*.90;
+    var gy0=innerHeight*.335,gy1=innerHeight*.875;
+    for(var gi=0;gi<SVN;gi++){
+      var cc=gi%cols,rw=Math.floor(gi/cols);
+      var ux=cols>1?cc/(cols-1):.5,uy=rows>1?rw/(rows-1):.5;
+      P.push({x:gx0+(gx1-gx0)*ux+(svRnd(gi,31)-.5)*innerWidth*.045,
+              y:gy0+(gy1-gy0)*uy+(svRnd(gi,32)-.5)*18,
+              z:.80+svRnd(gi,33)*.30});
+    }
+    for(var gk=0;gk<SVN;gk++){
+      var q=P[gk];
+      q.x=Math.max(58,Math.min(innerWidth-58,q.x));
+      q.y=Math.max(innerHeight*.32,Math.min(innerHeight-84,q.y));
+    }
+    svPlace(host,P);return;
+  }
+  /* 桌面：環形散佈 → 夾入安全邊 → 鬆弛推開 */
   for(var k0=0;k0<SVN;k0++){
     var ak=(k0+.5)/SVN*Math.PI*2+(svRnd(k0,21)-.5)*.34;
     var rk=(.19+svRnd(k0,22)*.26)*m;
@@ -5989,6 +6038,11 @@ function svRender(){
       clampP(q1);
     }
   }
+  svPlace(host,P);
+}
+/* 依座標建卡（桌面散佈／手機網格共用） */
+function svPlace(host,P){
+  var narrow=innerWidth<760;
   for(var i=0;i<SVN;i++)(function(n){
     var v=svGet(n+1),sel=SVSEL===n+1;
     var x=P[n].x,y=P[n].y,z=P[n].z;
@@ -5997,16 +6051,17 @@ function svRender(){
     d.setAttribute('data-n',n+1);
     d.style.left=x.toFixed(1)+'px';d.style.top=y.toFixed(1)+'px';
     d.style.opacity=(v?.55:.38)+z*.42;
-    var lab=v?String(v.t||'').replace(/\s+/g,' ').trim():'VACVVM';
-    var l1=lab.slice(0,10),l2=lab.slice(10,20);
+    var lab=v?String(v.t||'').replace(/\s*·\s*/g,' ').replace(/\s+/g,' ').trim():'VACVVM';
+    var cut=narrow?7:10;
+    var l1=lab.slice(0,cut),l2=lab.slice(cut,cut*2);
     d.innerHTML='<i class="tab"></i>'
       +'<b class="num">'+(v?(n+1<10?'0'+(n+1):''+(n+1)):'—')+'</b>'
       +'<span class="lb">'+esc2(l1)+(l2?'<br>'+esc2(l2):'')+'</span>';
     host.appendChild(d);
     SVP.cards.push({el:d,z:z,x:x,y:y});
   })(i);
-  var ck=$('#svClock');if(ck){ck.style.top=(innerHeight-96)+'px';ck.style.left='50%';}
-  var rx=$('#svRedX');if(rx){rx.style.left=(innerWidth-64)+'px';rx.style.top='58px';rx.style.right='auto';}
+  var ck=$('#svClock');if(ck){ck.style.top=(innerHeight-(narrow?62:96))+'px';ck.style.left='50%';}
+  var rx=$('#svRedX');if(rx){rx.style.left=(innerWidth-(narrow?40:64))+'px';rx.style.top=(narrow?44:58)+'px';rx.style.right='auto';}
 }
 function svCoreUpd(){
   var tt=$('#svCoreT'),sb=$('#svCoreSub'),bt=$('#svCoreBtns');
