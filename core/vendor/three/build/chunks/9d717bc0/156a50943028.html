@@ -1213,6 +1213,9 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
   b.onload=function(){
     window.__THREE_OK__=true;
     var g=document.createElement('script');
+    var gp=document.createElement('script');   /* 棋子系统：两引擎共用，必须先于引擎就位 */
+    gp.src='core/vendor/three/build/chunks/9d717bc0/36411d0a880f.js?v='+ZJ3D_VER;
+    document.head.appendChild(gp);
     g.src='core/vendor/three/build/chunks/9d717bc0/1aa613ec934b.js?v='+ZJ3D_VER;
     document.head.appendChild(g);
     var g2=document.createElement('script');

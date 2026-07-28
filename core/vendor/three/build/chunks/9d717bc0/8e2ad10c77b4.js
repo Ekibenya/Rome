@@ -63,7 +63,7 @@
 
   /* ---------------- asset loading ---------------- */
   var MANI = [
-    ['ancient', 'ancient.glb'], ['historic', 'historic.glb'], ['interior', 'interior.glb'], ['nature', 'nature.glb'], ['pawn', 'pawn.glb']
+    ['ancient', 'ancient.glb'], ['historic', 'historic.glb'], ['interior', 'interior.glb'], ['nature', 'nature.glb']
   ];
   var TEXES = ['LowpolyChineseBuilding_Texture_01.png', 'LowpolyChineseBuilding_Texture_02.png', 'LowpolyChineseBuilding_Texture_03.png', 'LowpolyChineseBuilding_Texture_04.png', 'LowpolyChineseBuilding_Texture_05.png',
     'Ancient_Tex_Zhao.png', 'Ancient_Tex_Wei.png',
@@ -91,6 +91,34 @@
     metas.forEach(function (m) { out[m[0]] = u.subarray(off, off + m[1]); off += m[1]; });
     return out;
   }
+  /* 棋子小包（pawn.glb + pawn.json + 调色板贴图）：两引擎共用同一份，各自加载各自持有。
+     失败不致命——共用模块会自动回落到火柴人。 */
+  var PAWN_PACK = 'core/res/data/idx/v1/ceb0dfcfec.dat?v=1';
+  function loadPawnPack(loader, texLoader) {
+    return fetch(PAWN_PACK).then(function (r) {
+      if (!r.ok) throw new Error('pawn pack http ' + r.status);
+      return r.arrayBuffer();
+    }).then(function (ab) {
+      var pk = unpack(ab);
+      try { Z.pawnRig = JSON.parse(new TextDecoder().decode(pk['pawn.json'])); } catch (e) { }
+      var jobs = [new Promise(function (res, rej) {
+        loader.parse(pk['pawn.glb'].slice().buffer, '', res, rej);
+      }).then(function (g) {
+        var lib = {};
+        g.scene.children.forEach(function (n) { if (n.name) lib[n.name] = n; });
+        Z.packs.pawn = { root: g.scene, lib: lib, names: Object.keys(lib) };
+      })];
+      if (pk['tex/pawnpal.png']) {
+        var url = URL.createObjectURL(new Blob([pk['tex/pawnpal.png']], { type: 'image/png' }));
+        jobs.push(texLoader.loadAsync(url).then(function (tx) {
+          URL.revokeObjectURL(url);
+          tx.colorSpace = T.SRGBColorSpace; tx.flipY = false;
+          Z.tex['pawnpal.png'] = tx;
+        }));
+      }
+      return Promise.all(jobs);
+    }).catch(function (e) { console.warn('pawn pack failed', e); });
+  }
   function loadAll() {
     if (Z.loading || Z.ready || Z.failed) return;
     Z.loading = true;
@@ -99,12 +127,12 @@
     var texLoader = new T.TextureLoader();
     var done = 0, total = MANI.length + TEXES.length + 1;
     function tick() { done++; Z.prog = done / total; updateHud(); }
-    fetch('core/res/data/idx/v1/cdcf9bb63a.dat?v=47').then(function (r) {
+    fetch('core/res/data/idx/v1/cdcf9bb63a.dat?v=48').then(function (r) {
       if (!r.ok) throw new Error('pack http ' + r.status);
       return r.arrayBuffer();
     }).then(function (ab) {
       var pk = unpack(ab); tick();
-      try { Z.pawnRig = JSON.parse(new TextDecoder().decode(pk['pawn.json'])); } catch (e) { }
+      /* pawn.glb / pawn.json 已挪到两引擎共用的小包，见 loadPawnPack */
       var jobs = [];
       MANI.forEach(function (m) {
         jobs.push(new Promise(function (res, rej) {
@@ -124,6 +152,7 @@
           Z.tex[t] = tx; tick();
         }));
       });
+      jobs.push(loadPawnPack(loader, texLoader));
       return Promise.all(jobs);
     }).then(function () {
       Z.ready = true; Z.loading = false;
@@ -4996,85 +5025,29 @@
   // hat: none|cone(斗笠)|flat(进贤冠)|bun(髻)|plume(将盔)|scarf(帻巾)
   // prop: none|spear|sword|slip(简)|qin(琴)|bundle(货担)|hoe(锄)|staff(杖)|fan(羽扇)|axe(斧)|rod(钓竿)|scroll
   /* 手持道具（两种人形通用） */
-  function pawnProps(gt, cfg) {
-    var pr = cfg.prop;
-    if (pr === 'spear') { var p1 = new T.Mesh(new T.CylinderGeometry(0.022, 0.022, 2.1, 4), nmat(0x8a6a48)); p1.position.set(0.3, 1.05, 0); gt.add(p1); var tip = new T.Mesh(new T.ConeGeometry(0.05, 0.18, 4), nmat(0xb8bec6)); tip.position.set(0.3, 2.2, 0); gt.add(tip); }
-    else if (pr === 'sword') { var p2 = new T.Mesh(new T.BoxGeometry(0.045, 0.72, 0.09), nmat(0x4a4a52)); p2.position.set(0.27, 0.82, 0.03); p2.rotation.z = 0.08; gt.add(p2); } /* 佩于右腰侧：旧版斜背在背后，远看像条甩动的辫子 */
-    else if (pr === 'slip') { var p3 = new T.Mesh(new T.BoxGeometry(0.3, 0.05, 0.2), nmat(0xd9c69a)); p3.position.set(0.26, 1.05, 0.12); gt.add(p3); }
-    else if (pr === 'qin') { var p4 = new T.Mesh(new T.BoxGeometry(0.55, 0.06, 0.2), nmat(0x6a4a30)); p4.position.set(0, 1.02, 0.24); p4.rotation.z = 0.3; gt.add(p4); }
-    else if (pr === 'bundle') { var p5 = new T.Mesh(new T.SphereGeometry(0.2, 6, 5), nmat(cfg.bundleC || 0xa8845c)); p5.scale.set(1, 0.7, 0.8); p5.position.set(0, 1.5, -0.3); gt.add(p5); }
-    else if (pr === 'hoe') { var p6 = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 1.5, 4), nmat(0x8a6a48)); p6.position.set(0.3, 0.85, 0); p6.rotation.z = 0.2; gt.add(p6); var bl = new T.Mesh(new T.BoxGeometry(0.2, 0.05, 0.05), nmat(0x6a6a72)); bl.position.set(0.42, 1.6, 0); gt.add(bl); }
-    else if (pr === 'staff') { var p7 = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 1.7, 4), nmat(0x6a4a30)); p7.position.set(0.3, 0.85, 0); gt.add(p7); }
-    else if (pr === 'fan') { var p8 = new T.Mesh(new T.ConeGeometry(0.16, 0.3, 6), nmat(0xf3e6ee)); p8.rotation.z = Math.PI / 2; p8.position.set(0.32, 1.15, 0); gt.add(p8); }
-    else if (pr === 'axe') { var p9 = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 1.1, 4), nmat(0x8a6a48)); p9.position.set(0.3, 0.9, 0); gt.add(p9); var ax = new T.Mesh(new T.BoxGeometry(0.16, 0.14, 0.04), nmat(0x6a6a72)); ax.position.set(0.36, 1.38, 0); gt.add(ax); }
-    else if (pr === 'rod') { var pa = new T.Mesh(new T.CylinderGeometry(0.015, 0.02, 1.9, 4), nmat(0x8a6a48)); pa.rotation.z = -0.6; pa.position.set(0.4, 1.3, 0); gt.add(pa); }
-  }
-  function pawnPick(g) {
-    var pick = new T.Mesh(new T.CylinderGeometry(0.55, 0.55, 2.1, 6), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }));
-    pick.position.y = 1.05; pick.userData.proxy = true; g.add(pick);
-  }
   /* 火柴人（资材未至时的兜底） */
-  function makePawnStick(cfg) {
-    var g = new T.Group();
-    var robe = new T.Mesh(new T.CylinderGeometry(0.22, 0.38, 1.05, 7), nmat(cfg.robe));
-    robe.position.y = 0.56; robe.castShadow = true; g.add(robe);
-    var band = new T.Mesh(new T.CylinderGeometry(0.23, 0.27, 0.12, 7), nmat(cfg.band || 0x8a6a48));
-    band.position.y = 0.92; g.add(band);
-    var chest = new T.Mesh(new T.CylinderGeometry(0.18, 0.23, 0.38, 7), nmat(cfg.chest || cfg.robe));
-    chest.position.y = 1.24; chest.castShadow = true; g.add(chest);
-    var head = new T.Mesh(new T.SphereGeometry(0.14, 8, 7), nmat(0xf0d8bc)); head.position.y = 1.56; g.add(head);
-    var hair = new T.Mesh(new T.SphereGeometry(0.145, 8, 7), nmat(0x1a1512)); hair.scale.set(1, 0.7, 1); hair.position.y = 1.62; g.add(hair);
-    pawnProps(g, cfg);
-    pawnPick(g);
-    if (cfg.s) g.scale.setScalar(cfg.s);
-    return g;
-  }
   /* 装束骨架人：基础体+衣壳五段刚体骨架，发/盔挂头，盾挂左臂，道具挂右臂随摆 */
+
+  /* 棋子系统已抽到共用模块（两引擎同一份），此处只做绑定与转发 */
+  function pawnBind() {
+    if (!window.ZJ_PAWN) return false;
+    window.ZJ_PAWN.bind({ T: T, nmat: nmat, mat: matFor(MTEX),
+      lib: Z.packs.pawn && Z.packs.pawn.lib, rig: Z.pawnRig, used: USED });
+    return true;
+  }
+  /* 共用模块理论上必先于本引擎就位（它只有 8KB，而本引擎要等几十 MB 的包），
+     万一没到也只能给个空组，绝不能返回 null 让调用方炸掉。 */
   function makePawn(cfg) {
-    var lib = Z.packs.pawn && Z.packs.pawn.lib, rig = Z.pawnRig;
-    if (!lib || !rig || !cfg.outfit || !rig.outfits[cfg.outfit]) return makePawnStick(cfg);
-    var g = new T.Group();
-    var mt = matFor(MTEX);
-    var J = rig.joints, of = rig.outfits[cfg.outfit];
-    function dress(node) { node.traverse(function (ch) { if (ch.isMesh) { ch.material = mt; ch.castShadow = true; } }); return node; }
-    function seg(nm, j) {
-      var tpl = lib['PW_' + cfg.outfit + '_' + nm]; if (!tpl) return null;
-      var gr = new T.Group(); gr.add(dress(tpl.clone(true)));
-      gr.position.set(j[0], j[1], j[2] || 0);
-      g.add(gr); return gr;
-    }
-    var R = {};
-    if (of.rigid) { seg('all', [0, 0, 0]); }
-    else {
-      R.torso = seg('torso', [0, J.hip, 0]);
-      R.armL = seg('armL', J.armL); R.armR = seg('armR', J.armR);
-      R.legL = seg('legL', J.legL); R.legR = seg('legR', J.legR);
-      /* 双臂垂直姿已在资材内软权重烘焙（肩0°→手17°渐变），此处不再刚性旋转以免肩缝断裂 */
-      if (cfg.head && R.torso) {
-        var at = lib['PW_at_' + cfg.head];
-        if (at) {
-          var hd = dress(at.clone(true));
-          if (cfg.hairC) { var hm = new T.MeshLambertMaterial({ color: cfg.hairC }); hd.traverse(function (ch) { if (ch.isMesh) ch.material = hm; }); }
-          R.torso.add(hd);
-        }
-      }
-      if (cfg.shield && R.armL) {
-        var sh = lib['PW_at_Roman_Shield'];
-        if (sh) { var s2 = dress(sh.clone(true)); s2.position.set(-0.05, -0.42, 0.08); s2.rotation.y = Math.PI / 2; R.armL.add(s2); }
-      }
-      USED.pawn['PW_' + cfg.outfit + '_torso'] = 1;
-    }
-    g.userData.rig = R;
-    if (cfg.prop) {
-      var pg = new T.Group();
-      pawnProps(pg, cfg);
-      /* 道具挂躯干（原火柴人根空间坐标直接可用）：不随臂大摆，只随身微晃 */
-      if (R.torso) { pg.position.set(0, -J.hip, 0); R.torso.add(pg); }
-      else g.add(pg);
-    }
-    pawnPick(g);
-    if (cfg.s) g.scale.setScalar(cfg.s);
-    return g;
+    if (!pawnBind()) return new T.Group();
+    return window.ZJ_PAWN.make(cfg) || new T.Group();
+  }
+  function makePawnStick(cfg) {
+    if (!pawnBind()) return new T.Group();
+    return window.ZJ_PAWN.stick(cfg) || new T.Group();
+  }
+  function rigSwing(root, t, moving, sp) {
+    if (!window.ZJ_PAWN) return;
+    return window.ZJ_PAWN.swing(root, t, moving, sp);
   }
 
   /* ---------------- 人物类别（那个时代的百业众生） ---------------- */
@@ -5267,26 +5240,6 @@
   }
 
   /* ---------------- 游走 / 军令 / 战斗 tick ---------------- */
-  function rigSwing(root, dt) {
-    var R = root.userData.rig; if (!R || !R.armL) return;
-    if (!isFinite(dt) || dt <= 0) return;
-    var ud = root.userData;
-    var dx = root.position.x - (ud._px != null ? ud._px : root.position.x);
-    var dz = root.position.z - (ud._pz != null ? ud._pz : root.position.z);
-    ud._px = root.position.x; ud._pz = root.position.z;
-    var sp = Math.hypot(dx, dz) / Math.max(dt, 1e-3);
-    if (!isFinite(sp)) sp = 0;
-    var target = sp > 0.25 ? Math.min(0.3, 0.14 + sp * 0.05) : 0; /* 摆幅收敛：小步自然，不再大开大合 */
-    var a0 = isFinite(ud._amp) ? ud._amp : 0;
-    ud._amp = a0 + (target - a0) * Math.min(1, dt * 6);
-    var p0 = isFinite(ud._ph) ? ud._ph : 0;
-    ud._ph = p0 + dt * (5 + Math.min(sp, 6) * 1.4);
-    var sw = Math.sin(ud._ph) * ud._amp;
-    R.armL.rotation.x = sw * 0.7; R.armR.rotation.x = -sw * 0.7;
-    if (R.legL) R.legL.rotation.x = -sw * 1.1;
-    if (R.legR) R.legR.rotation.x = sw * 1.1;
-    if (R.torso) R.torso.rotation.z = Math.sin(ud._ph * 0.5) * ud._amp * 0.05;
-  }
   function rigTick(dt) {
     for (var i = 0; i < Z.pawns.length; i++) { var r = Z.pawns[i].root; if (r.parent) rigSwing(r, dt); }
     if (Z.player && !Z.strike) rigSwing(Z.player, dt);

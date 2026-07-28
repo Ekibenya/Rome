@@ -86,6 +86,34 @@
     metas.forEach(function (m) { out[m[0]] = u.subarray(off, off + m[1]); off += m[1]; });
     return out;
   }
+  /* 棋子小包：与地中海引擎共用同一份（pawn.glb + pawn.json + 调色板贴图）。
+     失败不致命——取不到骨架就仍旧用本引擎自己的火柴人。 */
+  var PAWN_PACK = 'core/res/data/idx/v1/ceb0dfcfec.dat?v=1';
+  function loadPawnPack(loader, texLoader) {
+    return fetch(PAWN_PACK).then(function (r) {
+      if (!r.ok) throw new Error('pawn pack http ' + r.status);
+      return r.arrayBuffer();
+    }).then(function (ab) {
+      var pk = unpack(ab);
+      try { Z.pawnRig = JSON.parse(new TextDecoder().decode(pk['pawn.json'])); } catch (e) { }
+      var js = [new Promise(function (res, rej) {
+        loader.parse(pk['pawn.glb'].slice().buffer, '', res, rej);
+      }).then(function (g) {
+        var lib = {};
+        g.scene.children.forEach(function (n) { if (n.name) lib[n.name] = n; });
+        Z.packs.pawn = { root: g.scene, lib: lib, names: Object.keys(lib) };
+      })];
+      if (pk['tex/pawnpal.png']) {
+        var url = URL.createObjectURL(new Blob([pk['tex/pawnpal.png']], { type: 'image/png' }));
+        js.push(texLoader.loadAsync(url).then(function (tx) {
+          URL.revokeObjectURL(url);
+          tx.colorSpace = T.SRGBColorSpace; tx.flipY = false;
+          Z.tex['pawnpal.png'] = tx;
+        }));
+      }
+      return Promise.all(js);
+    }).catch(function (e) { console.warn('pawn pack failed', e); });
+  }
   function loadAll() {
     if (Z.loading || Z.ready || Z.failed) return;
     Z.loading = true;
@@ -118,6 +146,7 @@
           Z.tex[t] = tx; tick();
         }));
       });
+      jobs.push(loadPawnPack(loader, texLoader));
       return Promise.all(jobs);
     }).then(function () {
       Z.ready = true; Z.loading = false;
@@ -795,6 +824,15 @@
   }
 
   /* ---------------- player ---------------- */
+  /* 棋子骨架：与地中海引擎共用同一份模块。本引擎的市井众生仍用自家火柴人
+     （希腊甲胄穿在中原百姓身上不像话），只有罗马纪的女主走这条路。 */
+  function rigPawn(cfg) {
+    var lib = Z.packs.pawn && Z.packs.pawn.lib;
+    if (!window.ZJ_PAWN || !lib || !Z.pawnRig || !Z.tex['pawnpal.png']) return null;
+    window.ZJ_PAWN.bind({ T: T, nmat: nmat, mat: matFor('pawnpal.png'), lib: lib, rig: Z.pawnRig });
+    var g = window.ZJ_PAWN.make(cfg);
+    return (g && g.userData && g.userData.rig) ? g : null;   /* 回落成火柴人就当没拿到 */
+  }
   function buildPlayer() {
     var g = new T.Group();
     var roma = (Z.side === 'roma');
@@ -802,6 +840,13 @@
     var band = new T.Mesh(new T.CylinderGeometry(0.25, 0.30, 0.14, 8), nmat(0xa63b26)); band.position.y = 1.0; g.add(band);
     var chest = new T.Mesh(new T.CylinderGeometry(0.20, 0.25, 0.42, 8), nmat(0x2c2836)); chest.position.y = 1.36; chest.castShadow = true; g.add(chest);
     var head = new T.Mesh(new T.SphereGeometry(0.155, 8, 7), nmat(0xf0d8bc)); head.position.y = 1.7; g.add(head);
+    if (roma) {
+      /* 骨架资材到位就用带装备的模型（与地中海引擎同一份共用模块），
+         取不到再退回下面这套简笔——总之绝不能是天子冕。 */
+      var rg = rigPawn({ outfit: 'fglad', head: 'Mid_Hair', hairC: 0xd9a94e, prop: 'sword',
+                         robe: 0x24202c, band: 0xa63b26, chest: 0x2c2836 });
+      if (rg) { rg.userData.isPlayer = true; return rg; }
+    }
     if (roma) {
       /* 羅馬紀走到中原時，操縱的仍是貝羅娜：金色波波頭、腰間佩劍，斷不可頂天子冕旒 */
       var bob = new T.Mesh(new T.SphereGeometry(0.165, 8, 7), nmat(0xd9a94e));
