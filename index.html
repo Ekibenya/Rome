@@ -267,7 +267,7 @@ canvas{display:block}
       transition:background .2s,color .2s}
 #game .gSend:hover{background:var(--gold);color:#0a0a0a}
 /* right MFD — TABVLARIVM */
-#game .gMfd{position:absolute;right:0;top:46px;bottom:0;width:322px;overflow-y:auto;z-index:20;
+#game .gMfd{--mut:#9c9c98;position:absolute;right:0;top:46px;bottom:0;width:322px;overflow-y:auto;z-index:20;
       border-left:1px solid rgba(236,236,232,.14);background:rgba(8,8,8,.26);padding:20px 18px 34px}
 .mSec{margin-bottom:26px}
 .mHead{font-size:12px;letter-spacing:.3em;color:var(--txt);margin-bottom:13px}
@@ -282,7 +282,7 @@ canvas{display:block}
 .mStep{flex:1;text-align:center;font-size:9.5px;letter-spacing:.08em;color:var(--mut);padding-top:7px;
       border-top:2px solid rgba(236,236,232,.12)}
 .mStep.on{color:var(--gold-hi);border-top-color:var(--gold)}
-.mLead{font-size:11px;letter-spacing:.12em;line-height:1.9;color:#b9b9b3;margin:7px 0}
+.mLead{font-size:11px;letter-spacing:.12em;line-height:1.9;color:#d9d9d4;margin:7px 0}
 .mLead i{font-style:normal;color:var(--gold)}
 .mOps{display:flex;gap:5px}
 .mOp{flex:1;border:1px solid rgba(236,236,232,.18);text-align:center;padding:9px 0 7px;
@@ -405,7 +405,7 @@ canvas{display:block}
 .mNpc .nHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .mNpc .nName{font-size:12px;letter-spacing:.22em;color:var(--txt)}
 .mNpc .nRole{font-size:10px;letter-spacing:.14em;color:var(--mut)}
-.mNpc .nLine{font-size:10.5px;letter-spacing:.1em;line-height:1.8;color:#a9a9a3;margin-top:5px}
+.mNpc .nLine{font-size:10.5px;letter-spacing:.1em;line-height:1.8;color:#c9c9c3;margin-top:5px}
 .mNpc .nMind{font-size:10.5px;letter-spacing:.1em;line-height:1.7;color:var(--gold);margin-top:3px;font-style:italic}
 .mCap{font-size:10px;letter-spacing:.2em;color:var(--gold-hi);margin-top:4px}
 .mGlyph{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--mut);letter-spacing:.12em;margin-top:8px}
@@ -452,11 +452,11 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
  --t-bg0:#060606;--t-bg1:#0d0d0c;--t-bg2:#111110;--t-grid:#2a2a27;
  --t-g0:#ecece8;--t-g1:#ecc878;--t-g1b:#d9d9d4;--t-g2:#c99b3f;--t-g3:#6b6b66;--t-g4:#4a4a46;--t-paper:#ecece8;
  --t-a1:#ecc878;--t-a2:#c99b3f;--t-a3:#8a6d2f;--t-r1:#c8402e;--t-ink:#0a0a0a;
- --fg-data:#d9d9d4;--fg-label:#6b6b66;--fg-dim:#4a4a46;
+ --fg-data:#ecece8;--fg-label:#8f8f89;--fg-dim:#6b6b66;
  --br:rgba(236,236,232,.18);--br-hi:#c99b3f;--br-corner:#9c9c98;--corner-inset:0px;--inv-bg:#c99b3f;
  --fMono:var(--mono);--fUI:var(--mono);
- --ink:#ecece8;--ink2:#b9b9b3;--gold:#c99b3f;--gold2:#ecc878;--gold3:#ecece8;
- --mut:#6b6b66;--grn2:#c99b3f;--red:#c8402e;--red2:#ecc878;
+ --ink:#ecece8;--ink2:#d9d9d4;--gold:#c99b3f;--gold2:#ecc878;--gold3:#ecece8;
+ --mut:#9c9c98;--grn2:#c99b3f;--red:#c8402e;--red2:#ecc878;
 }
 .zjP{display:block;font-family:var(--mono);text-align:left}
 .zjP *{border-radius:0!important}
@@ -470,25 +470,25 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 @keyframes zjfadeup{0%{opacity:0}100%{opacity:1}}
 .zjP .zjSecH{display:flex;align-items:baseline;cursor:pointer}
 .zjP .zjSecH .zjCar{margin-left:auto;color:var(--mut);letter-spacing:0;font-size:10px}
-.zjP input::placeholder,.zjP textarea::placeholder{color:#4a4a46}
+.zjP input::placeholder,.zjP textarea::placeholder{color:#6b6b66}
 .zjP .gph-hint{font-size:11px;color:var(--mut);line-height:1.85;margin:2px 0 8px;letter-spacing:.08em}
-#zjGraphSvg .gph-nm{font-family:var(--mono);letter-spacing:.08em;fill:#b9b9b3;pointer-events:none}
+#zjGraphSvg .gph-nm{font-family:var(--mono);letter-spacing:.08em;fill:#d9d9d4;pointer-events:none}
 #zjGraphSvg g[data-npc]:hover .fd-fold{filter:drop-shadow(0 0 5px rgba(236,200,120,.5))}
 #zjGraphSvg g[data-npc]:hover .gph-nm{fill:#ecc878}
 #zjGraphSvg g.gph-sel .fd-fold{filter:drop-shadow(0 0 6px rgba(236,200,120,.65))}
 #zjGraphSvg g.gph-sel .gph-nm{fill:#ecc878}
 .fd-ov,.fd-ov *{border-radius:0!important}
 .fd-ov{position:fixed;inset:0;z-index:2147481300;display:flex;align-items:center;justify-content:center;background:rgba(4,4,4,.86);font-family:var(--mono)}
-.fd-win{border:1px solid rgba(236,236,232,.4);background:var(--ink,#060606);padding:30px 36px 24px;width:min(92vw,430px);max-height:80vh;overflow-y:auto;color:#d9d9d4;font-family:var(--mono)}
-.fd-win h2{font-size:14px;letter-spacing:.3em;font-weight:400;color:#d9d9d4;margin:18px 0 6px}
+.fd-win{border:1px solid rgba(236,236,232,.4);background:#060606;padding:30px 36px 24px;width:min(92vw,430px);max-height:80vh;overflow-y:auto;color:#d9d9d4;font-family:var(--mono)}
+.fd-win h2{font-size:14px;letter-spacing:.3em;font-weight:400;color:#ecece8;margin:18px 0 6px}
 .fd-row{display:flex;gap:22px;font-size:12px;line-height:1.8;padding:11px 0;border-bottom:1px solid rgba(236,236,232,.12);letter-spacing:.04em}
-.fd-k{flex:0 0 74px;font-size:10px;letter-spacing:.24em;color:var(--mut);padding-top:3px;white-space:nowrap}
-.fd-v{flex:1;min-width:0;color:#d9d9d4;overflow-wrap:break-word;word-break:break-word}
-.fd-nd{color:#4a4a46;letter-spacing:.16em}
+.fd-k{flex:0 0 74px;font-size:10px;letter-spacing:.24em;color:#9c9c98;padding-top:3px;white-space:nowrap}
+.fd-v{flex:1;min-width:0;color:#ecece8;overflow-wrap:break-word;word-break:break-word}
+.fd-nd{color:#8f8f89;letter-spacing:.16em}
 .fd-bar{height:3px;background:rgba(236,236,232,.10);position:relative;margin-top:7px}
 .fd-bar>i{position:absolute;left:0;top:0;bottom:0;background:var(--gold)}
 .fd-quote{display:block;padding:2px 0;line-height:1.9;color:#ecc878;font-style:italic}
-.fd-last{margin-top:16px;font-size:9px;color:var(--mut);letter-spacing:.3em}
+.fd-last{margin-top:16px;font-size:9.5px;color:#9c9c98;letter-spacing:.3em}
 .fd-btn{cursor:pointer;display:inline-block;border:1px solid rgba(236,236,232,.35);background:transparent;color:#d9d9d4;font-size:10px;letter-spacing:.25em;padding:7px 16px 6px;user-select:none;transition:border-color .2s,color .2s}
 .fd-btn:hover{border-color:var(--gold);color:var(--gold-hi)}
 .fd-btn.fd-warn{color:#c8402e;border-color:rgba(200,64,46,.5)}
@@ -4905,7 +4905,7 @@ function memPaneInner(compact){
     return '<div style="display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(236,236,232,.12);padding:9px 12px;margin-bottom:6px;background:rgba(236,236,232,.015)">'
       +'<div style="flex:none;font-size:11px;color:var(--mut);min-width:26px;text-align:right;padding-top:2px">'+(i+1)+'</div>'
       +'<div style="flex:1;min-width:0"><div style="font-size:11.5px;color:var(--gold);letter-spacing:.08em">'+esc((m.e||'')+(m.d?('·'+m.d):''))+(m.manual?' · <span style="color:var(--gold2)">手記</span>':'')+'</div>'
-      +(m.a?'<div style="font-size:11.5px;color:#a9a9a3;margin-top:3px;letter-spacing:.06em">我：'+esc(m.a)+'</div>':'')
+      +(m.a?'<div style="font-size:11.5px;color:#c9c9c3;margin-top:3px;letter-spacing:.06em">我：'+esc(m.a)+'</div>':'')
       +(m.s?'<div style="font-size:12px;color:var(--ink2);line-height:1.8;margin-top:3px;letter-spacing:.05em">'+esc(m.s)+'</div>':'')+'</div>'
       +'<div class="btn" data-medit="'+(i+1)+'" style="flex:none;cursor:pointer;font-size:11px;color:var(--gold);border:1px solid rgba(201,155,63,.4);padding:2px 8px">編輯</div>'
       +'<div class="btn" data-mdel="'+i+'" style="flex:none;cursor:pointer;font-size:11px;color:#c8402e;border:1px solid rgba(200,64,46,.4);padding:2px 8px">刪</div></div>';
@@ -4920,7 +4920,7 @@ function memPaneInner(compact){
     +'<div style="font-size:11px;letter-spacing:.08em;color:var(--mut)">'+n+' 條 · 約'+chars+'字'+(chars>7000?'（超長部分自動中略，首尾保留）':'')+'</div>'
     +'<div class="btn" data-act="memExport" style="cursor:pointer;margin-left:auto;font-size:11.5px;letter-spacing:.15em;color:var(--gold2);border:1px solid rgba(201,155,63,.4);padding:6px 12px">導出長卷</div>'
     +'<div class="btn" data-act="memClear" style="cursor:pointer;font-size:11.5px;letter-spacing:.15em;color:#c8402e;border:1px solid rgba(200,64,46,.4);padding:6px 12px">清空長卷</div></div>'
-    +'<div style="display:flex;gap:8px;margin-bottom:14px"><input id="zjMemAdd" placeholder="手記一筆（重要設定/約定/伏筆，AI 會永遠記住）…" style="flex:1;background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.2);color:#b9b9b3;font-size:12px;padding:9px 12px;font-family:var(--mono)" autocomplete="off"><button data-act="memAdd" class="obtn btn" style="flex:none;font-size:11.5px;letter-spacing:.2em;padding:0 16px">記 入</button></div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:14px"><input id="zjMemAdd" placeholder="手記一筆（重要設定/約定/伏筆，AI 會永遠記住）…" style="flex:1;background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.2);color:#ecece8;font-size:12px;padding:9px 12px;font-family:var(--mono)" autocomplete="off"><button data-act="memAdd" class="obtn btn" style="flex:none;font-size:11.5px;letter-spacing:.2em;padding:0 16px">記 入</button></div>'
     +(compact?'<div style="max-height:340px;overflow-y:auto">'+rows+'</div>':rows);
 }
 /* 折叠节头（Ghost 侧栏 head() 同款） */
