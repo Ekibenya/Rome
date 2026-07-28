@@ -1011,10 +1011,12 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
     <span class="tag">EXIT</span>
     <h2>離開棋局？</h2>
     <div class="sub">未存檔的進度將停留在此刻的羅馬。</div>
-    <div style="display:flex;gap:14px;justify-content:center">
-      <span class="eBtn" id="exYes">DISCEDERE&nbsp;離開</span>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <span class="eBtn" id="exSave">SERVA&nbsp;存檔後離開</span>
+      <span class="eBtn" id="exYes">DISCEDERE&nbsp;直接離開</span>
       <span class="eBtn" id="exNo">MANERE&nbsp;留下</span>
     </div>
+    <div class="sub" id="exMsg" style="margin-top:10px;min-height:1.6em"></div>
   </div>
 </div>
 
@@ -4460,8 +4462,22 @@ $('#gtSave').addEventListener('click',function(){svOpen();});
 $('#gtExit').addEventListener('click',function(){gDlgShow('#dlgExit');});
 $('#gtApi').addEventListener('click',function(){apiOpen();});
 $('#gtVoc').addEventListener('click',function(){gDlgShow('#dlgVoc');});
-$('#exYes').addEventListener('click',function(){$('#dlgExit').style.display='none';gameExit();});
-$('#exNo').addEventListener('click',function(){$('#dlgExit').style.display='none';});
+$('#exSave').addEventListener('click',function(){
+  /* 存檔後離開：優先寫入空槽，無空槽則覆寫最舊的一格 */
+  var btn=this;if(btn.dataset.busy)return;btn.dataset.busy='1';
+  try{
+    var slot=0,oldest=null;
+    for(var n=1;n<=3;n++){var v=svGet(n);if(!v){slot=n;break;}
+      if(!oldest||(v.when||'')<(oldest.when||'')){oldest=v;oldest._n=n;}}
+    if(!slot)slot=oldest?oldest._n:1;
+    svPut(slot,svSnap());
+    if(typeof svRender==='function')try{svRender();}catch(_){}
+    $('#exMsg').textContent='已寫入 TABVLA '+['I','II','III'][slot-1]+' · 正在離開…';
+    setTimeout(function(){btn.dataset.busy='';$('#dlgExit').style.display='none';$('#exMsg').textContent='';gameExit();},700);
+  }catch(e){btn.dataset.busy='';$('#exMsg').textContent='存檔失敗：'+(e&&e.message||'未知錯誤');}
+});
+$('#exYes').addEventListener('click',function(){$('#dlgExit').style.display='none';$('#exMsg').textContent='';gameExit();});
+$('#exNo').addEventListener('click',function(){$('#dlgExit').style.display='none';$('#exMsg').textContent='';});
 (function(){
   var ds=['#dlgCfg','#dlgBook','#dlgExit','#dlgApi','#dlgVoc','#dlgBgm']; /* dlgSave 環盤自帶 RETVRN/ESC：pointer capture 令 up.target 恒為 dlg，不能用點自身關閉 */
   for(var i=0;i<ds.length;i++)(function(sel){
