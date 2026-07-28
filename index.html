@@ -447,72 +447,73 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   #foot{padding:0 16px}
 }
 @media (prefers-reduced-motion:reduce){ body{--motion:0} }
-/* ══ 図譜 CHAIN × 記憶 MEM（Ghost 原版移植：S9 OPS.TERM 令牌，局部作用域）══ */
+/* ══ 人物圖譜 × 長程記憶（ROME 本地化皮膚：紙白線框×鎏金，直角鐵則）══ */
 .zjP,.fd-ov{
- --t-bg0:#030806;--t-bg1:#07120c;--t-bg2:#0c1a12;--t-grid:#12281b;
- --t-g0:#c9ffe2;--t-g1:#7dffb0;--t-g1b:#a8e8c4;--t-g2:#3ddc84;--t-g3:#1e9e5c;--t-g4:#12583a;--t-paper:#cfe6d8;
- --t-a1:#ffcf7d;--t-a2:#ffb000;--t-a3:#8f6a1e;--t-r1:#ff5c5c;--t-ink:#04110a;
- --fg-data:var(--t-g1);--fg-label:var(--t-g3);--fg-dim:var(--t-g4);
- --br:#1e4630;--br-hi:#2f7a4f;--br-corner:var(--t-g2);--corner-inset:0px;--inv-bg:var(--t-g2);
- --fMono:'Share Tech Mono',ui-monospace,Menlo,Consolas,monospace;
- --fUI:'Rajdhani','Share Tech Mono',ui-monospace,sans-serif;
- --ink:var(--t-paper);--ink2:#b9d6c6;--gold:var(--t-g2);--gold2:var(--t-g1);--gold3:var(--t-g0);
- --mut:var(--t-g3);--grn2:var(--t-g3);--red:var(--t-a2);--red2:var(--t-a1);
+ --t-bg0:#060606;--t-bg1:#0d0d0c;--t-bg2:#111110;--t-grid:#2a2a27;
+ --t-g0:#ecece8;--t-g1:#ecc878;--t-g1b:#d9d9d4;--t-g2:#c99b3f;--t-g3:#6b6b66;--t-g4:#4a4a46;--t-paper:#ecece8;
+ --t-a1:#ecc878;--t-a2:#c99b3f;--t-a3:#8a6d2f;--t-r1:#c8402e;--t-ink:#0a0a0a;
+ --fg-data:#d9d9d4;--fg-label:#6b6b66;--fg-dim:#4a4a46;
+ --br:rgba(236,236,232,.18);--br-hi:#c99b3f;--br-corner:#9c9c98;--corner-inset:0px;--inv-bg:#c99b3f;
+ --fMono:var(--mono);--fUI:var(--mono);
+ --ink:#ecece8;--ink2:#b9b9b3;--gold:#c99b3f;--gold2:#ecc878;--gold3:#ecece8;
+ --mut:#6b6b66;--grn2:#c99b3f;--red:#c8402e;--red2:#ecc878;
 }
-.zjP{display:block;font-family:var(--fMono);text-align:left}
+.zjP{display:block;font-family:var(--mono);text-align:left}
+.zjP *{border-radius:0!important}
 .zjP .btn{cursor:pointer;transition:border-color .15s,color .15s,background .15s,opacity .15s}
 .zjP .btn:active{transform:scale(.97)}
-.zjP .gbtn{cursor:pointer;background:var(--inv-bg);border:1px solid var(--br-hi);color:var(--t-ink);font-family:var(--fUI);font-weight:600;letter-spacing:.08em}
+.zjP .gbtn{cursor:pointer;background:var(--gold);border:1px solid var(--gold);color:#0a0a0a;font-family:var(--mono);font-weight:600;letter-spacing:.08em}
 .zjP .gbtn:hover{filter:brightness(1.12)}
-.zjP .obtn{cursor:pointer;background:transparent;border:1px solid var(--br);color:var(--fg-label);transition:all .15s}
-.zjP .obtn:hover{border-color:var(--br-hi);color:var(--fg-data);background:rgba(61,220,132,.08)}
-.zjP .glass{--glassTint:1;position:relative;background:rgba(7,18,12,.92);border:1px solid var(--br);box-shadow:none}
-.zjP .glass::before{content:'';position:absolute;inset:var(--corner-inset);pointer-events:none;opacity:.6;transition:opacity .2s;background:
- linear-gradient(var(--br-corner),var(--br-corner)) 0 0/8px 1px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 0 0/1px 8px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 100% 0/8px 1px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 100% 0/1px 8px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 0 100%/8px 1px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 0 100%/1px 8px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 100% 100%/8px 1px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 100% 100%/1px 8px no-repeat}
-.zjP .glass::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:0 0 6px 0 rgba(61,220,132,.4);opacity:.08;transition:opacity .2s}
-.zjP .glass:hover{border-color:var(--br-hi)}
+.zjP .obtn{cursor:pointer;background:transparent;border:1px solid rgba(236,236,232,.22);color:var(--mut);transition:all .15s}
+.zjP .obtn:hover{border-color:var(--gold);color:#d9d9d4;background:rgba(236,236,232,.04)}
+.zjP .glass{position:relative;background:rgba(236,236,232,.025);border:1px solid rgba(236,236,232,.12)}
+.zjP .glass::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.65;transition:opacity .2s;background:
+ linear-gradient(var(--br-corner),var(--br-corner)) 0 0/7px 1px no-repeat,
+ linear-gradient(var(--br-corner),var(--br-corner)) 0 0/1px 7px no-repeat,
+ linear-gradient(var(--br-corner),var(--br-corner)) 100% 0/7px 1px no-repeat,
+ linear-gradient(var(--br-corner),var(--br-corner)) 100% 0/1px 7px no-repeat,
+ linear-gradient(var(--br-corner),var(--br-corner)) 0 100%/7px 1px no-repeat,
+ linear-gradient(var(--br-corner),var(--br-corner)) 0 100%/1px 7px no-repeat,
+ linear-gradient(var(--br-corner),var(--br-corner)) 100% 100%/7px 1px no-repeat,
+ linear-gradient(var(--br-corner),var(--br-corner)) 100% 100%/1px 7px no-repeat}
+.zjP .glass:hover{border-color:rgba(201,155,63,.5)}
 .zjP .glass:hover::before{opacity:1}
-.zjP .glass:hover::after{opacity:.22}
 .zjP .fade{animation:zjfadeup .25s steps(4)}
 @keyframes zjfadeup{0%{opacity:0}100%{opacity:1}}
-.zjP .diamond{display:inline-block;width:7px;height:7px;transform:rotate(45deg)}
-.zjP input::placeholder,.zjP textarea::placeholder{color:var(--fg-dim)}
-.zjP .gph-hint{font-size:11px;color:var(--fg-label);line-height:1.7;margin:2px 0 6px;letter-spacing:.04em}
-#zjGraphSvg .gph-nm{font-family:var(--fMono);letter-spacing:.05em;fill:#b9d6c6;pointer-events:none}
-#zjGraphSvg g[data-npc]:hover .fd-fold{filter:drop-shadow(0 0 5px rgba(61,220,132,.6))}
-#zjGraphSvg g[data-npc]:hover .gph-nm{fill:#7dffb0}
-#zjGraphSvg g.gph-sel .fd-fold{filter:drop-shadow(0 0 6px rgba(61,220,132,.75))}
-#zjGraphSvg g.gph-sel .gph-nm{fill:#7dffb0}
+.zjP .zjSecH{display:flex;align-items:baseline;font-size:10px;letter-spacing:.3em;color:#d9d9d4;padding:12px 13px;cursor:pointer}
+.zjP .zjSecH i{font-style:normal;color:var(--gold)}
+.zjP .zjSecH .zjCar{margin-left:auto;color:var(--mut);letter-spacing:0;font-size:9px}
+.zjP input::placeholder,.zjP textarea::placeholder{color:#4a4a46}
+.zjP .gph-hint{font-size:9.5px;color:var(--mut);line-height:1.85;margin:2px 0 8px;letter-spacing:.08em}
+#zjGraphSvg .gph-nm{font-family:var(--mono);letter-spacing:.08em;fill:#b9b9b3;pointer-events:none}
+#zjGraphSvg g[data-npc]:hover .fd-fold{filter:drop-shadow(0 0 5px rgba(236,200,120,.5))}
+#zjGraphSvg g[data-npc]:hover .gph-nm{fill:#ecc878}
+#zjGraphSvg g.gph-sel .fd-fold{filter:drop-shadow(0 0 6px rgba(236,200,120,.65))}
+#zjGraphSvg g.gph-sel .gph-nm{fill:#ecc878}
 .fd-ov,.fd-ov *{border-radius:0!important}
-.fd-ov{position:fixed;inset:0;z-index:2147481300;display:flex;align-items:center;justify-content:center;background:rgba(1,4,2,.72)}
-.fd-win{background:var(--t-bg1);border:1px solid var(--t-g2);box-shadow:0 0 0 3px var(--t-bg0),0 0 0 4px var(--br),0 0 22px rgba(61,220,132,.18);width:min(440px,94vw);max-height:88vh;display:flex;flex-direction:column;font-family:var(--fMono);color:var(--t-g1b)}
-.fd-tbar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br);font-size:11px;letter-spacing:.18em;color:var(--fg-label);white-space:nowrap}
-.fd-ttname{flex:1;min-width:0;color:var(--t-g0);font-size:12.5px;letter-spacing:.1em;overflow:hidden;text-overflow:ellipsis}
-.fd-x{cursor:pointer;flex:none;color:var(--t-g3);border:1px solid var(--br);padding:1px 8px;font-size:12px}
+.fd-ov{position:fixed;inset:0;z-index:2147481300;display:flex;align-items:center;justify-content:center;background:rgba(4,4,4,.72);font-family:var(--mono)}
+.fd-win{background:#0d0d0c;border:1px solid rgba(236,236,232,.28);box-shadow:0 0 0 3px #060606,0 0 0 4px rgba(236,236,232,.12),0 0 26px rgba(0,0,0,.55);width:min(440px,94vw);max-height:88vh;display:flex;flex-direction:column;font-family:var(--mono);color:#d9d9d4}
+.fd-tbar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br);font-size:10px;letter-spacing:.22em;color:var(--gold)}
+.fd-tbar>span:first-child{white-space:nowrap}
+.fd-ttname{flex:1;min-width:0;color:#ecece8;font-size:12px;letter-spacing:.14em;overflow:hidden;text-overflow:ellipsis}
+.fd-x{cursor:pointer;flex:none;color:var(--mut);border:1px solid var(--br);padding:1px 8px;font-size:12px}
 .fd-x:hover{color:var(--t-r1);border-color:var(--t-r1)}
-.fd-body{flex:1;min-height:0;overflow-y:auto;padding:11px 13px}
+.fd-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px}
 .fd-foot{flex:none;display:flex;justify-content:space-between;padding:7px 10px;border-top:1px solid var(--br)}
-.fd-nav{cursor:pointer;border:1px solid var(--br);color:var(--t-g1);font-size:11px;letter-spacing:.14em;padding:4px 12px;user-select:none}
-.fd-nav:hover{border-color:var(--t-g2);color:var(--t-g0)}
-.fd-row{display:flex;gap:8px;font-size:11.5px;line-height:1.7;margin-bottom:6px}
-.fd-k{flex:0 0 52px;color:var(--fg-label);letter-spacing:.12em;white-space:nowrap}
-.fd-v{flex:1;min-width:0;color:var(--t-g1b);overflow-wrap:break-word;word-break:break-word}
-.fd-nd{color:var(--t-g4);letter-spacing:.14em}
-.fd-bar{height:6px;background:var(--t-bg0);border:1px solid var(--t-g4);position:relative;margin-top:5px}
-.fd-bar>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--t-a2),var(--t-g2))}
-.fd-quote{display:block;border-left:2px solid var(--t-g2);background:rgba(61,220,132,.05);padding:5px 9px;line-height:1.7;margin:2px 0}
-.fd-last{margin-top:8px;font-size:10px;color:var(--t-g4);letter-spacing:.14em}
-.fd-btn{cursor:pointer;display:inline-block;border:1px solid var(--br);background:var(--t-bg0);color:var(--t-g1);font-size:11px;letter-spacing:.1em;padding:5px 12px;user-select:none}
-.fd-btn:hover{border-color:var(--br-hi);color:var(--t-g0)}
-.fd-btn.fd-warn{color:var(--t-a1);border-color:var(--t-a3)}
-@media (max-width:919px){ /* 手机端：档案窗全宽底部抽屉 */
+.fd-nav{cursor:pointer;border:1px solid var(--br);color:#d9d9d4;font-size:10px;letter-spacing:.18em;padding:4px 12px;user-select:none}
+.fd-nav:hover{border-color:var(--gold);color:#ecece8}
+.fd-row{display:flex;gap:8px;font-size:10.5px;line-height:1.8;margin-bottom:6px;letter-spacing:.04em}
+.fd-k{flex:0 0 58px;color:var(--fg-label);letter-spacing:.16em;white-space:nowrap}
+.fd-v{flex:1;min-width:0;color:#d9d9d4;overflow-wrap:break-word;word-break:break-word}
+.fd-nd{color:var(--fg-dim);letter-spacing:.16em}
+.fd-bar{height:3px;background:rgba(236,236,232,.10);position:relative;margin-top:6px}
+.fd-bar>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#c99b3f,#ecc878)}
+.fd-quote{display:block;border-left:2px solid var(--gold);background:rgba(236,236,232,.04);padding:5px 9px;line-height:1.8;margin:2px 0;color:var(--gold-hi,#ecc878);font-style:italic}
+.fd-last{margin-top:9px;font-size:9px;color:var(--fg-dim);letter-spacing:.16em}
+.fd-btn{cursor:pointer;display:inline-block;border:1px solid var(--br);background:#060606;color:#d9d9d4;font-size:10px;letter-spacing:.14em;padding:5px 12px;user-select:none}
+.fd-btn:hover{border-color:var(--gold);color:#ecece8}
+.fd-btn.fd-warn{color:var(--t-r1);border-color:rgba(200,64,46,.5)}
+@media (max-width:919px){ /* 手機端：檔案窗全寬底部抽屜 */
  .fd-ov{align-items:flex-end}
  .fd-win{width:100%;max-width:none;max-height:78vh;border-left:none;border-right:none;border-bottom:none;box-shadow:0 -8px 30px rgba(0,0,0,.5)}
 }
@@ -4410,8 +4411,8 @@ function renderMvu(panel){
   GAME.lastPanel=panel;
   try{memSync();}catch(_){}
   h+='<div class="zjP">'
-    +'<div class="glass" style="margin:11px 12px 0;border-radius:14px">'+zjHead(S.secG,'tgG','#1e9e5c','図譜 CHAIN',S.secG)+(S.secG?'<div id="zjGraphBox" class="fade" style="padding:0 15px 16px">'+graphInner()+'</div>':'')+'</div>'
-    +'<div class="glass" style="margin:11px 12px 14px;border-radius:14px">'+zjHead(S.secM,'tgM','#7dffb0','記憶 MEM',S.secM)+(S.secM?'<div class="fade zjMemPane" style="padding:0 15px 16px">'+memPaneInner(true)+'</div>':'')+'</div>'
+    +'<div class="glass" style="margin:11px 12px 0">'+zjHead(S.secG,'tgG','',ACTIVE==='roma'?'NEXVS&nbsp;·&nbsp;人物圖譜':'牽絲譜&nbsp;·&nbsp;人物圖譜',S.secG)+(S.secG?'<div id="zjGraphBox" class="fade" style="padding:0 15px 16px">'+graphInner()+'</div>':'')+'</div>'
+    +'<div class="glass" style="margin:11px 12px 14px">'+zjHead(S.secM,'tgM','',ACTIVE==='roma'?'MEMORIA&nbsp;·&nbsp;長程記憶':'起居注&nbsp;·&nbsp;長程記憶',S.secM)+(S.secM?'<div class="fade zjMemPane" style="padding:0 15px 16px">'+memPaneInner(true)+'</div>':'')+'</div>'
     +'</div>';
   document.querySelector('#game .gMfd').innerHTML=h;
   try{graphHydrate();}catch(_){}
@@ -4424,6 +4425,9 @@ function stripCoT(t){return String(t||'').replace(/<think>[\s\S]*?<\/think>/gi,'
 function reducedMotion(){try{return matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}}
 function currentOpening(){return GAME.op||null;}
 function zjSelf(){return ACTIVE==='roma'?'贝罗娜':'姬瑶';}
+function zjL(){return ACTIVE==='roma'
+ ?{fdT:'▚ TABVLA PERSONAE ▞',rel:'NEXVS',trust:'FIDES',stat:'STATVS',voice:'VOX',file:'TABVLA',last:'VLTIMA',prev:'◀ PRIOR',next:'PROXIMA ▶',nd:'NVLLA DATA',fr:'AMICVS · 親',ne:'NEVTER · 平',ho:'HOSTIS · 疏',tag:'DEA'}
+ :{fdT:'▚ 人物列傳 ▞',rel:'關係',trust:'信任',stat:'近況',voice:'心聲',file:'檔案',last:'末見',prev:'◀ 前一人',next:'後一人 ▶',nd:'無　載',fr:'親厚',ne:'平淡',ho:'疏敵',tag:'神'};}
 function zjAuxReady(){return (typeof subReady==='function'&&subReady())||apiReady();}
 function callAuxAI(sys,msgs){
   return new Promise(function(res,rej){
@@ -4572,20 +4576,20 @@ function fdLampCol(o){ /* 状态灯色阶：高=绿 中=琥珀 低/敌意=红 �
   if(!isFinite(fv))return 'var(--t-g4)';
   return fv>=70?'var(--t-g2)':fv>=40?'var(--t-a2)':'var(--t-r1)';
 }
-function fdFolderSvg(lamp,self){ /* 终端风直角折角文件夹（带上标签耳），手写内联SVG */
-  var st=self?'var(--t-a2)':'var(--t-g2)';
+function fdFolderSvg(lamp,self){ /* 羅馬名牌 TABVLA：方框+四角刻線+狀態燈，本體=鎏金框 */
+  var st=self?'#ecc878':'#9c9c98';
   return '<svg class="fd-fold" width="44" height="34" viewBox="0 0 44 34" aria-hidden="true">'
-    +'<path d="M1.5 6.5 H15 L19 10.5 H42.5 V32.5 H1.5 Z" fill="var(--t-bg1)" stroke="'+st+'" stroke-width="1.2"/>'
-    +'<path d="M1.5 10.5 H19" fill="none" stroke="'+st+'" stroke-width="1" opacity=".45"/>'
-    +'<path d="M6 27.5 H'+(self?'26':'20')+'" fill="none" stroke="'+st+'" stroke-width="1" opacity=".35"/>'
+    +'<rect x="4.5" y="5.5" width="35" height="23" fill="#0b0b0a" stroke="'+st+'" stroke-width="1"'+(self?'':' stroke-opacity=".75"')+'/>'
+    +'<path d="M1.5 9.5 V1.5 H9.5 M34.5 1.5 H42.5 V9.5 M42.5 24.5 V32.5 H34.5 M9.5 32.5 H1.5 V24.5" fill="none" stroke="'+(self?'#c99b3f':'#5a5a55')+'" stroke-width="1"/>'
+    +'<path d="M9 23.5 H'+(self?'30':'24')+'" fill="none" stroke="'+st+'" stroke-width="1" opacity=".4"/>'
     +(self
-      ?'<text x="6" y="23" font-size="7.5" fill="var(--t-a1)" font-family="var(--fMono)" letter-spacing="1.5">SELF</text>'
-      :'<rect x="34" y="15" width="6" height="6" fill="'+lamp+'"/>')
+      ?'<text x="9" y="17.5" font-size="'+(ACTIVE==='roma'?'7.5':'9')+'" fill="#ecc878" font-family="var(--mono)" letter-spacing="2">'+zjL().tag+'</text>'
+      :'<rect x="32" y="9" width="5" height="5" fill="'+lamp+'"/>')
     +'</svg>';
 }
 function graphInner(){
   var ns=npcStats();
-  if(!ns.length)return '<div style="padding:18px 0 6px;text-align:center;font-size:12px;letter-spacing:.2em;color:#1e9e5c;line-height:2">尚无人物入络<br>与 NPC 相逢相知后，此处自动结成档案蛛网</div>';
+  if(!ns.length)return '<div style="padding:18px 0 6px;text-align:center;font-size:10px;letter-spacing:.2em;color:var(--mut);line-height:2">尚無人物入譜<br>與眾人相逢相知後，此處自動結成人物圖譜</div>';
   var vis={};ns.forEach(function(o){vis[o.name]=1;});
   var pc=npcPairs();
   var adj={'__c':[]};ns.forEach(function(o){adj[o.name]=[];});
@@ -4638,7 +4642,7 @@ function graphInner(){
     if(!hub[o.name])return;
     var cp=pos[o.name]||{x:cx,y:cy},pp=pos['__c'];
     var fv=Number(o.favor);if(!isFinite(fv))fv=50;
-    var col=fv>=70?'#3ddc84':'#ffb000';
+    var col=fv>=70?'#ecc878':'#c99b3f';
     var sel=S.memNpc===o.name;
     hubLines+='<line data-a="__c" data-b="'+esc(o.name)+'" x1="'+pp.x.toFixed(1)+'" y1="'+pp.y.toFixed(1)+'" x2="'+cp.x.toFixed(1)+'" y2="'+cp.y.toFixed(1)+'" stroke="'+col+'" stroke-opacity="'+(sel?'.92':'.5')+'" stroke-width="'+(1+Math.min(2.4,o.n/3)).toFixed(1)+'"/>';
   });
@@ -4648,7 +4652,7 @@ function graphInner(){
     var a=pos[ab[0]],b=pos[ab[1]],cnt=pc[k];if(!a||!b)return;
     var w=Math.min(2,.6+cnt*.3);
     var seld=(S.memNpc===ab[0]||S.memNpc===ab[1]);
-    webLines+='<line data-a="'+esc(ab[0])+'" data-b="'+esc(ab[1])+'" x1="'+a.x.toFixed(1)+'" y1="'+a.y.toFixed(1)+'" x2="'+b.x.toFixed(1)+'" y2="'+b.y.toFixed(1)+'" stroke="#1e9e5c" stroke-opacity="'+(seld?'.8':'.4')+'" stroke-width="'+w.toFixed(1)+'"'+(cnt<2?' stroke-dasharray="5 4"':'')+'/>';
+    webLines+='<line data-a="'+esc(ab[0])+'" data-b="'+esc(ab[1])+'" x1="'+a.x.toFixed(1)+'" y1="'+a.y.toFixed(1)+'" x2="'+b.x.toFixed(1)+'" y2="'+b.y.toFixed(1)+'" stroke="#9c9c98" stroke-opacity="'+(seld?'.8':'.4')+'" stroke-width="'+w.toFixed(1)+'"'+(cnt<2?' stroke-dasharray="5 4"':'')+'/>';
   });
   var lines=webLines+hubLines;
   var nodes=''; /* 节点=缩小版终端文件夹（44×34+状态灯）+姓名小字；物理层只动 g.transform */
@@ -4664,13 +4668,13 @@ function graphInner(){
   var center='<g data-gcenter="1" class="gph-n gph-c" data-x="'+cx+'" data-y="'+cy+'" transform="translate('+cx+','+cy+')" style="cursor:grab">'
     +'<g transform="translate(-26,-30) scale(1.18)" style="pointer-events:none">'+fdFolderSvg('',true)+'</g>'
     +'<rect x="-27" y="-31" width="54" height="62" fill="transparent"/>'
-    +'<text x="0" y="25" text-anchor="middle" font-size="10.5" style="fill:#ffcf7d;font-family:var(--fMono);letter-spacing:.05em;pointer-events:none">本体│'+esc(zjSelf())+'</text></g>';
+    +'<text x="0" y="25" text-anchor="middle" font-size="10.5" style="fill:#ecc878;font-family:var(--mono);letter-spacing:.05em;pointer-events:none">本體│'+esc(zjSelf())+'</text></g>';
   var hid=(S.graphHidden||[]).length;
-  var resetLine=hid?'<div style="text-align:right;margin-top:6px"><span class="btn" data-act="npcUnhide" style="cursor:pointer;font-size:11px;color:var(--mut)">已移除 '+hid+' 人 · 还原全部</span></div>':'';
-  return '<div class="gph-hint">档案蛛网 CHAIN：常现之人系于本体、结成一张网——节点=人事档案夹（状态灯示好感 <span style="color:#3ddc84">绿亲</span>·<span style="color:#ffb000">琥珀平</span>·<span style="color:#ff5a5a">赤疏</span>），同幕共处者磷光丝互连（虚线=仅一面之缘），孤身偶现者外环漂浮。文件夹可拖拽、轻点开 PERSONNEL FILE——手机双指、电脑滚轮放大细看，拖背景平移。</div>'
+  var resetLine=hid?'<div style="text-align:right;margin-top:6px"><span class="btn" data-act="npcUnhide" style="cursor:pointer;font-size:11px;color:var(--mut)">已移除 '+hid+' 人 · 還原全部</span></div>':'';
+  return '<div class="gph-hint">人物圖譜：常現之人繫於本體、結成一張網——節點=人物名牌（狀態燈示好感 <span style="color:#ecc878">金親</span>·<span style="color:#c99b3f">褐平</span>·<span style="color:#c8402e">赤疏</span>），同幕共處者細線互連（虛線=僅一面之緣），孤身偶現者外環漂浮。名牌可拖拽、輕點開人物檔案——手機雙指、電腦滾輪放大細看，拖背景平移。</div>'
     +'<div id="zjGraphWrap" style="position:relative;overflow:hidden">'
     +'<svg id="zjGraphSvg" data-bw="'+W+'" data-bh="'+H+'" viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;touch-action:none">'+lines+center+nodes+'</svg>'
-    +'<span data-act="graphZoomReset" class="btn" style="position:absolute;right:8px;bottom:8px;font-size:11px;color:var(--mut);background:rgba(7,18,12,.82);border:1px solid rgba(61,220,132,.3);padding:3px 10px;cursor:pointer">复位</span>'
+    +'<span data-act="graphZoomReset" class="btn" style="position:absolute;right:8px;bottom:8px;font-size:10px;letter-spacing:.15em;color:var(--mut);background:rgba(6,6,6,.85);border:1px solid rgba(236,236,232,.25);padding:3px 10px;cursor:pointer">復位</span>'
     +'</div>'+resetLine;
 }
 function gphMark(){ /* 选中态即时刷（fd窗开关/◀▶切换时调用，不整树重渲） */
@@ -4781,14 +4785,14 @@ function graphHydrate(){ /* 弹簧物理+拖拽+缩放（节点=g.transform 驱�
 function graphCardHtml(){ /* 档案窗正文（npcMetaFill 回调仍按 #zjGraphCard 刷新此块——签名/挂点不变） */
   if(!S.memNpc)return '';
   var ns=npcStats(),sel2=null;ns.forEach(function(o){if(o.name===S.memNpc)sel2=o;});
-  var ND='<span class="fd-nd">NO DATA</span>';
-  if(!sel2)return '<div class="fd-row"><span class="fd-k">FILE</span><span class="fd-v">'+ND+'</span></div>';
+  var L=zjL(),ND='<span class="fd-nd">'+L.nd+'</span>';
+  if(!sel2)return '<div class="fd-row"><span class="fd-k">'+L.file+'</span><span class="fd-v">'+ND+'</span></div>';
   var fv2=Number(sel2.favor),hasFv=isFinite(fv2);
   var lack=(!sel2.role||!sel2.place||!sel2.age||!sel2.sex);
   if(lack&&zjAuxReady()&&S.npcMeta&&!S.npcMeta[sel2.name]&&S._npcMetaBusy!==sel2.name)setTimeout(function(){npcMetaFill(sel2.name);},30);
   var busy=(S._npcMetaBusy===sel2.name);
   var fr=fdRounds(),k=npcKey(sel2.name)||sel2.name,here=!!fr.present[k],lastR=fr.last[k];
-  var rel=hasFv?(fv2>=70?'FRIENDLY · 亲':fv2>=40?'NEUTRAL · 平':'HOSTILE · 疏'):null;
+  var rel=hasFv?(fv2>=70?L.fr:fv2>=40?L.ne:L.ho):null;
   /* 关系行补充：同幕共演最多的两人（npcPairs 聚合，零改动只取用） */
   var pc=npcPairs(),links=[];
   Object.keys(pc).forEach(function(pk){var ab=pk.split('\u0001');
@@ -4796,20 +4800,20 @@ function graphCardHtml(){ /* 档案窗正文（npcMetaFill 回调仍按 #zjGraph
   links.sort(function(a,b){return b.c-a.c;});
   var lnkTxt=links.length?links.slice(0,2).map(function(l){return esc(l.n)+'×'+l.c;}).join(' '):'';
   var bar=hasFv?'<div class="fd-bar"><i style="width:'+Math.max(2,Math.min(100,fv2))+'%"></i></div>':'';
-  var prof=[sel2.role?('身份 '+esc(sel2.role)):'',sel2.sex?('性别 '+esc(sel2.sex)):'',
-    sel2.age?('年龄 '+esc(sel2.age)+(/^\d+$/.test(String(sel2.age))?'岁':'')):'',
+  var prof=[sel2.role?('身份 '+esc(sel2.role)):'',sel2.sex?('性別 '+esc(sel2.sex)):'',
+    sel2.age?('年齡 '+esc(sel2.age)+(/^\d+$/.test(String(sel2.age))?'歲':'')):'',
     sel2.place?('所在 '+esc(sel2.place)):''].filter(Boolean).join(' ／ ');
-  var redo=zjAuxReady()?'<span class="fd-btn" data-act="npcMetaRedo">↻ 重新推断</span>':'';
-  return '<div class="fd-row"><span class="fd-k">REL</span><span class="fd-v">'+(rel||ND)
-      +(here?' <span style="color:var(--t-g1)">▮ LNK 在场</span>':' <span style="color:var(--t-g4)">▯ OFF 离场</span>')
-      +(lnkTxt?'<span style="display:block;color:var(--fg-label)">共演 ▸ '+lnkTxt+'</span>':'')+'</span></div>'
-    +'<div class="fd-row"><span class="fd-k">TRUST</span><span class="fd-v">'+(hasFv?('信 '+fv2+bar):ND)+'</span></div>'
-    +'<div class="fd-row"><span class="fd-k">STAT</span><span class="fd-v">'+(sel2.state?esc(sel2.state):ND)+'</span></div>'
-    +'<div class="fd-row"><span class="fd-k">VOICE</span><span class="fd-v">'+(sel2.thought?'<span class="fd-quote">「'+esc(sel2.thought)+'」</span>':ND)+'</span></div>'
-    +'<div class="fd-row"><span class="fd-k">FILE</span><span class="fd-v">'+(prof||(busy?'':ND))
+  var redo=zjAuxReady()?'<span class="fd-btn" data-act="npcMetaRedo">↻ 重新推斷</span>':'';
+  return '<div class="fd-row"><span class="fd-k">'+L.rel+'</span><span class="fd-v">'+(rel||ND)
+      +(here?' <span style="color:var(--t-g1)">▮ 在場</span>':' <span style="color:var(--t-g4)">▯ 離場</span>')
+      +(lnkTxt?'<span style="display:block;color:var(--fg-label)">同場 ▸ '+lnkTxt+'</span>':'')+'</span></div>'
+    +'<div class="fd-row"><span class="fd-k">'+L.trust+'</span><span class="fd-v">'+(hasFv?('信 '+fv2+bar):ND)+'</span></div>'
+    +'<div class="fd-row"><span class="fd-k">'+L.stat+'</span><span class="fd-v">'+(sel2.state?esc(sel2.state):ND)+'</span></div>'
+    +'<div class="fd-row"><span class="fd-k">'+L.voice+'</span><span class="fd-v">'+(sel2.thought?'<span class="fd-quote">「'+esc(sel2.thought)+'」</span>':ND)+'</span></div>'
+    +'<div class="fd-row"><span class="fd-k">'+L.file+'</span><span class="fd-v">'+(prof||(busy?'':ND))
       +(busy?'<span style="color:var(--t-a1)">✦ 正据出场记录推断身份/所在/年龄/性别…</span>':'')+'</span></div>'
-    +'<div class="fd-last">LAST SEEN ▸ '+(lastR?('第 '+lastR+' 轮 ／ 共 '+fr.total+' 轮'):'NO DATA')+' ／ 出场 '+sel2.n+' 幕</div>'
-    +'<div style="display:flex;gap:8px;margin-top:10px">'+redo+'<span class="fd-btn fd-warn" data-act="npcDrop" style="margin-left:auto">✕ 移除此档案</span></div>';
+    +'<div class="fd-last">'+L.last+' ▸ '+(lastR?('第 '+lastR+' 輪 ／ 共 '+fr.total+' 輪'):L.nd)+' ／ 出場 '+sel2.n+' 幕</div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px">'+redo+'<span class="fd-btn fd-warn" data-act="npcDrop" style="margin-left:auto">✕ 移除此檔案</span></div>';
 }
 /* ── 档案窗（独立 .fd-ov 层挂 body：重渲侧栏不动它） ── */
 function fdList(){return npcStats().map(function(o){return o.name;});}
@@ -4843,11 +4847,12 @@ function fdOpen(nm){
   if(!nm)return;
   S.memNpc=nm;
   if(!document.getElementById('fdOv')){
+    var L2=zjL();
     var ov=document.createElement('div');ov.className='fd-ov';ov.id='fdOv';
     ov.innerHTML='<div class="fd-win">'
-      +'<div class="fd-tbar"><span>▚ PERSONNEL FILE ▞</span><span id="fdOvName" class="fd-ttname"></span><span class="fd-x" data-fd="close">✕</span></div>'
+      +'<div class="fd-tbar"><span>'+L2.fdT+'</span><span id="fdOvName" class="fd-ttname"></span><span class="fd-x" data-fd="close">✕</span></div>'
       +'<div id="zjGraphCard" class="fd-body"></div>'
-      +'<div class="fd-foot"><span class="fd-nav" data-fd="prev">◀ PREV</span><span class="fd-nav" data-fd="next">NEXT ▶</span></div></div>';
+      +'<div class="fd-foot"><span class="fd-nav" data-fd="prev">'+L2.prev+'</span><span class="fd-nav" data-fd="next">'+L2.next+'</span></div></div>';
     ov.addEventListener('click',fdOvClick);
     document.body.appendChild(ov);
   }
@@ -4903,39 +4908,39 @@ function memPaneInner(compact){
   var n=S.mem?S.mem.length:0;
   var chars=0;S.mem.forEach(function(m){chars+=(m.a||'').length+(m.s||'').length+(m.e||'').length;});
   var on=S.memOn!==false;
-  var min='width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(61,220,132,.3);border-radius:8px;color:var(--ink);padding:7px 10px;font-size:12.5px';
+  var min='width:100%;background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.22);color:var(--ink);padding:7px 10px;font-size:11px;font-family:var(--mono)';
   var rows=S.mem.slice().reverse().map(function(m,ri){
     var i=n-1-ri;
     if(S.memEdit===i){
-      return '<div style="border:1px solid rgba(61,220,132,.55);border-radius:10px;padding:11px 12px;margin-bottom:6px;background:rgba(255,255,255,.02)">'
-        +'<div style="display:flex;gap:8px"><input id="zjMeE" value="'+esc(m.e||'')+'" placeholder="年代" style="'+min+';flex:1"><input id="zjMeD" value="'+esc(m.d||'')+'" placeholder="时地" style="'+min+';flex:1"></div>'
-        +'<input id="zjMeA" value="'+esc(m.a||'')+'" placeholder="玩家之举" style="'+min+';margin-top:7px">'
-        +'<textarea id="zjMeS" placeholder="档案载" style="'+min+';margin-top:7px;min-height:64px;resize:vertical;font-family:inherit;line-height:1.6">'+esc(m.s||'')+'</textarea>'
-        +'<div style="display:flex;gap:9px;margin-top:9px;justify-content:flex-end"><button data-act="memCancel" class="obtn btn" style="font-size:12px;padding:6px 15px">取消</button><button data-act="memSave" class="gbtn btn" style="font-size:12px;letter-spacing:.12em;padding:6px 18px">保 存</button></div></div>';
+      return '<div style="border:1px solid rgba(201,155,63,.6);padding:11px 12px;margin-bottom:6px;background:rgba(236,236,232,.02)">'
+        +'<div style="display:flex;gap:8px"><input id="zjMeE" value="'+esc(m.e||'')+'" placeholder="紀年" style="'+min+';flex:1"><input id="zjMeD" value="'+esc(m.d||'')+'" placeholder="時地" style="'+min+';flex:1"></div>'
+        +'<input id="zjMeA" value="'+esc(m.a||'')+'" placeholder="我之舉" style="'+min+';margin-top:7px">'
+        +'<textarea id="zjMeS" placeholder="史筆" style="'+min+';margin-top:7px;min-height:64px;resize:vertical;font-family:inherit;line-height:1.6">'+esc(m.s||'')+'</textarea>'
+        +'<div style="display:flex;gap:9px;margin-top:9px;justify-content:flex-end"><button data-act="memCancel" class="obtn btn" style="font-size:10px;letter-spacing:.15em;padding:6px 14px">取消</button><button data-act="memSave" class="gbtn btn" style="font-size:10px;letter-spacing:.18em;padding:6px 16px">保 存</button></div></div>';
     }
-    return '<div style="display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(61,220,132,.16);border-radius:10px;padding:9px 12px;margin-bottom:6px;background:rgba(255,255,255,.015)">'
-      +'<div style="flex:none;font-size:11px;color:var(--mut);min-width:26px;text-align:right;padding-top:2px">'+(i+1)+'</div>'
-      +'<div style="flex:1;min-width:0"><div style="font-size:11.5px;color:var(--gold);letter-spacing:.06em">'+esc((m.e||'')+(m.d?('·'+m.d):''))+(m.manual?' · <span style="color:var(--grn2)">手记</span>':'')+'</div>'
-      +(m.a?'<div style="font-size:12px;color:#8fae9c;margin-top:2px">我：'+esc(m.a)+'</div>':'')
-      +(m.s?'<div style="font-size:12.5px;color:var(--ink2);line-height:1.6;margin-top:2px">'+esc(m.s)+'</div>':'')+'</div>'
-      +'<div class="btn" data-medit="'+(i+1)+'" style="flex:none;cursor:pointer;font-size:11px;color:var(--gold);border:1px solid rgba(61,220,132,.35);border-radius:7px;padding:2px 8px">编辑</div>'
-      +'<div class="btn" data-mdel="'+i+'" style="flex:none;cursor:pointer;font-size:11px;color:#ffb000;border:1px solid rgba(255,176,0,.3);border-radius:7px;padding:2px 8px">删</div></div>';
+    return '<div style="display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(236,236,232,.12);padding:9px 12px;margin-bottom:6px;background:rgba(236,236,232,.015)">'
+      +'<div style="flex:none;font-size:10px;color:var(--mut);min-width:26px;text-align:right;padding-top:2px">'+(i+1)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:10px;color:var(--gold);letter-spacing:.08em">'+esc((m.e||'')+(m.d?('·'+m.d):''))+(m.manual?' · <span style="color:var(--gold2)">手記</span>':'')+'</div>'
+      +(m.a?'<div style="font-size:10px;color:#a9a9a3;margin-top:3px;letter-spacing:.06em">我：'+esc(m.a)+'</div>':'')
+      +(m.s?'<div style="font-size:10.5px;color:var(--ink2);line-height:1.8;margin-top:3px;letter-spacing:.05em">'+esc(m.s)+'</div>':'')+'</div>'
+      +'<div class="btn" data-medit="'+(i+1)+'" style="flex:none;cursor:pointer;font-size:10px;color:var(--gold);border:1px solid rgba(201,155,63,.4);padding:2px 8px">編輯</div>'
+      +'<div class="btn" data-mdel="'+i+'" style="flex:none;cursor:pointer;font-size:10px;color:#c8402e;border:1px solid rgba(200,64,46,.4);padding:2px 8px">刪</div></div>';
   }).join('');
-  if(!rows)rows='<div style="text-align:center;padding:30px 0;font-size:13px;letter-spacing:.25em;color:#1e9e5c">长卷尚空 · 行过一轮自动记一笔</div>';
+  if(!rows)rows='<div style="text-align:center;padding:30px 0;font-size:10px;letter-spacing:.25em;color:var(--mut)">長卷尚空 · 行過一輪自動記一筆</div>';
   var intro=compact
-    ?'<div style="font-size:11.5px;line-height:1.75;color:var(--mut)">长程记忆：每轮自动摘成一条纪要，永久保存并全文送呈 AI。</div>'
-    :'<div style="font-size:13px;line-height:1.9;color:var(--ink2)">长程记忆替你记性好：<b style="color:var(--gold2)">每一轮</b>的年代、时地、玩家之举与记录都会自动摘成一条纪要，<b style="color:var(--gold2)">永久保存并每轮全文送呈 AI</b>——即使你的模型上下文很短、正文历史被截断，它也始终知道这一局发生过什么。</div>';
+    ?'<div style="font-size:9.5px;letter-spacing:.08em;line-height:1.9;color:var(--mut)">長程記憶：每輪自動摘成一條紀要，永久保存並全文送呈 AI。</div>'
+    :'<div style="font-size:11px;line-height:1.9;color:var(--ink2)">長程記憶替你記性好：<b style="color:var(--gold2)">每一輪</b>的紀年、時地、我之舉與史筆都會自動摘成一條紀要，<b style="color:var(--gold2)">永久保存並每輪全文送呈 AI</b>——即使你的模型上下文很短、正文歷史被截斷，它也始終知道這一局發生過什麼。</div>';
   return intro
     +'<div style="display:flex;gap:12px;align-items:center;margin:16px 0;flex-wrap:wrap">'
-    +'<div class="btn" data-act="memToggle" style="cursor:pointer;padding:7px 16px;font-size:13px;letter-spacing:.12em;border:1px solid '+(on?'rgba(60,100,148,.5)':'rgba(61,220,132,.3)')+';color:'+(on?'var(--grn2)':'var(--mut)')+'">'+(on?'✓ 注入中':'已停用')+'</div>'
-    +'<div style="font-size:12px;color:var(--mut)">'+n+' 条 · 约'+chars+'字'+(chars>7000?'（超长部分自动中略，首尾保留）':'')+'</div>'
-    +'<div class="btn" data-act="memExport" style="cursor:pointer;margin-left:auto;font-size:12px;color:var(--gold2);border:1px solid rgba(61,220,132,.35);border-radius:8px;padding:6px 14px">导出长卷</div>'
-    +'<div class="btn" data-act="memClear" style="cursor:pointer;font-size:12px;color:#ffb000;border:1px solid rgba(255,176,0,.35);border-radius:8px;padding:6px 14px">清空长卷</div></div>'
-    +'<div style="display:flex;gap:8px;margin-bottom:14px"><input id="zjMemAdd" placeholder="手记一笔（重要设定/约定/伏笔，AI 会永远记住）…" style="flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(61,220,132,.25);color:#b9d6c6;font-size:12.5px;padding:9px 12px;font-family:inherit" autocomplete="off"><button data-act="memAdd" class="obtn btn" style="flex:none;font-size:13px;letter-spacing:.15em;padding:0 18px">记 入</button></div>'
+    +'<div class="btn" data-act="memToggle" style="cursor:pointer;padding:7px 14px;font-size:10px;letter-spacing:.18em;border:1px solid '+(on?'rgba(201,155,63,.55)':'rgba(236,236,232,.2)')+';color:'+(on?'var(--gold2)':'var(--mut)')+'">'+(on?'✓ 注入中':'已停用')+'</div>'
+    +'<div style="font-size:9.5px;letter-spacing:.08em;color:var(--mut)">'+n+' 條 · 約'+chars+'字'+(chars>7000?'（超長部分自動中略，首尾保留）':'')+'</div>'
+    +'<div class="btn" data-act="memExport" style="cursor:pointer;margin-left:auto;font-size:10px;letter-spacing:.15em;color:var(--gold2);border:1px solid rgba(201,155,63,.4);padding:6px 12px">導出長卷</div>'
+    +'<div class="btn" data-act="memClear" style="cursor:pointer;font-size:10px;letter-spacing:.15em;color:#c8402e;border:1px solid rgba(200,64,46,.4);padding:6px 12px">清空長卷</div></div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:14px"><input id="zjMemAdd" placeholder="手記一筆（重要設定/約定/伏筆，AI 會永遠記住）…" style="flex:1;background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.2);color:#b9b9b3;font-size:10.5px;padding:9px 12px;font-family:var(--mono)" autocomplete="off"><button data-act="memAdd" class="obtn btn" style="flex:none;font-size:10px;letter-spacing:.2em;padding:0 16px">記 入</button></div>'
     +(compact?'<div style="max-height:340px;overflow-y:auto">'+rows+'</div>':rows);
 }
 /* 折叠节头（Ghost 侧栏 head() 同款） */
-function zjHead(open,act,color,title,mark){return '<div class="btn" data-act="'+act+'" style="display:flex;align-items:center;gap:10px;padding:12px 15px;cursor:pointer"><span class="diamond" style="background:'+color+'"></span><span style="font-family:var(--fUI);font-weight:600;font-size:14px;letter-spacing:.18em;color:var(--fg-data);flex:1">'+title+'</span><span style="color:var(--fg-label);font-family:var(--fMono);font-size:10px">'+(open?'▾':'▸')+'</span></div>';}
+function zjHead(open,act,color,title,mark){return '<div class="btn zjSecH" data-act="'+act+'"><i>◆</i>&nbsp;'+title+'<span class="zjCar">'+(open?'▾':'▸')+'</span></div>';}
 /* 侧栏 data-act 委托：図譜/記憶 两节的全部按钮 */
 document.querySelector('#game .gMfd').addEventListener('click',function(e){
   var t=e.target;
@@ -4950,7 +4955,7 @@ document.querySelector('#game .gMfd').addEventListener('click',function(e){
   else if(a==='graphZoomReset'){gzReset();}
   else if(a==='npcUnhide'){S.graphHidden=[];savePref();render();}
   else if(a==='memToggle'){S.memOn=S.memOn===false?true:false;savePref();render();}
-  else if(a==='memClear'){if(S.mem.length&&!confirm('清空整卷长程记忆？此举不可复原。'))return;S.mem=[];savePref();render();}
+  else if(a==='memClear'){if(S.mem.length&&!confirm('清空整卷長程記憶？此舉不可復原。'))return;S.mem=[];savePref();render();}
   else if(a==='memAdd'){var mi=((el.closest&&el.closest('.zjMemPane'))||document).querySelector('#zjMemAdd');var tv=mi?mi.value.trim():'';if(tv){S.mem.push({e:'',d:'',a:tv.slice(0,120),s:'',fp:0,manual:true});savePref();render();}}
   else if(a==='memSave'){if(S.memEdit!=null&&S.mem[S.memEdit]){var me0=S.mem[S.memEdit];
     var mroot=(el.closest&&el.closest('.zjMemPane'))||document;
