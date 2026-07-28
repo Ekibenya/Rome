@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "羅馬紀 · 兩千年後的舉牌",
+  "short_name": "ROMA.SYS",
+  "description": "一部跑在瀏覽器裡的敘事遊戲：左手是可以無限寫下去的文字劇本，右手是一座可以走進去的三維城邦。",
+  "lang": "zh-Hant",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060606",
+  "theme_color": "#060606",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "/core/res/icon/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/core/res/icon/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/core/res/icon/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/core/res/icon/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
