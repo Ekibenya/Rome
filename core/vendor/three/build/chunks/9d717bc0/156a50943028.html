@@ -815,7 +815,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="sRow"><span>MVSICA&nbsp;·&nbsp;配乐</span><input type="range" id="cfgBgm" min="0" max="100" value="55"></div>
       <div class="sRow"><span>MOTVS&nbsp;·&nbsp;动效</span><span class="sSeg" id="sgMotus"><span class="on">全开</span><span>减弱（低配）</span></span></div>
       <div class="sRow"><span>VELOCITAS&nbsp;·&nbsp;文字速度</span><span class="sSeg" id="sgVelo"><span>缓</span><span class="on">中</span><span>疾</span><span>瞬</span></span></div>
-      <div class="sRow"><span>LITTERAE&nbsp;·&nbsp;字号</span><span style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end"><input type="range" id="cfgUi" min="80" max="170" step="5" value="100" style="max-width:220px"><b id="cfgUiVal" style="font-weight:400;font-size:10px;letter-spacing:.1em;color:var(--gold-hi);min-width:3.2em;text-align:right">100%</b></span></div><div class="sub">字号拉杆整体缩放界面——正文、情报台状态栏、顶栏、输入区与全部弹窗（含本设置与世界书）一同放大缩小；三维场景不受影响。</div>
+      <div class="sRow"><span>LITTERAE&nbsp;·&nbsp;字号</span><span style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end"><input type="range" id="cfgUi" min="0" max="100" step="1" value="22" style="max-width:220px"><b id="cfgUiVal" style="font-weight:400;font-size:10px;letter-spacing:.1em;color:var(--gold-hi);min-width:3.2em;text-align:right">22%</b></span></div><div class="sub">字号拉杆整体缩放界面——正文、情报台状态栏、顶栏、输入区与全部弹窗（含本设置与世界书）一同放大缩小；三维场景不受影响。刻度 0＝最小、100＝最大，可 1% 一格微调；22% 是原始尺寸。</div>
       <div class="sub">透明度：拖动即时生效——拉到最左＝完全透明（直接看穿到后面的动态背景）；拉到最右＝完全不透明（纯色纸底，彻底看不穿）。开低配模式时模糊被关闭。版式：自动依屏幕宽窄选择版式，也可强制使用电脑或手机布局。</div>
       <div class="sRow"><span>OBSCVRITAS&nbsp;·&nbsp;面板透明度</span><input type="range" id="cfgGlass" min="0" max="100" value="80"></div>
       <div class="sRow"><span>FORMA&nbsp;·&nbsp;版式</span><span class="sSeg" id="sgForma"><span class="on">自动</span><span>桌面</span><span>手机</span></span></div>
@@ -2873,10 +2873,19 @@ function gameEnter(lineOverride){
     var bd=stripMvuLive(full);if(!bd)return;
     if(!fLive){var nr=$('#gNarr');fLive=document.createElement('div');fLive.className='liveWrap';
       nr.insertBefore(fLive,GEN.el||nr.querySelector('.gEot'));}
-    fLive.innerHTML=bd.split(/\n{2,}/).map(function(par){
-      return /^【/.test(par.trim())?('<p class="sys">'+fmtBody(par)+'</p>'):('<p>'+fmtBody(par)+'</p>');
-    }).join('');
-    var n2=$('#gNarr');n2.scrollTop=n2.scrollHeight;
+    /* 同 onDelta：按帧合并，避免每个 token 全量重建整棵子树（铸局是 3200 tokens 的长文，更吃亏） */
+    fLive._pend=bd;
+    if(!fLive._raf){
+      var el=fLive;
+      el._raf=requestAnimationFrame(function(){
+        el._raf=0;
+        if(!el.parentNode)return;
+        el.innerHTML=el._pend.split(/\n{2,}/).map(function(par){
+          return /^【/.test(par.trim())?('<p class="sys">'+fmtBody(par)+'</p>'):('<p>'+fmtBody(par)+'</p>');
+        }).join('');
+        var n2=$('#gNarr');n2.scrollTop=n2.scrollHeight;
+      });
+    }
   }
   oracleCall(
     [{role:'system',content:condereSys(line,yl+' '+cn+' '+nm)},
@@ -3328,17 +3337,39 @@ var CFGS={velo:1,font:1,preset:''};
 try{Object.assign(CFGS,JSON.parse(localStorage.getItem('rome_cfg')||'{}'));}catch(_){}
 function cfgStore(){try{localStorage.setItem('rome_cfg',JSON.stringify(CFGS));}catch(_){}}
 var VELOMAP=[26,13,4,0],FONTMAP=['11.5px','13px','14.5px','16.5px'];
-/* 界面缩放：一根拉杆放大缩小全部文字层（正文／情报台／顶栏／输入区／所有弹窗） */
-function uiScaleGet(){
-  var v=parseInt((CFGS&&CFGS.ui)||100,10);
-  if(isNaN(v))v=100;return Math.max(80,Math.min(170,v));
+/* 界面缩放：一根拉杆放大缩小全部文字层（正文／情报台／顶栏／输入区／所有弹窗）。
+   对外只露 0–100 的刻度（0=最小、100=最大，1 格 1%），内部线性映射到真正有用的
+   0.80–1.70 缩放系数。刻度定义在此处集中，别处一律走 uiQ→uiZoom 换算。 */
+var UIZ_MIN=80,UIZ_MAX=170,UIQ_DEF=22;                  /* 真实缩放区间；22 格＝原尺寸 */
+/* 分段线性：0→80%、UIQ_DEF→100%、100→170%。在原尺寸这一格钉死，免得默认档
+   莫名其妙比原来小零点几个百分点；两段斜率 0.909 / 0.897，肉眼看不出拐点。 */
+function uiQ2Pct(q){
+  return q<=UIQ_DEF ? UIZ_MIN+q*(100-UIZ_MIN)/UIQ_DEF
+                    : 100+(q-UIQ_DEF)*(UIZ_MAX-100)/(100-UIQ_DEF);
 }
-function uiScaleApply(v){
-  v=Math.max(80,Math.min(170,parseInt(v,10)||100));
-  CFGS.ui=v;
-  document.documentElement.style.setProperty('--ui',(v/100).toFixed(3));
-  var lab=$('#cfgUiVal');if(lab)lab.textContent=v+'%';
-  var sl=$('#cfgUi');if(sl&&+sl.value!==v)sl.value=v;
+function uiPct2Q(p){
+  return Math.round(p<=100 ? (p-UIZ_MIN)*UIQ_DEF/(100-UIZ_MIN)
+                           : UIQ_DEF+(p-100)*(100-UIQ_DEF)/(UIZ_MAX-100));
+}
+function uiScaleGet(){
+  var q=(CFGS?CFGS.uiq:null);
+  if(q==null||q===''){                                  /* 老存档只有 ui(80–170)，换算过来 */
+    var old=parseInt((CFGS&&CFGS.ui)||100,10);
+    if(isNaN(old))old=100;
+    q=uiPct2Q(Math.max(UIZ_MIN,Math.min(UIZ_MAX,old)));
+  }
+  q=parseInt(q,10);if(isNaN(q))q=UIQ_DEF;
+  return Math.max(0,Math.min(100,q));
+}
+function uiScaleApply(q){
+  q=parseInt(q,10);if(isNaN(q))q=UIQ_DEF;
+  q=Math.max(0,Math.min(100,q));
+  var pct=uiQ2Pct(q);
+  CFGS.uiq=q;
+  CFGS.ui=Math.round(pct);                              /* 兼容旧键，别的地方可能还在读 */
+  document.documentElement.style.setProperty('--ui',(pct/100).toFixed(4));
+  var lab=$('#cfgUiVal');if(lab)lab.textContent=q+'%';
+  var sl=$('#cfgUi');if(sl&&+sl.value!==q)sl.value=q;
   try{cfgStore();}catch(_){}
   try{if(GAME.on)setTimeout(gmapSize,60);}catch(_){}
 }
@@ -3368,13 +3399,15 @@ function typeParas(paras,tIdx,done,instant){
   var gen=TYPE_GEN,speed=instant?0:VELOMAP[CFGS.velo];
   if(!paras.length){done&&done();return;}
   var par=paras.shift(),html=fmtBody(par);
-  if(/^【/.test(par.trim())){narrAdd('sys',html,tIdx);typeParas(paras,tIdx,done);return;}
-  if(!speed||REDUCED){narrAdd(null,html,tIdx);typeParas(paras,tIdx,done);return;}
+  /* instant 必须一路传下去：漏传的话只有第一段是即时的，从第二段起又回落成
+     13ms/字重打一遍——流式明明已经出完字了，玩家还要再等十几秒看它重放。 */
+  if(/^【/.test(par.trim())){narrAdd('sys',html,tIdx);typeParas(paras,tIdx,done,instant);return;}
+  if(!speed||REDUCED){narrAdd(null,html,tIdx);typeParas(paras,tIdx,done,instant);return;}
   var p=narrAdd(null,'',tIdx),tmp=document.createElement('div');tmp.innerHTML=html;
   var txt=tmp.textContent,i=0,sc=0,nr=$('#gNarr');
   (function tick(){
     if(gen!==TYPE_GEN)return;
-    if(i>=txt.length){p.innerHTML=html;typeParas(paras,tIdx,done);return;}
+    if(i>=txt.length){p.innerHTML=html;typeParas(paras,tIdx,done,instant);return;}
     i+=1+(speed<8?2:0);
     p.textContent=txt.slice(0,i);
     if((sc++%3)===0)nr.scrollTop=nr.scrollHeight;
@@ -3567,7 +3600,10 @@ function oracleCall(messages,cb,err,opt){
     var full=acc+text;
     if(fr==='length'&&round<maxCont&&String(text||'').trim()){
       round++;acc=full;
-      run(contMsgs(msgs,full));return;
+      /* 续写必须始终从「最初那份 messages」接续。原来传的是本轮实际发出去的数组，
+         第二轮会把上一段正文重复塞进上下文、并出现两条连着的「承上」指令，
+         模型看到重复内容就开始复读或跑题。 */
+      run(contMsgs(messages,full));return;
     }
     cb(full);
   }
@@ -3614,7 +3650,10 @@ function oracleCall(messages,cb,err,opt){
             }catch(_){}
           });
           /* 复读掐断：末尾 1-12 字模式连刷 ≥30 次即停拉流，止损 token */
-          if(text.length>200&&/([\s\S]{1,12}?)\1{29,}$/.test(text)){try{rd.cancel();}catch(_){}fr='repeat';return text;}
+          /* 只在尾部 400 字上验：模式最长 12 字 ×30 次＝360 字，400 字足够覆盖。
+             原来每收一片就拿带反向引用的正则跑整段全文，长回复下是隐形的 O(n²)，
+             直接抢流式所在的主线程。 */
+          if(text.length>200&&/([\s\S]{1,12}?)\1{29,}$/.test(text.slice(-400))){try{rd.cancel();}catch(_){}fr='repeat';return text;}
           return pump();
         });
       }
@@ -3654,10 +3693,21 @@ function askOracle(){
       var nr=$('#gNarr');live=document.createElement('div');live.className='liveWrap';
       nr.insertBefore(live,GEN.el||nr.querySelector('.gEot'));
     }
-    live.innerHTML=body.split(/\n{2,}/).map(function(par){
-      return /^【/.test(par.trim())?('<p class="sys">'+fmtBody(par)+'</p>'):('<p>'+fmtBody(par)+'</p>');
-    }).join('');
-    var nr2=$('#gNarr');nr2.scrollTop=nr2.scrollHeight;
+    /* 原来每收到一个 token 就把已累积的全文重新分段、转义、拼串、整棵子树重建，
+       还每次强制同步布局——1500 字的回复要重建上千次，是流式卡顿的大头。
+       改成按帧合并：一帧最多重建一次，出字内容一个字都不少。 */
+    live._pend=body;
+    if(!live._raf){
+      var el=live;
+      el._raf=requestAnimationFrame(function(){
+        el._raf=0;
+        if(!el.parentNode)return;                    /* 已收尾移除：这一帧直接丢弃 */
+        el.innerHTML=el._pend.split(/\n{2,}/).map(function(par){
+          return /^【/.test(par.trim())?('<p class="sys">'+fmtBody(par)+'</p>'):('<p>'+fmtBody(par)+'</p>');
+        }).join('');
+        var nr2=$('#gNarr');nr2.scrollTop=nr2.scrollHeight;
+      });
+    }
   }
   oracleCall(msgs,function(reply){
     genClose();BUSY=false;
