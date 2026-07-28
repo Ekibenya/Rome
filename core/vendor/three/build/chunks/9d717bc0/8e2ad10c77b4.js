@@ -4793,10 +4793,10 @@
       bHud.reportBtn.style.display = (on && lc > 0) ? 'block' : 'none';
       bHud.reportBtn.textContent = isTouch() ? ('ACTA·' + lc + '（发AI）') : ('ACTA·通报·' + lc + '（发送给AI）');
     }
-    /* 一进营造（本会话内 inBuild 首次成立）就自动弹出建造清单，让人一眼看出这是盖房子的游戏；
-       离开营造(on=false)复位，下次再进会重新弹出。用户在营造中手动收起后不会再被强开。抗城景加载时的 on 抖动。 */
-    if (on) { if (!bHud._openedSession) { bHud._openedSession = true; bHud.tray.style.display = 'block'; try { fillTray(); } catch (e) {} } }
-    else { bHud._openedSession = false; bHud.tray.style.display = 'none'; }
+    /* 建造清单默认收起：一进来先让人看见三维场景本身，清单按钮就在顶排，想盖房子再点开。
+       （旧行为是首次进营造即自动弹出，整幅画面被物品格挡住，看不到城。）
+       离开营造(on=false)一律收起并复位。 */
+    if (!on) { bHud._openedSession = false; bHud.tray.style.display = 'none'; }
     bHud.viewBtn.style.display = (Z.expanded && (Z.mode === 'city' || Z.intPlan)) ? 'block' : 'none';
     bHud.viewBtn.textContent = Z.intPlan ? 'EXI·回城' : (Z.view === 'build' ? 'ITER·漫游' : 'OPVS·建造');
     // 操作条贴近底部，托盘展开时抬升避让

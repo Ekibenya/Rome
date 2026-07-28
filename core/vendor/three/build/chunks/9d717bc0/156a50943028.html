@@ -179,11 +179,18 @@ canvas{display:block}
       border-bottom:1px solid rgba(236,236,232,.4);color:var(--gold-hi);font-size:26px;
       letter-spacing:.18em;text-align:center;padding:6px 0;outline:none;font-family:inherit}
 #eraBox input:focus{border-color:var(--gold)}
+/* 年代面板定宽：否则切纪元时下方范围提示长短不同，会带着整个面板与按钮一起缩放 */
+#ebYearWrap{width:min(86vw,330px);margin:0 auto}
+#ebRange{white-space:normal;line-height:1.9;min-height:2.6em}
 .ebEra{display:flex;gap:10px;justify-content:center;margin:12px 0 4px}
-.ebEraBtn{border:1px solid rgba(236,236,232,.3);padding:7px 16px 6px;font-size:10px;letter-spacing:.22em;
-  color:var(--mut);cursor:pointer;white-space:nowrap;transition:all .18s}
+/* 两枚等宽：中文标签同为三字、拉丁写法降为副行，宽度不受文字长短影响，切换也不跳动 */
+.ebEraBtn{flex:0 0 auto;width:140px;box-sizing:border-box;text-align:center;
+  border:1px solid rgba(236,236,232,.3);padding:8px 6px 7px;
+  color:var(--mut);cursor:pointer;white-space:nowrap;transition:border-color .18s,background .18s,color .18s}
+.ebEraBtn b{display:block;font-weight:400;font-size:12px;letter-spacing:.24em;text-indent:.24em}
+.ebEraBtn i{display:block;font-style:normal;margin-top:3px;font-size:8px;letter-spacing:.2em;text-indent:.2em;opacity:.7}
 .ebEraBtn:hover{border-color:var(--gold);color:var(--gold-hi)}
-.ebEraBtn.on{background:var(--gold);border-color:var(--gold);color:#0a0a0a;font-weight:600}
+.ebEraBtn.on{background:var(--gold);border-color:var(--gold);color:#0a0a0a}
 #eraBox input.bad{border-color:#c8402e;color:#e86a52}
 .eBtn{display:inline-block;margin-top:28px;border:1px solid rgba(236,236,232,.35);
       padding:10px 34px 8px;font-size:11px;letter-spacing:.4em;color:var(--txt);cursor:pointer;
@@ -1161,8 +1168,8 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
     <div id="ebYearWrap" style="display:none">
       <div class="sub">先选纪元，再填年数（只填数字，不必写负号）</div>
       <div class="ebEra" id="ebEra">
-        <span class="ebEraBtn on" data-era="bc">公元前&nbsp;·&nbsp;A.C.N.</span>
-        <span class="ebEraBtn" data-era="ad">公元后&nbsp;·&nbsp;A.D.</span>
+        <span class="ebEraBtn on" data-era="bc"><b>公元前</b><i>A.C.N.</i></span>
+        <span class="ebEraBtn" data-era="ad"><b>公元后</b><i>A.D.</i></span>
       </div>
       <input id="eraIn" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="511">
       <div class="sub" id="ebRange" style="margin-top:2px">公元前&nbsp;1&nbsp;…&nbsp;800&nbsp;&nbsp;·&nbsp;&nbsp;确认后转动地球拣选地点</div>
@@ -3484,7 +3491,9 @@ function sysPrompt(){
     if(p.on===false)return;(p.pos===1?preEnd:preFront).push(p.text);});
   var mems=(typeof SET!=='undefined')?(SET.mems||[]).filter(function(m){return m.on!==false;})
     .map(function(m){return m.text;}):[];
-  var minc=(typeof SET!=='undefined'&&SET.samp.minc)?('【篇幅】本回正文不少于'+SET.samp.minc+'字。'):'';
+  /* 篇幅默认值：未设定时给 500 字下限——否则模型常常两三句就收笔 */
+  var _minc=(typeof SET!=='undefined'&&SET.samp.minc)?SET.samp.minc:500;
+  var minc='【篇幅】本回正文不少于'+_minc+'字（状态栏不计入字数）。'
   return [preFront.join('\n'),
     G.system_prompt||'',
     ROMA_STYLE,
@@ -3506,11 +3515,16 @@ function oracleCall(messages,cb,err,opt){
   opt=opt||{};
   var onDelta=opt.onDelta;delete opt.onDelta;
   var noStream=opt.noStream;delete opt.noStream;
-  function mkBody(stream){
-    var body={model:API.model,messages:messages,
+  var maxCont=(opt.maxCont==null?2:opt.maxCont);delete opt.maxCont;   /* 截断后最多自动续写几轮 */
+  var url=API.base.replace(/\/+$/,'')+'/chat/completions';
+  var hdr={'Content-Type':'application/json','Authorization':'Bearer '+API.key};
+  var streamOn=(!noStream)&&(typeof SET==='undefined'||SET.stream!==0)&&!!window.ReadableStream;
+  var acc='',round=0;                                    /* acc＝跨续写累积的完整正文 */
+  function mkBody(msgs,stream){
+    var body={model:API.model,messages:msgs,
       temperature:(typeof SET!=='undefined'&&SET.samp.temp!=='')?+SET.samp.temp:.9,
-      max_tokens:(typeof SET!=='undefined'&&SET.samp.maxt!=='')?+SET.samp.maxt:2200};
-    for(var ok in opt)body[ok]=opt[ok];        /* 逐次覆盖（如铸局加长） */
+      max_tokens:(typeof SET!=='undefined'&&SET.samp.maxt!=='')?+SET.samp.maxt:4096};
+    for(var ok in opt)body[ok]=opt[ok];
     if(typeof SET!=='undefined'){
       if(SET.samp.topp!=='')body.top_p=+SET.samp.topp;
       if(SET.samp.reason)body.reasoning_effort=['','low','medium','high'][SET.samp.reason];
@@ -3518,69 +3532,86 @@ function oracleCall(messages,cb,err,opt){
     if(stream)body.stream=true;
     return body;
   }
-  var url=API.base.replace(/\/+$/,'')+'/chat/completions';
-  var hdr={'Content-Type':'application/json','Authorization':'Bearer '+API.key};
-  var streamOn=(!noStream)&&(typeof SET==='undefined'||SET.stream!==0)&&!!window.ReadableStream;
-  /* 整段生成（流式不可用或失败时的回退路径） */
-  function whole(){
+  function bump(t){try{onDelta&&onDelta(acc+t);}catch(_){}}
+  /* 撞上 token 上限：自动接着写下去，玩家无感（正文与状态栏都可能被腰斩） */
+  function contMsgs(base,partial){
+    return base.concat([{role:'assistant',content:partial},
+      {role:'user',content:'（承上：你的上一条因长度上限被截断了。请紧接着断点继续写完，'
+        +'不要重复已经写过的内容、不要重新开头、不要加任何说明；'
+        +'若 <mvu_panel> 状态栏尚未写完，请把它补完整。）'}]);
+  }
+  function finish(msgs,text,fr){
+    var full=acc+text;
+    if(fr==='length'&&round<maxCont&&String(text||'').trim()){
+      round++;acc=full;
+      run(contMsgs(msgs,full));return;
+    }
+    cb(full);
+  }
+  function whole(msgs){
     var ac=window.AbortController?new AbortController():null;GENAC=ac;
     var to=ac?setTimeout(function(){ac.abort();},120000):null;
-    fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(mkBody(false)),
+    fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(mkBody(msgs,false)),
       signal:ac?ac.signal:undefined})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(d){
       if(to)clearTimeout(to);
-      var c=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
-      if(!c)throw new Error('神谕沉默（空回复）');cb(c);
+      var ch=d.choices&&d.choices[0];
+      var c=ch&&ch.message&&ch.message.content;
+      if(!c&&!acc)throw new Error('神谕沉默（空回复）');
+      bump(c||'');finish(msgs,c||'',ch&&ch.finish_reason);
     }).catch(function(e){if(to)clearTimeout(to);
+      if(acc){cb(acc);return;}
       err(e&&e.name==='AbortError'?'已中断':(e&&e.message||'未知错误'));});
   }
-  if(!streamOn){whole();return;}
-  /* 流式：SSE 增量。首块之前失败则静默回退整段；已出字后失败则按已收到的内容收场。 */
-  var ac2=window.AbortController?new AbortController():null;GENAC=ac2;
-  var to2=ac2?setTimeout(function(){ac2.abort();},180000):null;
-  var got=false,full='';
-  fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(mkBody(true)),
-    signal:ac2?ac2.signal:undefined})
-  .then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    if(!r.body||!r.body.getReader)throw new Error('流式不可用');
-    var rd=r.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
-    function pump(){
-      return rd.read().then(function(x){
-        if(x.done)return full;
-        buf+=dec.decode(x.value,{stream:true});
-        var parts=buf.split('\n');buf=parts.pop();
-        parts.forEach(function(ln){
-          ln=ln.replace(/^data:\s?/,'').trim();
-          if(!ln||ln==='[DONE]')return;
-          try{
-            var j=JSON.parse(ln);
-            var ch=j.choices&&j.choices[0];
-            var d2=(ch&&ch.delta&&ch.delta.content)||'';
-            if(d2){got=true;full+=d2;try{onDelta&&onDelta(full);}catch(_){}}
-          }catch(_){}
+  function run(msgs){
+    if(!streamOn){whole(msgs);return;}
+    var ac2=window.AbortController?new AbortController():null;GENAC=ac2;
+    var to2=ac2?setTimeout(function(){ac2.abort();},180000):null;
+    var got=false,text='',fr=null;
+    fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(mkBody(msgs,true)),
+      signal:ac2?ac2.signal:undefined})
+    .then(function(r){
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      if(!r.body||!r.body.getReader)throw new Error('流式不可用');
+      var rd=r.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
+      function pump(){
+        return rd.read().then(function(x){
+          if(x.done)return text;
+          buf+=dec.decode(x.value,{stream:true});
+          var parts=buf.split('\n');buf=parts.pop();
+          parts.forEach(function(ln){
+            ln=ln.replace(/^data:\s?/,'').trim();
+            if(!ln||ln==='[DONE]')return;
+            try{
+              var j=JSON.parse(ln),ch=j.choices&&j.choices[0];
+              if(ch&&ch.finish_reason)fr=ch.finish_reason;
+              var d2=(ch&&ch.delta&&ch.delta.content)||'';
+              if(d2){got=true;text+=d2;bump(text);}
+            }catch(_){}
+          });
+          /* 复读掐断：末尾 1-12 字模式连刷 ≥30 次即停拉流，止损 token */
+          if(text.length>200&&/([\s\S]{1,12}?)\1{29,}$/.test(text)){try{rd.cancel();}catch(_){}fr='repeat';return text;}
+          return pump();
         });
-        /* 复读掐断：末尾 1-12 字模式连刷 ≥30 次即停拉流，止损 token */
-        if(full.length>200&&/([\s\S]{1,12}?)\1{29,}$/.test(full)){try{rd.cancel();}catch(_){}return full;}
-        return pump();
-      });
-    }
-    return pump();
-  })
-  .then(function(txt){
-    if(to2)clearTimeout(to2);
-    if(!String(txt||'').trim()){if(!got){whole();return;}throw new Error('神谕沉默（空回复）');}
-    cb(txt);
-  })
-  .catch(function(e){
-    if(to2)clearTimeout(to2);
-    var aborted=e&&e.name==='AbortError';
-    if(aborted&&got){cb(full);return;}          /* 中断但已出字：保留已写的部分 */
-    if(aborted){err('已中断');return;}
-    if(!got){whole();return;}                    /* 首块前失败：静默回退整段 */
-    err(e&&e.message||'未知错误');
-  });
+      }
+      return pump();
+    })
+    .then(function(txt){
+      if(to2)clearTimeout(to2);
+      if(!String(txt||'').trim()&&!acc){if(!got){whole(msgs);return;}throw new Error('神谕沉默（空回复）');}
+      finish(msgs,txt||'',fr);
+    })
+    .catch(function(e){
+      if(to2)clearTimeout(to2);
+      var aborted=e&&e.name==='AbortError';
+      if(aborted&&(got||acc)){cb(acc+text);return;}
+      if(aborted){err('已中断');return;}
+      if(!got&&!acc){whole(msgs);return;}
+      cb(acc+text);
+    });
+  }
+  run(messages);
 }
 function askOracle(){
   BUSY=true;genOpen('gen');
@@ -5159,17 +5190,24 @@ function bookRender(){
 })();
 
 /* ============ mvu_panel: parse + render into the MFD (panelSpec-driven) ============ */
-function stripMvu(text){return String(text).replace(/<mvu_panel>[\s\S]*?<\/mvu_panel>/g,'').trim();}
-/* 流式期剥离：面板可能只吐了一半（无闭合标签），从首个 <mvu_panel> 起一律截掉，
-   免得半截状态栏标记漏进正文。 */
-function stripMvuLive(text){
-  var t=String(text||'').replace(/<mvu_panel>[\s\S]*?<\/mvu_panel>/g,'');
+/* 剥离状态栏：先去掉闭合完整的块，再把「开了头却没闭合」的残块从起点截到尾。
+   模型撞上 token 上限、或流式尚未吐完时，面板都可能没有 </mvu_panel>——
+   若只认闭合块，整段状态栏原文就会漏进正文。 */
+function stripMvu(text){
+  var t=String(text==null?'':text).replace(/<mvu_panel>[\s\S]*?<\/mvu_panel>/g,'');
   var i=t.indexOf('<mvu_panel>');
   if(i>=0)t=t.slice(0,i);
   return t.trim();
 }
+function stripMvuLive(text){return stripMvu(text);}
 function parseMvu(text){
-  var m=String(text).match(/<mvu_panel>([\s\S]*?)<\/mvu_panel>/);if(!m)return null;
+  var src=String(text==null?'':text);
+  var m=src.match(/<mvu_panel>([\s\S]*?)<\/mvu_panel>/);
+  if(!m){                                   /* 未闭合（被截断／流未完）：从开标签读到结尾，能认多少认多少 */
+    var i=src.indexOf('<mvu_panel>');
+    if(i<0)return null;
+    m=[null,src.slice(i+11)];
+  }
   var p={ch:[],npc:[],wd:[]},sec=null;
   m[1].split('\n').forEach(function(ln){ln=ln.trim();if(!ln)return;
     if(ln.indexOf('<sec_char>')>=0){sec='ch';return;}
