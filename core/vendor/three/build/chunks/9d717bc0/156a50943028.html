@@ -5735,6 +5735,8 @@ function zj3dTick(){
     var O=zhShow?window.MED3D:window.ZJ3D;
     if(O&&O!==E&&O.sleep)O.sleep(); /* 另一侧引擎休眠省内存 */
     if(!E)return;
+    /* 中原引擎兩張卡共用：告訴它現在誰在操縱，天子與貝羅娜不是同一個人 */
+    if(window.ZJ3D&&window.ZJ3D.setSide)window.ZJ3D.setSide(ACTIVE);
     if(E.wake)E.wake();
     var _Eo=(ACTIVE==='roma')?window.MED3D:window.ZJ3D; /* 档位记在本卡引擎上，借用引擎同步之 */
     if(E!==_Eo&&_Eo&&_Eo.tier!=null){E.tier=_Eo.tier;E.expanded=!!_Eo.expanded;}

@@ -45,7 +45,7 @@
     expanded: false, mode: 'city', // city | interior
     cv: null, rnd: null, packs: {}, tex: {}, mats: {},
     scene: null, cam: null, cityKey: '', pending: null,
-    player: null, colliders: [], doors: [], exitDoor: null,
+    player: null, colliders: [], doors: [], exitDoor: null, side: 'zhou',
     interiorFrom: null, keys: {}, joy: { on: false, x: 0, y: 0 },
     camYaw: 0, camPitch: 0.32, camDist: 12, lastLoc: null, night: false,
     chipText: '', eraText: '',
@@ -797,13 +797,26 @@
   /* ---------------- player ---------------- */
   function buildPlayer() {
     var g = new T.Group();
+    var roma = (Z.side === 'roma');
     var robe = new T.Mesh(new T.CylinderGeometry(0.24, 0.42, 1.15, 8), nmat(0x24202c)); robe.position.y = 0.62; robe.castShadow = true; g.add(robe);
     var band = new T.Mesh(new T.CylinderGeometry(0.25, 0.30, 0.14, 8), nmat(0xa63b26)); band.position.y = 1.0; g.add(band);
     var chest = new T.Mesh(new T.CylinderGeometry(0.20, 0.25, 0.42, 8), nmat(0x2c2836)); chest.position.y = 1.36; chest.castShadow = true; g.add(chest);
     var head = new T.Mesh(new T.SphereGeometry(0.155, 8, 7), nmat(0xf0d8bc)); head.position.y = 1.7; g.add(head);
-    var hair = new T.Mesh(new T.SphereGeometry(0.16, 8, 7), nmat(0x1a1512)); hair.scale.set(1, 0.72, 1); hair.position.y = 1.76; g.add(hair);
-    var crown = new T.Mesh(new T.BoxGeometry(0.34, 0.05, 0.2), nmat(0x2c2836)); crown.position.y = 1.9; g.add(crown);
-    var beadF = new T.Mesh(new T.BoxGeometry(0.3, 0.1, 0.02), nmat(0xd8b23a)); beadF.position.set(0, 1.85, 0.11); g.add(beadF);
+    if (roma) {
+      /* 羅馬紀走到中原時，操縱的仍是貝羅娜：金色波波頭、腰間佩劍，斷不可頂天子冕旒 */
+      var bob = new T.Mesh(new T.SphereGeometry(0.165, 8, 7), nmat(0xd9a94e));
+      bob.scale.set(1.04, 0.82, 1.04); bob.position.y = 1.755; g.add(bob);
+      var nape = new T.Mesh(new T.BoxGeometry(0.26, 0.16, 0.12), nmat(0xd9a94e));
+      nape.position.set(0, 1.64, -0.06); g.add(nape);
+      var bl = new T.Mesh(new T.BoxGeometry(0.05, 0.62, 0.09), nmat(0x6e6e76));
+      bl.position.set(0.27, 0.86, 0.03); bl.rotation.z = 0.16; g.add(bl);
+      var hilt = new T.Mesh(new T.BoxGeometry(0.11, 0.05, 0.05), nmat(0xc9a063));
+      hilt.position.set(0.30, 1.18, 0.03); g.add(hilt);
+    } else {
+      var hair = new T.Mesh(new T.SphereGeometry(0.16, 8, 7), nmat(0x1a1512)); hair.scale.set(1, 0.72, 1); hair.position.y = 1.76; g.add(hair);
+      var crown = new T.Mesh(new T.BoxGeometry(0.34, 0.05, 0.2), nmat(0x2c2836)); crown.position.y = 1.9; g.add(crown);
+      var beadF = new T.Mesh(new T.BoxGeometry(0.3, 0.1, 0.02), nmat(0xd8b23a)); beadF.position.set(0, 1.85, 0.11); g.add(beadF);
+    }
     g.userData.isPlayer = true;
     return g;
   }
@@ -821,9 +834,24 @@
   }
   Z.captive = false;      // 剧情软禁：仪仗尽散
   Z.escortBusy = false;   // 卫队出击中（暂离仪仗位）
-  Z.escortN = 4;          // 卫队员额（玩家增减，持久）
-  try { var _en = parseInt(localStorage.getItem('zj3d_escortN')); if (_en >= 0 && _en <= 24) Z.escortN = _en; } catch (e) { }
-  function escortNSave() { try { localStorage.setItem('zj3d_escortN', '' + Z.escortN); } catch (e) { } }
+  /* 卫队员额（玩家增减，持久）。两张卡分开记：天子有四卫仪仗，贝罗娜不是天子，默认无卫。 */
+  Z.escortN = 4;
+  function escortKey() { return Z.side === 'roma' ? 'zj3d_escortN_roma' : 'zj3d_escortN'; }
+  function escortNLoad() {
+    Z.escortN = (Z.side === 'roma') ? 0 : 4;
+    try { var v = parseInt(localStorage.getItem(escortKey())); if (v >= 0 && v <= 24) Z.escortN = v; } catch (e) { }
+  }
+  function escortNSave() { try { localStorage.setItem(escortKey(), '' + Z.escortN); } catch (e) { } }
+  escortNLoad();
+  /* 换卡＝换人：丢掉旧棋子与仪仗，并逼下一帧重建本城，由 placePlayer 重新落人 */
+  Z.setSide = function (s) {
+    s = (s === 'roma') ? 'roma' : 'zhou';
+    if (s === Z.side) return;
+    Z.side = s;
+    escortNLoad();
+    if (Z.player) { if (Z.player.parent) Z.player.parent.remove(Z.player); Z.player = null; }
+    Z.cityKey = '';
+  };
   var GUARD_COST = 100, GUARD_REFUND = 50;
   function escortAdd() {
     if (Z.captive || Z.escortN >= 24 || ECON.gold < GUARD_COST) return;
