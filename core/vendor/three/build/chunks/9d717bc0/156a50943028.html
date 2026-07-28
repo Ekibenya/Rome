@@ -1232,7 +1232,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.7.3';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
+  var ZJ3D_VER='1.7.6';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -3135,7 +3135,7 @@ function iterGo(){
   TURNS.push({role:'user',content:'【ITER】启程前往'+s.cn+'（'+s.n+'）。',t:idx});
   narrAdd('me','▌ITER&nbsp;&nbsp;启程前往&nbsp;'+esc2(s.cn)+'&nbsp;·&nbsp;'+esc2(s.n),idx);
   if(apiReady())askOracle();
-  else narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;旅程已记录（顶栏&nbsp;ORACVLVM&nbsp;可配置&nbsp;AI）…',idx);
+  else {try{GENIVS.offlineTurn(v,idx);}catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',idx);}}
 }
 $('#itGo').addEventListener('pointerup',function(e){e.stopPropagation();iterGo();});
 $('#itNo').addEventListener('pointerup',function(e){e.stopPropagation();$('#dlgIter').style.display='none';PENDSITE=null;});
@@ -3458,7 +3458,7 @@ $('#gNarr').addEventListener('click',function(e){
   }
 });
 function renderReply(text,tIdx,instant){
-  var panel=mvuMerge(GAME.lastPanel,parseMvu(text));
+  var panel=GENIVS.completeMvu(mvuMerge(GAME.lastPanel,parseMvu(text)),text);
   var body=stripMvu(text);
   if(typeof rxApply==='function')body=rxApply(body,false);   /* 正则·仅显示 */
   var after=function(finalText){
@@ -3573,6 +3573,250 @@ function loreFor(text){
   return out.join('\n');
 }
 var ROMA_STYLE='【文体铁则·最高优先级·覆盖模型自身习惯】本卡正文分两层，各守各的腔，严禁互相污染。\n〔一〕地の文（叙述层）＝详实历史小说体。长句可用，从句可用，破折号可用；史实、器物、地理、制度、因果必须交代到位，读者不查资料也能看懂。忌辞藻堆砌，忌抒情泛滥，忌用「仿佛」「宛如」连发。凡涉政治、军制、年代、亲缘的说明，一律落到具体名物与数字（第几年、几里、几人、什么料子、谁的儿子），不许含糊带过。\n〔二〕台词（对白层）＝日本轻小说腔。铁律如下：\n①一句一个念头，句号砸死，绝不把三件事塞进一个长句；\n②关键词单独成行落地（例：「……没有心。」／「楔子不为一个人停。」／「她怕了。」）；\n③长短落差是喜剧与压迫感的引擎：稳重者、年长者、下位者说敬语长台词，铺垫绵密、慇懃而不祥；上位者、狂者、武人一句怼回去，越短越狠；\n④先说死，再收半句（例：「稳妥，不折人。」「……陛下？」）；\n⑤惨事用公事公办的报告体讲，恐怖从语气与内容的落差里渗，不许在台词里加形容词渲染（例：「谨报如下。第一头，肝叶有裂。第二头，同。第三头。……没有心。」）；\n⑥武人、老兵用短促的断言句，可带「记住了」「话我只说一遍」这类收尾；\n⑦【铁则一·高于本节全部文体规范】主角贝罗娜的台词、动作、决定、内心，一个字都不许你写——本节①—⑥、⑧⑨的腔调规范只约束 NPC 与叙述层。玩家已经写出来的主角台词，你可以让 NPC 引用、回应、误解、记恨，但绝不许由你续写、改写、补写，或替她把话说完。需要她表态时，把场面推到她面前，停笔，交还玩家。\n⑧对白一律用「」，引用与强调用『』；省略号用「……」保留余韵；决定性瞬间可插拟声词（咔。咔。咔。／吱呀。）。\n⑨严禁中文网文腔：不许出现「不愧是」「不由得」「心中一凛」「嘴角勾起」「眸子」「淡淡地说道」「不禁」「暗道」等套语，不许网络流行语，不许翻译腔的「哦，我的老伙计」。\n〔三〕分工：叙述负责让人看懂，对白负责有味道。说明性内容一律写进叙述层，不许塞进人物嘴里让他念资料；反过来，人物的性格与压迫感一律靠台词的长短、断句与落差呈现，不许由叙述层直接下判语。';
+/* ============================================================================
+   GENIVS · 本地弱AI（纯规则 · 零网络 · 不需要任何 API）
+   职责是把三样东西缝起来：三维引擎的账实、云端神谕写的正文、情报台的状态栏。
+     brief()       —— 读三维世界，生成摘要塞进 prompt，让 AI 知道城里到底有什么
+     absorb()      —— 读 AI 正文，抽出可执行意图，驱动三维（建、拆、来、去）
+     completeMvu() —— 补全 AI 漏写的状态栏栏位，保证每轮每栏每行都有值
+     offlineTurn() —— 没配 API 时也能推进一个回合，状态照常更新、且不循环
+   它不负责文采，只负责「状态正确、字段齐全、不原地打转」。
+   ============================================================================ */
+var GENIVS=(function(){
+  var PREV=null;          /* 上一轮补全后的面板，用作 carry-forward 的底 */
+  var RING=[];            /* 降级叙述的反循环环形缓冲 */
+  var APPLIED={};         /* 已落地的意图哈希，防重复应用 */
+
+  function ENG(){try{return (ACTIVE==='roma')?window.MED3D:window.ZJ3D;}catch(_){return null;}}
+  function snap(){
+    var e=ENG();
+    try{return (e&&e.owns&&e.owns()&&e.snapshot)?e.snapshot():null;}catch(_){return null;}
+  }
+
+  /* ---------------- 一 · 三维 → prompt ---------------- */
+  function brief(){
+    var s=snap();if(!s||!s.city)return '';
+    var L=['【三维实况·引擎账实·最高可信】以下是三维画面此刻的真实状态，由引擎直接读出。'
+          +'叙事必须与之相容：这里列出的一定在场，没列出的不得当作已经存在；'
+          +'金额与数量不得凭空更改。'];
+    L.push('· 城池：'+s.city+(s.mode==='interior'?('（室内·'+s.interior+'）'):'')
+          +(s.night?'，此刻入夜':'，此刻白日'));
+    L.push('· 主角方位：'+s.playerPos+'；随行 '+s.escortN+' 人'+(s.captive?'（受制，仪仗尽散）':''));
+    L.push('· 库藏：金 '+s.gold+'（岁入 +'+s.rate+'/分）');
+    L.push(s.builds.length
+      ? ('· 城中已立：'+s.builds.map(function(b){return b.disp+(b.n>1?('×'+b.n):'')+'（'+b.pos+'）';}).join('、'))
+      : '· 城中尚无主角所立之物。');
+    if(s.pawns.length)
+      L.push('· 眼前可见之人：'+s.pawns.slice(0,10).map(function(p){return p.name+'（'+p.cat+'·'+p.pos+'）';}).join('、')
+            +'。这些人此刻确实站在画面里，本回若写到他们，请照此写进 ◈ 行。');
+    if(s.ledger.built.length||s.ledger.razed.length)
+      L.push('· 尚未奏报的营造：兴作 '+s.ledger.built.length+' 项、除旧 '+s.ledger.razed.length+' 项。');
+    if(s.vocab&&s.vocab.length)
+      L.push('【三维回执·可选】本回若有建筑兴废或人物进出此城，在 </mvu_panel> 之后另起一段：\n'
+            +'<sec_deed>\n▣兴作|名物×数\n▣毁损|名物\n▣来者|人名\n▣去者|人名\n</sec_deed>\n'
+            +'没有变化就整段不写。「名物」只能取自下列词表，取最接近的一个，不要自造：'
+            +s.vocab.slice(0,80).join('、'));
+    return L.join('\n');
+  }
+
+  /* ---------------- 二 · AI 正文 → 意图 → 三维 ---------------- */
+  var RX={
+    build:/(?:新?[起立筑建修盖营兴](?:造|建|作|了)?|落成|竣工|拔地而起)\s*[了着]?\s*([一二三四五六七八九十两\d]*)\s*[座间栋处所株棵条段]?\s*([^\s，。、；：！？的「」（）]{1,6})/g,
+    raze :/(?:拆|毁|焚|烧|夷|平|推倒|坍塌?|付之一炬)\s*[了掉去]?\s*([^\s，。、；：！？的「」（）]{1,6})/g,
+    come :/([^\s，。、；：！？「」（）]{2,8})(?:入城|抵达|来到|求见|踏入|现身)/g,
+    go   :/([^\s，。、；：！？「」（）]{2,8})(?:离去|退下|告退|出城|扬长而去|不见踪影)/g
+  };
+  var CN={'一':1,'两':2,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+  var TIMERX=[[/一年[后过]|翌年|次年/,365],[/月余|一个?月[后过]/,30],[/旬日|十日后/,10],
+              [/三[日天][后过]/,3],[/次日|翌日|第二天/,1]];
+
+  function intents(text){
+    var t=String(text||''),out=[],m;
+    RX.build.lastIndex=0;
+    while((m=RX.build.exec(t)))out.push({op:'build',name:m[2],n:(CN[m[1]]||parseInt(m[1],10)||1),conf:.6});
+    RX.raze.lastIndex=0;
+    while((m=RX.raze.exec(t)))out.push({op:'raze',name:m[1],n:1,conf:.6});
+    RX.come.lastIndex=0;
+    while((m=RX.come.exec(t)))out.push({op:'come',name:m[1],n:1,conf:.4});
+    RX.go.lastIndex=0;
+    while((m=RX.go.exec(t)))out.push({op:'go',name:m[1],n:1,conf:.4});
+    return out;
+  }
+  function daysOf(text){
+    for(var i=0;i<TIMERX.length;i++)if(TIMERX[i][0].test(text))return TIMERX[i][1];
+    return 0;
+  }
+
+  function absorb(reply,turnIdx){
+    var e=ENG();if(!e||!e.owns||!e.owns()||!e.applyEdict)return;
+    /* 正文里若已有结构化的 <sec_deed>，那条路归 edictSync／medEdictSync 管，
+       这里绝不能再应用一次：applyEdict 用 key 前缀判「是否重演此幕」，
+       两边用不同前缀各调一次，第二次会把第一次刚落地的东西整个 undo 掉。 */
+    try{if(typeof parseDeed==='function'&&parseDeed(reply))return;}catch(_){}
+    var key='g'+turnIdx+'@'+((typeof deedHash==='function')?deedHash(reply):String(turnIdx));
+    if(APPLIED[key])return;APPLIED[key]=1;
+    var spec={build:[],raze:[],come:[],go:[]},got=false;
+    intents(reply).forEach(function(it){
+      if(it.conf<0.4)return;
+      /* 建/拆必须能对到真实可建之物，对不上就丢弃——绝不瞎猜着往场景里塞东西 */
+      if((it.op==='build'||it.op==='raze')&&(!e.resolve||!e.resolve(it.name)))return;
+      if(!spec[it.op])return;
+      spec[it.op].push({name:it.name,n:Math.min(3,it.n||1)});got=true;
+    });
+    if(!got)return;
+    try{e.applyEdict(spec,key);}catch(_){}
+    try{if(typeof zj3dTick==='function')zj3dTick();}catch(_){}
+  }
+
+  /* ---------------- 三 · 补全状态栏 ---------------- */
+  var WD_KEYS=['纪年','时地','天气','安稳','大势','将临'];
+  function chKeys(){return (ACTIVE==='roma')
+    ?['戎装','持物','神躯','观瞻','神格','血兴','心声','史笔']
+    :['衣冠','持物','御体','观瞻','神格','心声','史笔'];}
+  var WX=['天朗气清','云压得低','风过柱廊','雨敲在瓦上','雾锁河面','雪落石阶'];
+
+  function get(rows,k){for(var i=0;i<rows.length;i++)if(rows[i][0]===k)return rows[i].slice(1).join('|');return null;}
+  function set(rows,k,v){for(var i=0;i<rows.length;i++)if(rows[i][0]===k){rows[i]=[k,v];return;}rows.push([k,v]);}
+  function num(v,d){var n=parseInt(v,10);return isNaN(n)?d:Math.max(0,Math.min(100,n));}
+  function bumpEra(era,d){
+    if(!d)return era;
+    return String(era||'').replace(/前(\d+)年/,function(_,y){
+      var yy=+y-Math.floor(d/365);return '前'+(yy>0?yy:1)+'年';});
+  }
+
+  function completeMvu(panel,rawText){
+    var s=snap(),txt=String(rawText||'');
+    var p=panel||{ch:[],npc:[],wd:[]};
+    var prev=PREV||{ch:[],npc:[],wd:[]};
+    p.ch=p.ch||[];p.npc=p.npc||[];p.wd=p.wd||[];
+
+    /* 世界段：缺的先从上一轮继承，再按引擎与规则校正 */
+    WD_KEYS.forEach(function(k){
+      if(get(p.wd,k)==null){var pv=get(prev.wd,k);if(pv!=null)set(p.wd,k,pv);}
+    });
+    var dy=daysOf(txt);
+    if(dy&&get(p.wd,'纪年')===get(prev.wd,'纪年'))
+      set(p.wd,'纪年',bumpEra(get(p.wd,'纪年'),dy));
+    if(s&&s.city){
+      var td=get(p.wd,'时地')||'';
+      if(td.indexOf(s.city)<0)
+        set(p.wd,'时地',((td.split('·')[0]||(s.night?'夜':'白日')).trim())+' · '+s.city);
+    }
+    var wq=get(p.wd,'天气');
+    if(wq==null||!/[晴阴雨雪风雾]/.test(wq))
+      set(p.wd,'天气',WX[(Math.random()*WX.length)|0]);
+    var base=num(get(prev.wd,'安稳'),60),cur=num(get(p.wd,'安稳'),base),dn=0;
+    intents(txt).forEach(function(i){if(i.op==='raze')dn-=3;});
+    if(/凯旋|赈|庆典|大典|万众/.test(txt))dn+=2;
+    set(p.wd,'安稳',String(Math.max(0,Math.min(100,base+Math.max(-8,Math.min(8,(cur-base)+dn))))));
+    if(get(p.wd,'大势')==null)set(p.wd,'大势','尚未分明');
+    if(get(p.wd,'将临')==null)set(p.wd,'将临','尚未分明');
+
+    /* 角色段：心声绝不代笔（铁则一，那是玩家的） */
+    chKeys().forEach(function(k){
+      if(k==='心声')return;
+      if(get(p.ch,k)==null){var pv=get(prev.ch,k);if(pv!=null)set(p.ch,k,pv);}
+    });
+    if(get(p.ch,'心声')==null){var pm=get(prev.ch,'心声');set(p.ch,'心声',pm!=null?pm:'——');}
+    var bl=num(get(prev.ch,'血兴'),40),nb=num(get(p.ch,'血兴'),bl);
+    var hits=(txt.match(/[攻斩血剑矛盾杀刺]/g)||[]).length;
+    if(ACTIVE==='roma')
+      set(p.ch,'血兴',String(Math.max(0,Math.min(100,hits?Math.max(nb,bl+Math.min(12,hits*4)):Math.min(nb,bl-2)))));
+    if(get(p.ch,'史笔')==null)
+      set(p.ch,'史笔','（本地补记）'+((s&&s.city)||'此地')+'：'+(txt.replace(/\s+/g,'').slice(0,40)||'诸事如常'));
+
+    /* 人物段：AI 写的 ∪ 引擎在场的 ∪ 上一轮没离场的，八字段缺哪补哪 */
+    var seen={},gone={};
+    intents(txt).forEach(function(i){if(i.op==='go')gone[i.name]=1;});
+    p.npc.forEach(function(r){seen[String(r[0]||'').trim()]=r;});
+    (prev.npc||[]).forEach(function(r){
+      var n=String(r[0]||'').trim();
+      if(!n||seen[n]||gone[n])return;
+      seen[n]=r.slice();p.npc.push(seen[n]);
+    });
+    if(s)s.pawns.slice(0,6).forEach(function(pw){
+      if(seen[pw.name])return;
+      var r=[pw.name,'在场','50','（尚未开口）',pw.cat||'不详',pw.pos||'',' 不详','不详'];
+      seen[pw.name]=r;p.npc.push(r);
+    });
+    var DEF=['','在场','50','（尚未开口）','不详','不详','不详','不详'];
+    p.npc.forEach(function(r){
+      var n=String(r[0]||'').trim(),old=null;
+      (prev.npc||[]).forEach(function(q){if(String(q[0]||'').trim()===n)old=q;});
+      for(var i=1;i<8;i++)if(r[i]==null||String(r[i]).trim()==='')r[i]=(old&&old[i])||DEF[i];
+      if(s)for(var j=0;j<s.pawns.length;j++)if(s.pawns[j].name===n){r[5]=s.pawns[j].pos;break;}
+    });
+
+    PREV=p;return p;
+  }
+
+  /* ---------------- 四 · 没有 API 时的降级回合 ---------------- */
+  var TPL={
+    build:['{city}的工匠天没亮就动了土。{what}立起来的时候，围观的人往后退了半步。',
+           '{what}在{pos}落成。新木料的味道盖过了街市的腥气。',
+           '监工把绳墨收了。{what}就在那儿，比图上看着更沉。'],
+    raze :['{what}塌下去的声音并不大，尘却起了半日不散。',
+           '拆{what}的人手脚很快。空出来的那块地，比想象中小。'],
+    idle :['市集照常。有人在{pos}为一筐无花果的价钱争起来，声音很大，没人去劝。',
+           '风从城门那边过来，旗动了一下。卫队换了岗。',
+           '库藏的账在天黑前又抄了一遍。金 {gold}，一枚不差。',
+           '{who}在{pos}站了很久，看见你便低下头，没有开口。',
+           '有人在墙根下写字，写到一半停了，把炭条揣回怀里。']
+  };
+  function pick(pool,tag){
+    for(var i=0;i<pool.length;i++){
+      var id=tag+i;if(RING.indexOf(id)>=0)continue;
+      RING.push(id);if(RING.length>12)RING.shift();
+      return pool[i];
+    }
+    RING.length=0;return pool[0];
+  }
+  function fill(tpl,s,extra){
+    return String(tpl).replace(/\{(\w+)\}/g,function(_,k){
+      if(extra&&extra[k]!=null)return extra[k];
+      if(!s)return '';
+      if(k==='city')return s.city;
+      if(k==='pos')return s.playerPos;
+      if(k==='gold')return String(s.gold);
+      if(k==='who')return (s.pawns[0]&&s.pawns[0].name)||'一个卖陶的';
+      return '';
+    });
+  }
+  function panelText(p){
+    return '<mvu_panel>\n<sec_char>\n'
+      +p.ch.map(function(r){return '◆'+r.join('|');}).join('\n')
+      +'\n</sec_char>\n<sec_npc>\n'
+      +p.npc.map(function(r){return '◈'+r.join('|');}).join('\n')
+      +'\n</sec_npc>\n<sec_world>\n'
+      +p.wd.map(function(r){return '◇'+r.join('|');}).join('\n')
+      +'\n</sec_world>\n</mvu_panel>';
+  }
+  function offlineTurn(userText,idx){
+    var s=snap(),ins=intents(String(userText||'')),lines=[];
+    if(ins.length){
+      ins.slice(0,2).forEach(function(i){
+        lines.push(fill(pick(TPL[i.op==='raze'?'raze':'build'],i.op),s,
+          {what:i.name+(i.n>1?('×'+i.n):'')}));
+      });
+    }else{
+      lines.push(fill(pick(TPL.idle,'idle'),s));
+    }
+    var body=lines.join('\n\n');
+    var p=completeMvu(mvuMerge(GAME.lastPanel,null)||{ch:[],npc:[],wd:[]},body+' '+userText);
+    var out=body+'\n\n'+panelText(p);
+    var t=(typeof TURNI!=='undefined')?TURNI++:(idx==null?0:idx+1);
+    TURNS.push({role:'assistant',content:out,t:t});
+    /* 离线回合同样要落到三维上：玩家说「起一座神庙」，画面里就该真的立起来，
+       否则没配 API 的人只能看见文字、场景一动不动。 */
+    try{absorb(String(userText||'')+'\n'+body,t);}catch(_){}
+    renderReply(out,t,true);
+  }
+
+  function reset(){PREV=null;RING.length=0;APPLIED={};}
+
+  return {brief:brief,absorb:absorb,completeMvu:completeMvu,offlineTurn:offlineTurn,
+          intents:intents,reset:reset,_snap:snap};
+})();
 /* 状态栏硬清单：模型唯一的格式锚。
    卡里的 mes_example 全文没有任何一处被读取，开局正文也不进 TURNS，
    于是模型此前从没见过 <mvu_panel> 长什么样，只能瞎猜字段名——猜错就少一栏，
@@ -3650,6 +3894,7 @@ function sysPrompt(){
     '【叙事者】'+(G.personality||''),
     '【场景】'+(G.scenario||''),
     gearLine(),
+    GENIVS.brief(),
     (typeof memChronicle==='function'&&typeof S!=='undefined'&&S.memOn!==false&&S.mem&&S.mem.length>1)?('【长程记忆·编年长卷】以下为本局开局至今全部既定事实的编年纪要（越靠后越接近当下）。正文历史若有缺失，以此卷为准；任何叙事不得与之矛盾：\n'+memChronicle()):'',
     (function(){if(typeof npcFavorDigest!=='function')return '';var _fd=npcFavorDigest();return _fd?('【人物好感·续记（不得健忘）】以下为曾登场人物最近一次的好感度与近况。他们即便暂时离场，好感与关系也须【延续记忆】：再次出场时自此数值起继续自然演变，严禁凭空重置、归零或大幅跳变；确有剧情推动方可增减：\n'+_fd):'';})(),
     mems.length?('【长程记忆】\n'+mems.join('\n')):'',
@@ -3825,6 +4070,7 @@ function askOracle(){
     if(live){try{live.remove();}catch(_){}live=null;}
     var idx=TURNI++;
     TURNS.push({role:'assistant',content:reply,t:idx});
+    try{GENIVS.absorb(reply,idx);}catch(_){}       /* 正文里的建／拆／来／去落到三维场景上 */
     renderReply(reply,idx,streamed);               /* 已流式出过字：跳过打字机，直接落定 */
   },function(msg){
     genClose();BUSY=false;
@@ -3850,7 +4096,7 @@ function askOracle(){
     gIn.value='';
     if(/^[~～]/.test(v)){try{if(GAME.lastPanel)renderMvu(GAME.lastPanel);}catch(_){}}  /* 内心独白：情报台心声即时回放 */
     if(apiReady())askOracle();
-    else narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;指令已记录（顶栏&nbsp;ORACVLVM&nbsp;可配置&nbsp;AI）…',idx);
+    else {try{GENIVS.offlineTurn(v,idx);}catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',idx);}}
   }
   $('#gSend').addEventListener('click',send);
   gIn.addEventListener('keydown',function(e){if(e.isComposing||e.keyCode===229)return;if(e.key==='Enter')send();});
@@ -6200,7 +6446,7 @@ function sendText(text){ /* 宿主发送管线：ROME 神谕（三维敕令/移�
   TURNS.push({role:'user',content:text,t:idx});
   narrAdd('me','▌'+esc2(text),idx);
   if(apiReady())askOracle();
-  else narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;指令已记录（顶栏&nbsp;ORACVLVM&nbsp;可配置&nbsp;AI）…',idx);
+  else {try{GENIVS.offlineTurn(v,idx);}catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',idx);}}
 }
 function movePlayerTo(name){
   var L=locByName(name);if(!L)return;
@@ -6884,7 +7130,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.7.3';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.7.6';}catch(_){}
 })();
 </script>
 </body>

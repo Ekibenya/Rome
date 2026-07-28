@@ -5703,14 +5703,42 @@
     '树': '常青树', '松': '苍松', '枫': '红枫', '樱': '樱树', '竹': '竹丛', '竹林': '竹丛',
     '花': '花圃', '花园': '花圃', '灯': '灯柱', '桥': '石桥', '塔': '宝塔', '戏楼': '戏台',
     '苇': '芦苇', '水池': '池塘', '荷池': '池塘', '石山': '假山', '山石': '假山', '岩石': '露岩',
-    '路': '石板道', '道': '石板道', '街': '石板道', '官道': '夯土官道'
+    '路': '石板道', '道': '石板道', '街': '石板道', '官道': '夯土官道',
+    /* 以上沿自中原引擎（目标多为中式名，本引擎没有的会被 edictWord 自动跳过）。
+       以下是罗马这边的常用说法，映射到本引擎真实存在的名物上。 */
+    '宫殿': '殿宇', '宫室': '殿宇', '王宫': '殿宇', '府邸': '殿宇',
+    '民居': '民宅', '住宅': '民宅', '人家': '民宅',
+    '官仓': '粮仓', '仓廪': '粮仓', '谷仓': '粮仓',
+    '神祠': '神庙', '祠庙': '神庙', '圣殿': '神庙',
+    '望楼': '高塔', '哨塔': '高塔', '角楼': '高塔',
+    '剧院': '剧场', '戏院': '剧场',
+    '渡槽': '引水道', '水道': '引水道', '沟渠': '引水道',
+    '议事堂': '元老院', '议院': '元老院',
+    '作坊': '铁工坊', '锻坊': '铁工坊', '铁匠铺': '铁工坊',
+    '摊': '市摊', '摊位': '市摊', '集市': '市摊'
   };
+  var _dispSet = null;
+  function dispSet() {                      /* 本引擎目录里真实存在的一级名 */
+    if (_dispSet) return _dispSet;
+    _dispSet = {};
+    try {
+      catalog().forEach(function (c) {
+        (c.items || []).forEach(function (it) {
+          _dispSet[String(it.disp || '').replace(/·.+$/, '')] = 1;
+        });
+      });
+    } catch (e) { }
+    return _dispSet;
+  }
   function edictWord(w) {
     w = String(w || '').replace(/[的之一座座间栋所处株棵条段]/g, '').trim();
-    return EDICT_ALIAS[w] || w;
+    /* 别名表是从中原引擎搬来的，一半的映射目标（民居／官仓／神祠／官署／宫室…）
+       在本引擎的目录里并不存在。只有当别名指向的东西确实存在时才替换，
+       否则保留原词——否则「民宅」会被换成不存在的「民居」，反而找不着。 */
+    var a = EDICT_ALIAS[w];
+    return (a && dispSet()[a]) ? a : w;
   }
-  function edictResolve(word) {
-    word = edictWord(word);
+  function edictMatch(word) {
     if (!word) return null;
     var pref = { '市井': 5, '王室': 4, '人物': 4, '草木': 3, '道路': 3, '军旅': 2, '构件': 1 };
     var best = null, bestScore = -1;
@@ -5728,6 +5756,15 @@
       });
     });
     return best;
+  }
+  function edictResolve(word) {
+    var raw = String(word || '').replace(/[的之一座座间栋所处株棵条段]/g, '').trim();
+    if (!raw) return null;
+    /* 别名表是从中原引擎照搬来的，映射目标还是中式名（民宅→民居、粮仓→官仓、
+       神庙→神祠……），而本引擎的目录里压根没有这些名字——于是别名不但没帮上忙，
+       反而把本来能直接命中的词打成了 null。改为：别名先试，试不出来退回原词。 */
+    var alias = EDICT_ALIAS[raw];
+    return (alias ? edictMatch(alias) : null) || edictMatch(raw);
   }
   function itemAABBAt(item, cx, cz) {
     if (item.kind === 'npc') return { x: cx * CELL, z: cz * CELL, hw: 0.7, hd: 0.7 };
@@ -6060,6 +6097,65 @@
     m = /^(?:去|往|移步|行至|到)\s*(.+)$/.exec(raw); if (m) return cmdGo(m[1]);
     m = /(?:盖|修建|建造|营建|兴建|新建|起|造|修|铺设|铺|植|种|建)\s*(.+)$/.exec(raw); if (m) return cmdBuild(m[1], raw);
     return { ok: false, report: '未能辨识指令。可用：建马厩×2 ／ 拆酒楼 ／ 攻打粮仓 ／ 寻苏格拉底 ／ 去城南 ／ 前往斯巴达（各城邦）' };
+  };
+
+  /* ---------------- 账实读取口（供宿主的本地弱AI 用）----------------
+     引擎的 ECON / LEDGER / BUILDS / catalog / posName 全在这个 IIFE 的闭包里，
+     宿主一个都拿不到，于是「城里发生了什么」从来传不到 AI 那边。开三个只读口。 */
+  Z.vocab = function () {                       /* 可建之物的一级名，给 AI 当选词表 */
+    var seen = {}, list = [];
+    try {
+      catalog().forEach(function (c) {
+        if (c.tab === '家具') return;
+        (c.items || []).forEach(function (it) {
+          var d = String(it.disp || '').replace(/·.+$/, '');
+          if (d && !seen[d]) { seen[d] = 1; list.push(d); }
+        });
+      });
+    } catch (e) { }
+    return list;
+  };
+  Z.resolve = function (w) {                    /* 把 AI 写的词对到真实可建之物 */
+    try {
+      var it = edictResolve(w);
+      return it ? { name: it.name, disp: it.disp, kind: it.kind, price: it.price } : null;
+    } catch (e) { return null; }
+  };
+  Z.snapshot = function () {
+    if (!Z.owns() || !Z.cityKey) return null;
+    var px = Z.player ? Z.player.position.x : 0, pz = Z.player ? Z.player.position.z : 0;
+    var s = {
+      city: Z.cityKey, mode: Z.mode, interior: Z.intKey || '', night: !!Z.night,
+      escortN: Z.escortN || 0, captive: !!Z.captive,
+      gold: 0, rate: 0, playerPos: '', builds: [], pawns: [],
+      ledger: { built: [], razed: [] }, vocab: []
+    };
+    try { s.gold = ECON.gold; s.rate = ECON.RATE; } catch (e) { }
+    try { s.playerPos = posName(Math.round(px / CELL), Math.round(pz / CELL)); } catch (e) { }
+    try {
+      var agg = {};
+      (buildsOf(Z.cityKey).items || []).forEach(function (it) {
+        var k = it.disp || it.name;
+        if (!agg[k]) { agg[k] = { disp: k, pos: posName(it.cx, it.cz), n: 0, ai: it.ai ? 1 : 0 }; s.builds.push(agg[k]); }
+        agg[k].n++;
+      });
+    } catch (e) { }
+    try {
+      (Z.pawns || []).forEach(function (p) {
+        if (!p || !p.root || !p.root.parent || !p.name) return;
+        var d = Math.abs(p.root.position.x - px) + Math.abs(p.root.position.z - pz);
+        if (d > 40) return;
+        s.pawns.push({
+          name: p.name, cat: p.cat || '', desc: p.desc || '', tag: p.tag || '',
+          own: p.own ? 1 : 0, d: d,
+          pos: posName(Math.round(p.root.position.x / CELL), Math.round(p.root.position.z / CELL))
+        });
+      });
+      s.pawns.sort(function (a, b) { return a.d - b.d; });
+    } catch (e) { }
+    try { s.ledger.built = LEDGER.built.slice(); s.ledger.razed = LEDGER.razed.slice(); } catch (e) { }
+    try { s.vocab = Z.vocab(); } catch (e) { }
+    return s;
   };
 
   /* ---------------- public hooks ---------------- */
