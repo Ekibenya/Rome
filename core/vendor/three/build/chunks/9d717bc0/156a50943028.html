@@ -521,7 +521,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 #game.txOpen #arrTx{top:calc(46px + min(24vh,215px))}
 #game.txOpen.tx2 #arrTx{top:calc(46px + min(58vh,540px))}
 #game.txOpen.txBig #arrTx{top:calc(46px + min(84vh,760px))}
-#game.txOpen #arrTx .a{transform:rotate(180deg)}
+/* 箭頭恆朝下：此鈕語義=向下逐級展開遊戲畫面 */
 #txBar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:8px;padding:8px 10px;background:linear-gradient(0deg,rgba(6,6,6,.92),rgba(6,6,6,.55) 70%,transparent);align-items:center}
 #txIn{flex:1;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.22);color:#e8d9b0;font-size:12.5px;padding:7px 10px;font-family:inherit;outline:none}
 #txGo{flex:none;border:1px solid rgba(201,155,63,.5);color:#ecc878;background:transparent;font-size:11px;letter-spacing:.2em;padding:7px 14px;cursor:pointer;font-family:inherit}
@@ -667,7 +667,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
     <div id="txHint"></div>
     <div id="txBar"><input id="txIn" placeholder="EDICTVM 指令：建造／拆除／传送……（如：修一座望楼 · 前往罗马）" autocomplete="off"><button id="txGo">执 行</button></div>
   </div>
-  <div id="arrTx" title="天下三维"><span class="t">TERRA&nbsp;·&nbsp;天下</span><span class="a">▾</span></div>
+  <div id="arrTx" title="游戏展开：逐级放大三维画面，最大后再点收起"><span class="t">游&nbsp;戏&nbsp;展&nbsp;开</span><span class="a">▾</span></div>
   <div class="gPanel" id="pnMap">
     <canvas id="gmapCv"></canvas>
     <div class="pnTitle"><i>◆</i>&nbsp;TABVLA&nbsp;·&nbsp;地圖&nbsp;&nbsp;—&nbsp;&nbsp;拖動旋轉</div>
