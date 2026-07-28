@@ -1217,15 +1217,20 @@ function colPts(i){
   function base(){for(var k=0;k<90;k++)sq(rnd()*.05,.115);ring(60,.075,.095);}
   var R=.072,k;
   switch(ORDERS[i]){
-    case 'CONDITOR':                /* 未建成之柱：柱身半立，餘石懸浮待壘——己手起造 */
-      base();
-      shaft(430,.10,.52,R+.006,R-.004,20,.10);
-      ring(56,.535,.084);
-      for(k=0;k<170;k++){
-        var yf=.56+rnd()*.36,rf=.03+rnd()*.115,af=rnd()*Math.PI*2;
-        push(rf*Math.cos(af)*1.5,yf,rf*Math.sin(af)*1.5,rnd()<.16);
+    case 'CONDITOR':                /* 自定義之柱：三階方座+阿提卡座環+凹槽柱身+鐘形柱頭方冠，柱頂一縷螺旋星火示「起造」 */
+      for(k=0;k<120;k++)sq(rnd()*.03,.13);            /* 方座下階 */
+      for(k=0;k<90;k++)sq(.03+rnd()*.028,.117);       /* 方座中階 */
+      for(k=0;k<70;k++)sq(.058+rnd()*.022,.105);      /* 方座上階 */
+      ring(80,.088,.098);ring(64,.104,.086);          /* 座環：圓凸線腳兩道 */
+      shaft(640,.115,.80,R+.006,R-.010,20,.10);       /* 凹槽柱身帶卷殺 */
+      ring(72,.812,.081);                              /* 頸環 */
+      bell(150,.828,.885,R-.013,.106);                 /* 鐘形柱頭 */
+      for(k=0;k<110;k++)sq(.885+rnd()*.045,.114);      /* 方冠 */
+      for(k=0;k<86;k++){                               /* 起造星火：細螺旋自柱頂升起收束 */
+        var tf=rnd(),af=tf*Math.PI*5.6;
+        var rf=.012+.052*(1-tf);
+        push(rf*Math.cos(af),.935+tf*.10,rf*Math.sin(af),tf>.5);
       }
-      for(k=0;k<80;k++)sq(.905+rnd()*.05,.05+rnd()*.05);
       break;
     case 'ATTIC':
     case 'DORIC':      base();shaft(650,.10,.84,R+.008,R-.010,20,.10);bell(120,.84,.90,R-.01,.10);for(k=0;k<130;k++)sq(.90+rnd()*.08,.112);break;
