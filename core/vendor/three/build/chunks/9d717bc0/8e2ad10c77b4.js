@@ -3116,8 +3116,24 @@
     '巴克特拉': ['orient', 'levant'], '撒马尔罕': ['orient', 'hispania'],
     '塔克西拉': ['orient', 'graecia'], '华氏城': ['orient', 'gallia']
   };
+  /* 中原诸城。本引擎自带的 buildLuoyi / buildPass / buildTown 与中原引擎逐字节相同，
+     过去因 medBuild 恒真兜底而成为死代码；列名于此者一律交还中原分支自建。 */
+  var CN2 = {
+    '洛邑': { st: 'zhou', flavor: 'luoyi' },
+    '咸阳': { st: 'qin', flavor: 'town' }, '函谷关': { st: 'qin', flavor: 'pass' }, '成都': { st: 'qin', flavor: 'town' },
+    '邯郸': { st: 'zhao', flavor: 'town' }, '灵寿': { st: 'zhao', flavor: 'town' },
+    '蓟': { st: 'yan', flavor: 'town' },
+    '临淄': { st: 'qi', flavor: 'town' }, '曲阜': { st: 'qi', flavor: 'town' }, '陶邑': { st: 'qi', flavor: 'town' },
+    '大梁': { st: 'wei', flavor: 'water' }, '商丘': { st: 'wei', flavor: 'town' },
+    '新郑': { st: 'han', flavor: 'town' },
+    '郢': { st: 'chu', flavor: 'water' }, '宛': { st: 'chu', flavor: 'town' }, '姑苏': { st: 'chu', flavor: 'water' }, '会稽': { st: 'chu', flavor: 'water' }
+  };
+
   function medBuild(locName) {
+    /* 海面／船队／河渠／水道这些是模块级状态，必须先清干净再决定走哪条分支，
+       否则切到中原城时上一座地中海城的港湾与战船会留在场上。 */
     SEA = null; SHIPS = []; RIVER = null; AQUA = [];
+    if (CN2[locName]) return false;          /* 中原城不归地中海建造器管 */
     var f = MEDCITY[locName];
     if (f) { f(); return true; }
     var g = MEDGEN[locName];
@@ -3141,7 +3157,7 @@
     Z.cityKey = locName;
     if (Z.B) cancelGhost();
     Z.sel = null;
-    var cfg = LOC2[locName] || { st: 'zhou', flavor: 'luoyi' };
+    var cfg = CN2[locName] || LOC2[locName] || { st: 'zhou', flavor: 'luoyi' };
     chunkReset();
     Z.spawnSeq = 0; Z.natSeq = 0; Z.inRecipe = true;
     if (!medBuild(locName)) {
@@ -6100,6 +6116,7 @@
   };
   Z.setLow = function (on) { PERF.low = !!on; perfSave(); applyPerf(); if (Z._lowBtn) Z._lowBtn(); };
   Z.isLow = function () { return PERF.low; };
+  Z.hasCN = function (n) { return !!CN2[n]; };   /* 本引擎能否自建该中原城 */
   Z.paneH = function (mob) {
     if (!Z.owns()) return mob ? 140 : 186;
     if (Z.tier === 2) return Math.round(window.innerHeight * (mob ? 0.52 : 0.58));
