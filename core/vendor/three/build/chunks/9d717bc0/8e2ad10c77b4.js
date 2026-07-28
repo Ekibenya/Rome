@@ -3189,47 +3189,51 @@
     eraChip.style.cssText = 'position:absolute;top:34px;left:12px;max-width:62%;font-size:10px;letter-spacing:.06em;color:rgba(217,217,212,.45);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
     hud.appendChild(eraChip);
     applyChip();
+    /* 右上按钮排：flex 布局，宽标签不再重叠 */
+    var tr0 = document.createElement('div');
+    tr0.style.cssText = 'position:absolute;top:8px;right:10px;display:flex;gap:6px;align-items:center;pointer-events:auto';
+    hud.appendChild(tr0); Z._topRow = tr0;
     // expand button
     expBtn = document.createElement('div');
-    expBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0';
+    expBtn.style.cssText = 'order:9;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap';
     expBtn.onclick = function () { Z.toggleExpand(); };
-    hud.appendChild(expBtn);
+    tr0.appendChild(expBtn);
     var xBtn = document.createElement('div');
-    xBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:11px;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
+    xBtn.style.cssText = 'order:10;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:11px;cursor:pointer;border-radius:0;display:none';
     xBtn.textContent = '×';
     xBtn.title = '完全隐藏三维横条（文字区右上可随时展开）';
     xBtn.onclick = function () {
       try { localStorage.setItem('med3d_hide', '1'); } catch (e) { }
       if (window.ZJ3D_onExpand) window.ZJ3D_onExpand();
     };
-    hud.appendChild(xBtn); Z._xBtn = xBtn;
+    tr0.appendChild(xBtn); Z._xBtn = xBtn;
     // 低配模式（仅手机）：更低渲染分辨率 + 关阴影 + 锁30帧
     if (isTouch()) {
       var lowBtn = document.createElement('div');
       var lowSty = function () {
-        lowBtn.style.cssText = 'position:absolute;top:8px;right:102px;padding:2px 8px;background:' + (PERF.low ? '#c99b3f' : 'rgba(6,6,6,.62)') + ';border:1px solid rgba(236,236,232,.22);color:' + (PERF.low ? '#0a0a08' : '#d9d9d4') + ';font-size:9.5px;letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:' + (Z.expanded ? 'block' : 'none');
+        lowBtn.style.cssText = 'order:2;padding:3px 9px;background:rgba(6,6,6,.62);border:1px solid ' + (PERF.low ? 'rgba(201,155,63,.8)' : 'rgba(236,236,232,.22)') + ';color:' + (PERF.low ? '#ecc878' : '#d9d9d4') + ';font-size:9.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap;display:' + (Z.expanded ? 'block' : 'none');
       };
       lowSty();
       lowBtn.textContent = 'LEVIS·低配';
       lowBtn.onclick = function () { PERF.low = !PERF.low; perfSave(); applyPerf(); lowSty(); };
-      hud.appendChild(lowBtn); Z._lowBtn = lowSty;
+      tr0.appendChild(lowBtn); Z._lowBtn = lowSty;
       var txtBtn = document.createElement('div');
-      txtBtn.style.cssText = 'position:absolute;top:8px;right:148px;padding:2px 8px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:' + (Z.expanded ? 'block' : 'none');
+      txtBtn.style.cssText = 'order:1;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap;display:' + (Z.expanded ? 'block' : 'none');
       txtBtn.textContent = 'TEXTVS·纯文字';
       txtBtn.title = '关闭三维，纯文字游玩（最省电），可随时开回';
       txtBtn.onclick = function () { try { localStorage.setItem('med3d_off', '1'); } catch (e) { } location.reload(); };
-      hud.appendChild(txtBtn); Z._txtBtn = txtBtn;
+      tr0.appendChild(txtBtn); Z._txtBtn = txtBtn;
     }
     // door button
     doorBtn = document.createElement('div');
-    doorBtn.style.cssText = 'position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:5px 18px;background:rgba(6,6,6,.7);-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%);border:1px solid rgba(201,155,63,.8);color:#ecc878;font-size:13px;letter-spacing:.25em;cursor:pointer;pointer-events:auto;display:none;border-radius:0';
+    doorBtn.style.cssText = 'position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:5px 16px;background:rgba(6,6,6,.7);-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%);border:1px solid rgba(236,236,232,.28);color:#d9d9d4;font-size:12px;letter-spacing:.25em;cursor:pointer;pointer-events:auto;display:none;border-radius:0';
     doorBtn.onclick = function () { tryDoor(); };
     hud.appendChild(doorBtn);
     // joystick (mobile)
     joyEl = document.createElement('div');
     joyEl.style.cssText = 'position:absolute;right:18px;bottom:16px;width:96px;height:96px;border-radius:50%;background:rgba(6,6,6,.4);border:1px solid rgba(236,236,232,.22);pointer-events:auto;display:none;touch-action:none';
     joyKnob = document.createElement('div');
-    joyKnob.style.cssText = 'position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:rgba(201,155,63,.5);border:1px solid rgba(236,200,120,.6)';
+    joyKnob.style.cssText = 'position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:rgba(236,236,232,.22);border:1px solid rgba(236,236,232,.4)';
     joyEl.appendChild(joyKnob);
     bindJoy(joyEl);
     hud.appendChild(joyEl);
@@ -3247,10 +3251,10 @@
   function isTouch() { return matchMedia('(pointer:coarse)').matches; }
   function updateHud() {
     if (!hud) return;
-    if (Z.loading) { loadEl.style.display = 'flex'; loadEl.textContent = 'OPVS MVNDI · 营造天下 ' + Math.round(Z.prog * 100) + '%'; }
-    else if (Z.failed) { loadEl.style.display = 'flex'; loadEl.textContent = '三维资材未至 · 以简册代之'; }
+    if (Z.loading) { loadEl.style.display = 'flex'; loadEl.textContent = 'ROMA.SYS · 资材加载 ' + Math.round(Z.prog * 100) + '%'; }
+    else if (Z.failed) { loadEl.style.display = 'flex'; loadEl.textContent = '3D资材加载失败 · 转纯文字模式'; }
     else loadEl.style.display = 'none';
-    expBtn.textContent = Z.expanded ? 'CLAVDE·收起' : 'OPVS·营造'; // 展开默认即营造；游历是营造内的切换项
+    expBtn.textContent = Z.expanded ? 'CLAVDE·收起' : 'OPVS·建造'; // 展开默认即营造；游历是营造内的切换项
     if (Z._xBtn) {
       Z._xBtn.style.display = Z.expanded ? 'none' : 'block';
       expBtn.style.right = !Z.expanded ? '44px' : '10px';
@@ -3491,7 +3495,7 @@
       // door prompt
       var nd = nearestDoor();
       if (doorBtn) {
-        if (nd && Z.expanded && !inBuild()) { doorBtn.style.display = 'block'; doorBtn.textContent = nd.exit ? '⾨ 出门' : '⾨ 入 · ' + nd.label + (isTouch() ? '' : '（E）'); }
+        if (nd && Z.expanded && !inBuild()) { doorBtn.style.display = 'block'; doorBtn.textContent = nd.exit ? 'EXI·出门' : 'INTRA·' + nd.label + (isTouch() ? '' : '（E）'); }
         else doorBtn.style.display = 'none';
       }
     }
@@ -3955,9 +3959,9 @@
       });
     }
     CATALOG = [
-      { tab: '市井', lab: 'VICVS·市坊', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') < 0 || /_Env_Stall_/.test(n); }) },
-      { tab: '王室', lab: 'REGIA·殿宇', items: pack2items('historic', function (n) { return n.indexOf('_Env_') < 0; }) },
-      { tab: '家具', lab: 'SVPELLEX·家什', items: pack2items('interior', function () { return true; }) },
+      { tab: '市井', lab: 'VICVS·民居', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') < 0 || /_Env_Stall_/.test(n); }) },
+      { tab: '王室', lab: 'REGIA·宫殿', items: pack2items('historic', function (n) { return n.indexOf('_Env_') < 0; }) },
+      { tab: '家具', lab: 'SVPELLEX·家具', items: pack2items('interior', function () { return true; }) },
       {
         tab: '构件', lab: 'OPVS·构件', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') >= 0 && !/_Env_Stall_/.test(n); })
           .concat(pack2items('historic', function (n) { return n.indexOf('_Env_') >= 0; }))
@@ -4567,22 +4571,22 @@
     w.style.cssText = 'position:absolute;inset:0;pointer-events:none';
     // 国库
     var gold = document.createElement('div');
-    gold.style.cssText = isTouch() ? 'position:absolute;top:8px;right:204px;padding:2px 8px;background:rgba(6,6,6,.66);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,155,63,.55);color:#ecc878;font-size:11px;letter-spacing:.04em;border-radius:0;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(6,6,6,.66);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,155,63,.55);color:#ecc878;font-size:12.5px;letter-spacing:.1em;border-radius:0;display:none;white-space:nowrap';
-    w.appendChild(gold); bHud.goldChip = gold;
+    gold.style.cssText = isTouch() ? 'order:0;padding:3px 9px;background:rgba(6,6,6,.66);border:1px solid rgba(236,236,232,.22);color:#ecc878;font-size:10px;letter-spacing:.04em;border-radius:0;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(6,6,6,.66);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,155,63,.55);color:#ecc878;font-size:12.5px;letter-spacing:.1em;border-radius:0;display:none;white-space:nowrap';
+    (isTouch() && Z._topRow ? Z._topRow : w).appendChild(gold); bHud.goldChip = gold;
     // 模式切换
     var vb = document.createElement('div');
-    vb.style.cssText = 'position:absolute;top:8px;right:56px;padding:2px 8px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0';
+    vb.style.cssText = 'order:5;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap';
     vb.onclick = function () { if (Z.intPlan) { exitInterior(); return; } Z.toggleView(); };
-    w.appendChild(vb); bHud.viewBtn = vb;
+    (Z._topRow || w).appendChild(vb); bHud.viewBtn = vb;
     // 托盘开关
     var tb = document.createElement('div');
-    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:#c99b3f;color:#0a0a08;font-size:' + (isTouch() ? '11.5px' : '13px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:0;display:none;font-weight:600';
-    tb.textContent = isTouch() ? '清单' : 'OPERA·营造清单';
+    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(201,155,63,.6);color:#ecc878;font-size:' + (isTouch() ? '10.5px' : '11px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
+    tb.textContent = isTouch() ? '清单' : 'OPERA·建造清单';
     tb.onclick = function () { bHud.tray.style.display = bHud.tray.style.display === 'none' ? 'block' : 'none'; fillTray(); };
     w.appendChild(tb); bHud.trayBtn = tb;
     // 奏报（集中通报本轮兴作/拆除）
     var rb = document.createElement('div');
-    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '70px' : '124px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:#7a9a6a;color:#0c130a;font-size:' + (isTouch() ? '11.5px' : '13px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:0;display:none;font-weight:600';
+    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '86px' : '190px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:' + (isTouch() ? '10.5px' : '11px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
     rb.onclick = function () { submitLedger(); };
     w.appendChild(rb); bHud.reportBtn = rb;
     // 托盘
@@ -4598,7 +4602,7 @@
     w.appendChild(tray); bHud.tray = tray;
     // 幽灵操作条
     var gb = document.createElement('div');
-    gb.style.cssText = 'position:absolute;left:50%;bottom:186px;transform:translateX(-50%);display:none;gap:' + (isTouch() ? '4px' : '8px') + ';pointer-events:auto;align-items:center;background:rgba(6,6,6,.88);border:1px solid rgba(201,155,63,.6);padding:' + (isTouch() ? '4px 6px' : '6px 10px') + ';border-radius:0;max-width:98%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch';
+    gb.style.cssText = 'position:absolute;left:50%;bottom:186px;transform:translateX(-50%);display:none;gap:' + (isTouch() ? '4px' : '8px') + ';pointer-events:auto;align-items:center;background:rgba(6,6,6,.88);border:1px solid rgba(236,236,232,.25);padding:' + (isTouch() ? '4px 6px' : '6px 10px') + ';border-radius:0;max-width:98%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch';
     w.appendChild(gb); bHud.ghostBar = gb;
     // 轴向旋转条（幽灵条上方）
     var ab = document.createElement('div');
@@ -4616,7 +4620,7 @@
   }
   function mkBtn(txt, fn, danger) {
     var b = document.createElement('div');
-    b.style.cssText = 'padding:' + (isTouch() ? '4px 9px' : '4px 12px') + ';cursor:pointer;font-size:' + (isTouch() ? '12px' : '13px') + ';letter-spacing:.12em;white-space:nowrap;border:1px solid ' + (danger ? 'rgba(224,110,90,.7);color:#f0a898' : 'rgba(201,155,63,.7);color:#ecc878') + ';border-radius:0;user-select:none';
+    b.style.cssText = 'padding:' + (isTouch() ? '4px 9px' : '4px 12px') + ';cursor:pointer;font-size:' + (isTouch() ? '12px' : '13px') + ';letter-spacing:.12em;white-space:nowrap;border:1px solid ' + (danger ? 'rgba(176,101,90,.55);color:#c98f82' : 'rgba(236,236,232,.25);color:#d9d9d4') + ';border-radius:0;user-select:none';
     b.textContent = txt; b.onclick = fn; return b;
   }
   function fillTray() {
@@ -4628,7 +4632,7 @@
       var t = document.createElement('div');
       t.textContent = c.lab || c.tab;
       t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '11px' : '12.5px') + ';letter-spacing:.16em;border-radius:0;' +
-        (i === bHud.tab ? 'background:rgba(201,155,63,.16);color:#ecc878;border:1px solid rgba(201,155,63,.6);border-bottom:none' : 'color:#6b6b66;border:1px solid transparent');
+        (i === bHud.tab ? 'background:transparent;color:#ecc878;border:1px solid rgba(201,155,63,.6);border-bottom:none' : 'color:#6b6b66;border:1px solid transparent');
       t.onclick = function () { bHud.tab = i; fillTray(); };
       bHud.tabsEl.appendChild(t);
     });
@@ -4650,7 +4654,7 @@
       var pr = document.createElement('div');
       var afford = ECON.gold >= item.price;
       pr.textContent = '金 ' + item.price;
-      pr.style.cssText = 'font-size:' + (mob ? '8.5px' : '10px') + ';color:' + (afford ? '#a9cbb8' : '#c2492f');
+      pr.style.cssText = 'font-size:' + (mob ? '8.5px' : '10px') + ';color:' + (afford ? '#8a8a85' : '#a05a4e');
       card.appendChild(pr);
       card.onclick = function () {
         startGhost(item);
@@ -4735,19 +4739,19 @@
     if (!bHud.wrap) return;
     var on = inBuild();
     bHud.goldChip.style.display = on ? 'block' : 'none';
-    if (on) { econTick(); bHud.goldChip.textContent = isTouch() ? ('金 ' + ECON.gold.toLocaleString()) : ('AERARIVM 金 ' + ECON.gold.toLocaleString() + ' · 岁入 ' + ECON.RATE + '/分'); }
+    if (on) { econTick(); bHud.goldChip.textContent = isTouch() ? ('金 ' + ECON.gold.toLocaleString()) : ('AERARIVM·金 ' + ECON.gold.toLocaleString() + ' · +' + ECON.RATE + '/分'); }
     bHud.trayBtn.style.display = on ? 'block' : 'none';
     if (bHud.reportBtn) {
       var lc = ledgerCount();
       bHud.reportBtn.style.display = (on && lc > 0) ? 'block' : 'none';
-      bHud.reportBtn.textContent = isTouch() ? ('ACTA·' + lc + '（发AI）') : ('ACTA·奏报·' + lc + '（发送给AI）');
+      bHud.reportBtn.textContent = isTouch() ? ('ACTA·' + lc + '（发AI）') : ('ACTA·通报·' + lc + '（发送给AI）');
     }
     /* 一进营造（本会话内 inBuild 首次成立）就自动弹出建造清单，让人一眼看出这是盖房子的游戏；
        离开营造(on=false)复位，下次再进会重新弹出。用户在营造中手动收起后不会再被强开。抗城景加载时的 on 抖动。 */
     if (on) { if (!bHud._openedSession) { bHud._openedSession = true; bHud.tray.style.display = 'block'; try { fillTray(); } catch (e) {} } }
     else { bHud._openedSession = false; bHud.tray.style.display = 'none'; }
     bHud.viewBtn.style.display = (Z.expanded && (Z.mode === 'city' || Z.intPlan)) ? 'block' : 'none';
-    bHud.viewBtn.textContent = Z.intPlan ? 'EXI·回城' : (Z.view === 'build' ? 'ITER·游历' : 'OPVS·营造');
+    bHud.viewBtn.textContent = Z.intPlan ? 'EXI·回城' : (Z.view === 'build' ? 'ITER·漫游' : 'OPVS·建造');
     // 操作条贴近底部，托盘展开时抬升避让
     var trayOpen = bHud.tray && bHud.tray.style.display !== 'none';
     var barBottom = trayOpen ? (isTouch() ? '142px' : '184px') : (isTouch() ? '40px' : '48px');
