@@ -3436,7 +3436,7 @@ $('#gNarr').addEventListener('click',function(e){
   }
 });
 function renderReply(text,tIdx,instant){
-  var panel=parseMvu(text);
+  var panel=mvuMerge(GAME.lastPanel,parseMvu(text));
   var body=stripMvu(text);
   if(typeof rxApply==='function')body=rxApply(body,false);   /* 正则·仅显示 */
   var after=function(finalText){
@@ -3445,7 +3445,9 @@ function renderReply(text,tIdx,instant){
       if(typeof SET!=='undefined'&&SET.tts.auto===1)speakText(finalText);
       if(typeof SET!=='undefined'&&SET.img.on===1&&SET.img.auto===1)drawScene();
     },instant);
-    if(panel)renderMvu(panel);
+    /* 就算这轮 AI 整段没写面板，也照旧重绘一次：心声、编年史、人物图谱、长程记忆
+       全靠 renderMvu 这一脚往前推，跳过它等于这一回合从记忆里整个蒸发。 */
+    renderMvu(panel||GAME.lastPanel);
   };
   if(typeof jsPipeline==='function')jsPipeline(body,after);  /* 脚本管线（沙箱） */
   else after(body);
@@ -5269,41 +5271,94 @@ function bookRender(){
 /* 剥离状态栏：先去掉闭合完整的块，再把「开了头却没闭合」的残块从起点截到尾。
    模型撞上 token 上限、或流式尚未吐完时，面板都可能没有 </mvu_panel>——
    若只认闭合块，整段状态栏原文就会漏进正文。 */
+/* 面板标签一律用宽松正则认：模型时不时会写成 <MVU_PANEL>、<mvu_panel >、<mvu panel>，
+   原来逐字比对 '<mvu_panel>'，认不出就整段面板原文漏进正文，情报台同时冻住。 */
+var MVU_RX=/<\s*mvu[_ ]?panel\s*>/i, MVU_RXC=/<\s*\/\s*mvu[_ ]?panel\s*>/i;
 function stripMvu(text){
-  var t=String(text==null?'':text).replace(/<mvu_panel>[\s\S]*?<\/mvu_panel>/g,'');
-  var i=t.indexOf('<mvu_panel>');
-  if(i>=0)t=t.slice(0,i);
+  var t=String(text==null?'':text);
+  /* 模型爱把面板裹进 markdown 围栏，剥完面板会剩下两行孤零零的反引号 */
+  t=t.replace(/(^|\n)[ \t]*```[a-z]*[ \t]*\n(?=[\s\S]*?<\s*mvu[_ ]?panel\s*>)/gi,'$1');
+  t=t.replace(/<\s*mvu[_ ]?panel\s*>[\s\S]*?<\s*\/\s*mvu[_ ]?panel\s*>[ \t]*\n?[ \t]*(```)?/gi,'');
+  var m=MVU_RX.exec(t);if(m)t=t.slice(0,m.index);          /* 开了头没闭合 */
+  var s=/(^|\n)[ \t]*<\s*sec_(char|npc|world)\s*>/i.exec(t);
+  if(s)t=t.slice(0,s.index);                                /* 连外壳都没写，只有裸 sec_* */
+  t=t.replace(/<\s*sec_deed\s*>[\s\S]*?<\s*\/\s*sec_deed\s*>/gi,'');
+  t=t.replace(/<\s*\/\s*mvu[_ ]?panel\s*>/gi,'');           /* 孤立闭合标签 */
+  t=t.replace(/<\s*\/?\s*(mvu[_ ]?pane?l?|sec_[a-z]*)\s*>?[ \t]*$/i,''); /* 流式打到一半的半截标签 */
+  t=t.replace(/(^|\n)[ \t]*```[a-z]*[ \t]*$/i,'$1');
   return t.trim();
 }
 function stripMvuLive(text){return stripMvu(text);}
 function parseMvu(text){
   var src=String(text==null?'':text);
-  var m=src.match(/<mvu_panel>([\s\S]*?)<\/mvu_panel>/);
-  if(!m){                                   /* 未闭合（被截断／流未完）：从开标签读到结尾，能认多少认多少 */
-    var i=src.indexOf('<mvu_panel>');
-    if(i<0)return null;
-    m=[null,src.slice(i+11)];
+  var mo=MVU_RX.exec(src),body=null;
+  if(mo){
+    var rest=src.slice(mo.index+mo[0].length),mc=MVU_RXC.exec(rest);
+    body=mc?rest.slice(0,mc.index):rest;                    /* 未闭合就读到结尾，能认多少认多少 */
+  }else{
+    /* 没写外壳、直接甩出 <sec_char> 的情况也认，否则整段状态全丢 */
+    var ms=/(^|\n)[ \t]*<\s*sec_(char|npc|world)\s*>/i.exec(src);
+    if(!ms)return null;
+    body=src.slice(ms.index);
   }
-  var p={ch:[],npc:[],wd:[]},sec=null;
-  m[1].split('\n').forEach(function(ln){ln=ln.trim();if(!ln)return;
-    if(ln.indexOf('<sec_char>')>=0){sec='ch';return;}
-    if(ln.indexOf('<sec_npc>')>=0){sec='npc';return;}
-    if(ln.indexOf('<sec_world>')>=0){sec='wd';return;}
+  var p={ch:[],npc:[],wd:[]},sec=null,any=false;
+  body.split('\n').forEach(function(ln){
+    ln=ln.replace(/^[\s>*\-]+/,'').replace(/\s+$/,'');       /* 容忍 markdown 引用/列表前缀 */
+    if(!ln||ln.indexOf('```')===0)return;
+    if(/<\s*sec_char\s*>/i.test(ln)){sec='ch';return;}
+    if(/<\s*sec_npc\s*>/i.test(ln)){sec='npc';return;}
+    if(/<\s*sec_world\s*>/i.test(ln)){sec='wd';return;}
     if(ln.charAt(0)==='<')return;
-    var c0=ln.charAt(0),parts=ln.slice(1).split('|');
-    if(c0==='◆'&&sec==='ch')p.ch.push(parts);
-    else if(c0==='◈'&&sec==='npc')p.npc.push(parts);
-    else if(c0==='◇'&&sec==='wd')p.wd.push(parts);
+    var c0=ln.charAt(0),rs=(c0==='◆')?'ch':(c0==='◈')?'npc':(c0==='◇')?'wd':null;
+    var raw=rs?ln.slice(1):ln;
+    /* 行首符号漏写时，按它所在的段归类，而不是整行丢掉 */
+    if(!rs){if(!sec)return;if(raw.indexOf('|')<0&&raw.indexOf('｜')<0)return;rs=sec;}
+    var parts;
+    if(rs==='npc'){
+      parts=raw.split(/\s*[|｜│]\s*/);                       /* ◈ 是八字段，全拆 */
+    }else{
+      /* ◆/◇ 是「键|值」两段：值里本来就可能有竖线（◇大势 的官方写法就是
+         「高卢索金｜元老院流亡维爱｜…」），只在第一个分隔符处切一刀，别把值拆散。 */
+      var mk=/^([^|｜│]*)[|｜│]([\s\S]*)$/.exec(raw);
+      if(!mk)return;
+      parts=[mk[1],mk[2].replace(/^\s+/,'')];
+    }
+    if(parts.length<2)return;
+    parts[0]=parts[0].replace(/\s+/g,'');                    /* 键名去空格，否则进度条匹配不上 */
+    p[rs].push(parts);any=true;
   });
-  return p;
+  return any?p:null;                                         /* 空壳面板不再把情报台清空 */
+}
+/* 逐字段合并：AI 这轮漏写的行沿用上一轮的值，写了的才覆盖。
+   协议里那句「无变动者照抄上一幕原值」本来只是写给模型看的，前端从没实现过——
+   于是模型一漏写，那一行就直接从面板上消失了。 */
+function mvuMerge(prev,next){
+  if(!next)return prev||null;
+  if(!prev)return next;
+  var out={ch:[],npc:[],wd:[]};
+  ['ch','wd'].forEach(function(sk){
+    var seen={},order=[];
+    (prev[sk]||[]).forEach(function(kv){if(!(kv[0] in seen))order.push(kv[0]);seen[kv[0]]=kv.slice();});
+    (next[sk]||[]).forEach(function(kv){
+      if(!kv.slice(1).join('|').trim())return;               /* 写了但值是空的，当没写，保旧值 */
+      if(!(kv[0] in seen))order.push(kv[0]);
+      seen[kv[0]]=kv.slice();
+    });
+    out[sk]=order.map(function(k){return seen[k];});
+  });
+  /* 在场名单整段替换：写了就以新的为准，没写才留旧的，否则离场的人会永远赖在面板上 */
+  out.npc=((next.npc||[]).length?next.npc:(prev.npc||[])).slice();
+  return out;
 }
 function esc2(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 /* 主角心声：取玩家最近一次「~」开头的内心独白。
    卡之铁则一——她的言语行动决定与内心皆属玩家，故此栏不由 AI 代笔，只回放你自己写下的那一句。 */
-function heroMind(){
+function heroMind(within){
   if(typeof TURNS==='undefined')return '';
+  var lim=(within==null)?1e9:within,scan=0;   /* within：最多往回看几条玩家发言 */
   for(var i=TURNS.length-1;i>=0;i--){
     var tn=TURNS[i];if(!tn||tn.role!=='user')continue;
+    if(++scan>lim)return '';
     var c=String(tn.content||'').replace(/^【[^】]*】\s*/,'').trim();
     if(c.charAt(0)==='~'||c.charAt(0)==='～')return c.slice(1).trim();
   }
@@ -5325,7 +5380,11 @@ function renderMvu(panel){
   panel.ch.forEach(function(kv){
     var k=kv[0],v=kv.slice(1).join('|');
     if(/^心声|^心声/.test(k))return;              /* 心声另起引言块，不混在资料列里 */
-    var isNum=/^\d{1,3}$/.test(v.trim());
+    /* 数值容错：模型常写成 72/100、７２、72（微升）这几种，原来只认纯数字，
+       一不合规就退化成文字行，进度条与位阶文案一起消失。 */
+    var _nv=v.replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);});
+    var _mn=/^\s*(\d{1,3})\s*(?:\/\s*100)?\s*(?:[（(][^)）]*[)）])?\s*$/.exec(_nv);
+    var isNum=!!_mn;if(isNum)v=_mn[1];
     var bw=null;if(isNum&&bars.length)bars.forEach(function(b){if(b.k===k)bw=b;});
     if(bw){
       var n=Math.max(0,Math.min(100,parseInt(v,10)||0));
@@ -5341,7 +5400,9 @@ function renderMvu(panel){
   });
   /* 心声：她自己的那一句。玩家写过内心独白就以玩家为准（铁则一：她的内心属于玩家），
      否则回落到开局/面板里写好的那一句，让人一进来就看见这一栏是干什么的。 */
-  var mind=heroMind()||aiMind;
+  /* 只回放「本回合」玩家写的独白；这回没写就让位给 AI 的 ◆心声，都没有才退回旧句。
+     否则玩家第 3 回合写过一次 ~，第 50 回合这一栏还挂着那句，成了摆设。 */
+  var mind=heroMind(2)||aiMind||heroMind();
   h+='<div class="mRow"><span>'+(ACTIVE==='roma'?'MENS&nbsp;·&nbsp;心声':'心 声')+'</span></div>'
     +(mind?('<div class="mMind">『'+esc2(mind)+'』</div>')
           :('<div class="mMind mute">以&nbsp;<b>~</b>&nbsp;开头发言，即记于此</div>'));
@@ -5430,7 +5491,10 @@ function zjPanel(txt,box){
   if(p){
     g={npcs:[],world:{}};
     (p.npc||[]).forEach(function(n){var fv=parseInt(n[2],10);
-      g.npcs.push({name:String(n[0]||'').trim(),state:n[1]||'',favor:isNaN(fv)?null:Math.max(0,Math.min(100,fv)),thought:n[3]||'',role:n[4]||'',place:n[5]||''});});
+      /* ◈ 是八字段：名|状态|好感|心声|身份|所在|年龄|性别。原来只取到 n[5]，
+         年龄性别被直接丢掉——档案窗那两栏于是永远空着，还每次触发一次辅助 AI
+         去「推断」这两项，等于 AI 写好了扔掉再花钱猜回来。 */
+      g.npcs.push({name:String(n[0]||'').trim(),state:n[1]||'',favor:isNaN(fv)?null:Math.max(0,Math.min(100,fv)),thought:n[3]||'',role:n[4]||'',place:n[5]||'',age:String(n[6]||'').trim(),sex:String(n[7]||'').trim()});});
     (p.wd||[]).forEach(function(kv){g.world[kv[0]]=kv.slice(1).join('|');});
     (p.ch||[]).forEach(function(kv){if(kv[0]==='史笔')g.world['记录']=kv.slice(1).join('|');});
   }
