@@ -368,6 +368,13 @@ canvas{display:block}
       background:rgba(4,4,4,.86)}
 .gDlg .box{border:1px solid rgba(236,236,232,.4);background:var(--ink);padding:34px 42px;
       min-width:min(92vw,360px);max-width:min(94vw,680px);max-height:80vh;overflow:auto}
+/* 設置窗尺寸鎖死：12 個頁签內容長短不一，原本外框跟著內容伸縮，每切一頁窗就跳一次。
+   改成外框定高、標題與頁签釘住，只有內容區自己滾。scrollbar-gutter 讓滾動條常駐留白，
+   免得「這頁要滾那頁不要滾」時正文寬度再橫向抖一下。 */
+#dlgCfg .box{height:min(80vh,760px);overflow:hidden;display:flex;flex-direction:column}
+#dlgCfg .box>.tag{align-self:flex-start}
+#dlgCfg .box>.tag,#dlgCfg .box>h2,#dlgCfg .box>.cfgTabs,#dlgCfg .box>.esc2{flex:none}
+#dlgCfg .cfgPane{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-gutter:stable}
 .gDlg h2{font-size:14px;letter-spacing:.3em;font-weight:400;color:var(--txt);margin:20px 0 8px}
 .gDlg .sub{font-size:9px;letter-spacing:.22em;color:var(--mut);line-height:2}
 .sRow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px 40px;
