@@ -1089,7 +1089,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.5.8';
+  var ZJ3D_VER='1.5.9';
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -2590,6 +2590,8 @@ function gameShow(){
   /* 桌面端进入游戏默认展开天下面板（默认条档） */
   if(!GAME.txOpen){GAME.txOpen=true;gEl.classList.add('txOpen');gEl.classList.remove('tx2','txBig');try{localStorage.setItem('med3d_tier','0');}catch(_){}setTimeout(zj3dTick,600);} /* 手机亦默认开三维（默认条档，LOD 自动降耗） */
   var gb=$('#game .gBrand');if(gb&&gb.textContent.indexOf('·B')<0)gb.textContent+='  ·B'+BUILD;
+  /* 進局即樂起（首曲 Fons Vitae）；被瀏覽器攔截則首次點按時補放。玩家手動暫停過則不再自作主張 */
+  try{if(typeof BGM!=='undefined'&&!BGM.a)bgmPlay(0);}catch(_){}
   $('#stage').style.display='none';$('#rail').style.display='none';$('#mission').style.display='none';
   setTimeout(gmapSize,80);
 }
@@ -3356,7 +3358,13 @@ function bgmEl(){
 function bgmPlay(i){
   BGM.i=i;var a=bgmEl();
   a.src='core/res/bgm/'+BGM_LIST[i].f;
-  var p=a.play();if(p&&p.catch)p.catch(function(){});
+  var p=a.play();
+  if(p&&p.catch)p.catch(function(){
+    if(BGM._armed)return;BGM._armed=1;      /* 自動播放被攔：等第一次真實點按再放 */
+    var f=function(){document.removeEventListener('pointerdown',f);BGM._armed=0;
+      if(BGM.on&&BGM.a){var q=BGM.a.play();if(q&&q.catch)q.catch(function(){});}};
+    document.addEventListener('pointerdown',f);
+  });
   BGM.on=true;$('#gtSnd').classList.add('on');
   $('#gtSnd').title='MVSICA · '+BGM_LIST[i].t+'（點擊暫停）';
 }
