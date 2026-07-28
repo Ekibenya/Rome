@@ -5068,6 +5068,8 @@ function movePlayerTo(name){
   var cur=playerLoc();
   if(L.name===cur.name){render();return;}
   S.overlay=null;
+  GAME.dest3d=L.name;                               /* 三维即刻随行：不必等神谕回话 */
+  try{zj3dTick();}catch(_){}
   sendText('（御驾起行——孤自'+cur.name+'移驾前往'+L.name+'，'+L.note+'。此回合孤只是赶路：请描写沿途仪仗见闻与抵达'+L.name+'时的景象，并将时地更新为'+L.name+'。）');
 }
 function mood(){
@@ -5156,29 +5158,65 @@ function zj3dTick(){
   try{
     if(!GAME.txOpen)return;
     var med=(ACTIVE==='roma');
-    var zh=document.getElementById('zjScene3D'),mh=document.getElementById('mdScene3D');
-    if(zh)zh.style.display=med?'none':'block';
-    if(mh)mh.style.display=med?'block':'none';
-    var E=med?window.MED3D:window.ZJ3D;
-    if(!E)return;
-    if(E.wake)E.wake();
     var p=currentPanel(),cw=p?p.world:{};
-    if(E.setEra)E.setEra(cw['纪年']||(GAME.op?GAME.op.era:'')||'');
     var _m=mood();
     var _td=String(cw['时地']||cw['時地']||'');
-    var _loc;
+    var _loc,_zh=null; /* _zh 非空＝此地属中原，画面交给 ZJ3D 引擎 */
     if(med){
-      _loc=medLoc(_td);
+      var _zhT=cnLoc(_td);
       if(GAME.dest3d){
-        var _dl=medLoc(GAME.dest3d);
-        /* 叙事已抵达该地则交还叙事，否则以玩家选定地为准 */
-        if(_loc===_dl)GAME.dest3d=null; else _loc=_dl;
+        var _zhD=cnLoc(GAME.dest3d);
+        if(_zhD){ /* 目的地在中原：叙事抵达后交还叙事 */
+          if(_zhT===_zhD)GAME.dest3d=null;
+          _zh=_zhD;
+        }else{
+          var _dl=medLoc(GAME.dest3d);
+          /* 叙事已抵达该地则交还叙事，否则以玩家选定地为准 */
+          if(!_zhT&&medLoc(_td)===_dl)GAME.dest3d=null;
+          _loc=_dl;
+        }
+      }else if(_zhT){_zh=_zhT;}
+      else _loc=medLoc(_td);
+    }else{
+      _loc=playerLoc().name;
+      if(GAME.dest3d&&locByName(GAME.dest3d)){ /* 中原地图点选：三维即刻随行 */
+        if(_loc===GAME.dest3d)GAME.dest3d=null; else _loc=GAME.dest3d;
       }
-    }else _loc=playerLoc().name;
+      _zh=_loc; /* 周纪卡永远走中原引擎 */
+    }
+    var zhShow=!!_zh;
+    if(zhShow)_loc=_zh;
+    var zh=document.getElementById('zjScene3D'),mh=document.getElementById('mdScene3D');
+    if(zh)zh.style.display=zhShow?'block':'none';
+    if(mh)mh.style.display=zhShow?'none':'block';
+    var E=zhShow?window.ZJ3D:window.MED3D;
+    var O=zhShow?window.MED3D:window.ZJ3D;
+    if(O&&O!==E&&O.sleep)O.sleep(); /* 另一侧引擎休眠省内存 */
+    if(!E)return;
+    if(E.wake)E.wake();
+    var _Eo=(ACTIVE==='roma')?window.MED3D:window.ZJ3D; /* 档位记在本卡引擎上，借用引擎同步之 */
+    if(E!==_Eo&&_Eo&&_Eo.tier!=null){E.tier=_Eo.tier;E.expanded=!!_Eo.expanded;}
+    if(E.setEra)E.setEra(cw['纪年']||(GAME.op?GAME.op.era:'')||'');
     if(E.onRender)E.onRender(_loc,_m.night);
     if(E.onStory){var _lm=null;for(var i=S.history.length-1;i>=0;i--){if(S.history[i].role!=='user'){_lm=S.history[i];break;}}E.onStory(_lm&&_lm.text?_lm.text:'');}
-    if(med){medEdictSync();}else{edictSync();}
+    if(zhShow){edictSync();}else{medEdictSync();}
   }catch(e){}
+}
+function cnLoc(td){ /* 时地/目的地 → 中原引擎地点键（命中即两引擎互通；繁简同收） */
+  if(!td)return null;
+  var CN={'洛邑':'洛邑','雒陽':'洛邑','雒阳':'洛邑','洛陽':'洛邑','洛阳':'洛邑',
+    '咸陽':'咸阳','咸阳':'咸阳','長安':'咸阳','长安':'咸阳',
+    '臨淄':'临淄','临淄':'临淄','邯鄲':'邯郸','邯郸':'邯郸','鄴':'邯郸','邺':'邯郸',
+    '郢':'郢','成都':'成都','曲阜':'曲阜','新鄭':'新郑','新郑':'新郑',
+    '大梁':'大梁','薊':'蓟','蓟':'蓟','姑蘇':'姑苏','姑苏':'姑苏',
+    '會稽':'会稽','会稽':'会稽','番禺':'会稽',
+    '函谷關':'函谷关','函谷关':'函谷关','商丘':'商丘','陶邑':'陶邑',
+    '靈壽':'灵寿','灵寿':'灵寿','宛城':'宛'};
+  td=String(td);
+  var ks=Object.keys(CN);
+  ks.sort(function(a,b){return b.length-a.length;});
+  for(var i=0;i<ks.length;i++)if(td.indexOf(ks[i])>=0)return CN[ks[i]];
+  return null;
 }
 function medLoc(td){ /* 时地 → 引擎地点键（繁简同收，村庄/港市按词相择形） */
   var CM={'羅馬':'罗马','亞歷山卓':'亚历山卓','敘拉古':'叙拉古','斯巴達':'斯巴达','雅典':'雅典',
@@ -5262,9 +5300,12 @@ function medEdictSync(){ /* 環海側 sec_deed 敕令：同 edictSync，落到 M
     if(!ti)return;var raw=ti.value.trim();if(!raw)return;
     S.input=raw;S.cmdHint=null;
     if(ACTIVE==='roma'){
-      if(!(window.MED3D&&MED3D.owns()&&MED3D.command)){S.cmdHint='环海三维尚未加载，请先展开上方画面';}
+      var _zhHost=document.getElementById('zjScene3D');
+      var _useZh=_zhHost&&_zhHost.style.display==='block'; /* 身处中原：敕令落给中原引擎 */
+      var CE=_useZh?window.ZJ3D:window.MED3D;
+      if(!(CE&&CE.owns()&&CE.command)){S.cmdHint='三维尚未加载，请先展开上方画面';}
       else{
-        var r=MED3D.command(raw);
+        var r=CE.command(raw);
         if(!r||!r.ok){S.cmdHint=(r&&r.report)||'未能辨识敕令';}
         else{S.input='';sendText('（神谕指令行于此城：「'+raw+'」。其果如下——'+r.report+'。此为既成事实：请顺此结果叙事见闻与众人反应，不得更改、推翻或另行虚构执行细节。）');}
       }
