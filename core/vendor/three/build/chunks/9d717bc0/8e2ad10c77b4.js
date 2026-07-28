@@ -99,7 +99,7 @@
     var texLoader = new T.TextureLoader();
     var done = 0, total = MANI.length + TEXES.length + 1;
     function tick() { done++; Z.prog = done / total; updateHud(); }
-    fetch('core/res/data/idx/v1/cdcf9bb63a.dat').then(function (r) {
+    fetch('core/res/data/idx/v1/cdcf9bb63a.dat?v=45').then(function (r) {
       if (!r.ok) throw new Error('pack http ' + r.status);
       return r.arrayBuffer();
     }).then(function (ab) {
@@ -4991,7 +4991,7 @@
   function pawnProps(gt, cfg) {
     var pr = cfg.prop;
     if (pr === 'spear') { var p1 = new T.Mesh(new T.CylinderGeometry(0.022, 0.022, 2.1, 4), nmat(0x8a6a48)); p1.position.set(0.3, 1.05, 0); gt.add(p1); var tip = new T.Mesh(new T.ConeGeometry(0.05, 0.18, 4), nmat(0xb8bec6)); tip.position.set(0.3, 2.2, 0); gt.add(tip); }
-    else if (pr === 'sword') { var p2 = new T.Mesh(new T.BoxGeometry(0.05, 0.85, 0.1), nmat(0x4a4a52)); p2.position.set(-0.02, 1.1, -0.26); p2.rotation.x = 0.5; gt.add(p2); }
+    else if (pr === 'sword') { var p2 = new T.Mesh(new T.BoxGeometry(0.045, 0.72, 0.09), nmat(0x4a4a52)); p2.position.set(0.27, 0.82, 0.03); p2.rotation.z = 0.08; gt.add(p2); } /* 佩于右腰侧：旧版斜背在背后，远看像条甩动的辫子 */
     else if (pr === 'slip') { var p3 = new T.Mesh(new T.BoxGeometry(0.3, 0.05, 0.2), nmat(0xd9c69a)); p3.position.set(0.26, 1.05, 0.12); gt.add(p3); }
     else if (pr === 'qin') { var p4 = new T.Mesh(new T.BoxGeometry(0.55, 0.06, 0.2), nmat(0x6a4a30)); p4.position.set(0, 1.02, 0.24); p4.rotation.z = 0.3; gt.add(p4); }
     else if (pr === 'bundle') { var p5 = new T.Mesh(new T.SphereGeometry(0.2, 6, 5), nmat(cfg.bundleC || 0xa8845c)); p5.scale.set(1, 0.7, 0.8); p5.position.set(0, 1.5, -0.3); gt.add(p5); }
@@ -5041,6 +5041,9 @@
       R.torso = seg('torso', [0, J.hip, 0]);
       R.armL = seg('armL', J.armL); R.armR = seg('armR', J.armR);
       R.legL = seg('legL', J.legL); R.legR = seg('legR', J.legR);
+      /* 素材原姿是双臂外张的 A 形站姿：肩部内旋令双臂自然垂直贴体 */
+      if (R.armL) R.armL.rotation.z = 0.3;
+      if (R.armR) R.armR.rotation.z = -0.3;
       if (cfg.head && R.torso) {
         var at = lib['PW_at_' + cfg.head];
         if (at) {
@@ -5059,7 +5062,8 @@
     if (cfg.prop) {
       var pg = new T.Group();
       pawnProps(pg, cfg);
-      if (R.armR) { pg.position.set(-J.armR[0], -J.armR[1], 0); R.armR.add(pg); }
+      /* 道具挂躯干（原火柴人根空间坐标直接可用）：不随臂大摆，只随身微晃 */
+      if (R.torso) { pg.position.set(0, -J.hip, 0); R.torso.add(pg); }
       else g.add(pg);
     }
     pawnPick(g);
@@ -5266,15 +5270,15 @@
     ud._px = root.position.x; ud._pz = root.position.z;
     var sp = Math.hypot(dx, dz) / Math.max(dt, 1e-3);
     if (!isFinite(sp)) sp = 0;
-    var target = sp > 0.25 ? Math.min(0.34, 0.16 + sp * 0.05) : 0; /* 摆幅收敛：行走臂摆约±18°，不再大开大合 */
+    var target = sp > 0.25 ? Math.min(0.3, 0.14 + sp * 0.05) : 0; /* 摆幅收敛：小步自然，不再大开大合 */
     var a0 = isFinite(ud._amp) ? ud._amp : 0;
     ud._amp = a0 + (target - a0) * Math.min(1, dt * 6);
     var p0 = isFinite(ud._ph) ? ud._ph : 0;
     ud._ph = p0 + dt * (5 + Math.min(sp, 6) * 1.4);
     var sw = Math.sin(ud._ph) * ud._amp;
-    R.armL.rotation.x = sw; R.armR.rotation.x = -sw;
-    if (R.legL) R.legL.rotation.x = -sw * 1.35;
-    if (R.legR) R.legR.rotation.x = sw * 1.35;
+    R.armL.rotation.x = sw * 0.7; R.armR.rotation.x = -sw * 0.7;
+    if (R.legL) R.legL.rotation.x = -sw * 1.1;
+    if (R.legR) R.legR.rotation.x = sw * 1.1;
     if (R.torso) R.torso.rotation.z = Math.sin(ud._ph * 0.5) * ud._amp * 0.05;
   }
   function rigTick(dt) {
