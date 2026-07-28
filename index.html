@@ -1074,7 +1074,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.5.6';
+  var ZJ3D_VER='1.5.7';
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -3276,29 +3276,79 @@ function auPluck(){
   o.connect(g);g.connect(AU.mgain);o.start(t);o.stop(t+2.4);
   AU.timer=setTimeout(auPluck,1800+Math.random()*4200);
 }
-function bgmToggle(){
-  if(!auInit())return;
-  if(AU.ctx.state==='suspended')AU.ctx.resume();
-  if(AU.on){
-    AU.on=false;$('#gtSnd').classList.remove('on');
-    clearTimeout(AU.timer);
-    AU.nodes.forEach(function(n){try{n.stop();}catch(_){}});AU.nodes=[];
-    return;
-  }
-  AU.on=true;$('#gtSnd').classList.add('on');
-  var t=AU.ctx.currentTime;
-  [55,82.41,110.5].forEach(function(f,i){
-    var o=AU.ctx.createOscillator(),g=AU.ctx.createGain(),fl=AU.ctx.createBiquadFilter();
-    o.type=i===2?'sine':'sawtooth';o.frequency.value=f;o.detune.value=(i-1)*6;
-    fl.type='lowpass';fl.frequency.value=260;
-    g.gain.value=i===2?.05:.075;
-    var lfo=AU.ctx.createOscillator(),lg=AU.ctx.createGain();
-    lfo.frequency.value=.05+i*.03;lg.gain.value=40;
-    lfo.connect(lg);lg.connect(fl.frequency);lfo.start(t);
-    o.connect(fl);fl.connect(g);g.connect(AU.mgain);o.start(t);
-    AU.nodes.push(o,lfo);
+/* —— 幕間樂：真曲庫（古樂 34 + 攻壳 13，Fons Vitae 為首曲；按曲點播、放完自動下一首循環） —— */
+var BGM_LIST=[
+ {f:'fons_vitae.mp3',t:"Fons Vitae"},
+ {f:'aenaoi_nefelai.mp3',t:"Aenaoi Nefelai"},
+ {f:'anakrousis_orestes_stasimo.mp3',t:"Anakrousis - Orestes Stasimo"},
+ {f:'anonymi_bellermann.mp3',t:"Anonymi Bellermann"},
+ {f:'de_pastoribus.mp3',t:"De Pastoribus"},
+ {f:'de_tolerentia_aetherea.mp3',t:"De Tolerentia Aetherea"},
+ {f:'deuxieme_hymne_delphique_a_apollon.mp3',t:"Deuxième Hymne Delphique à Apollon"},
+ {f:'epitaphe_de_seikilos.mp3',t:"Epitaphe de Seikilos"},
+ {f:'extravagans.mp3',t:"Extravagans"},
+ {f:'fragments_instrumentaux_de_contrapollinopolis.mp3',t:"Fragments instrumentaux de Contrapollinopolis"},
+ {f:'homero_hymnus.mp3',t:"Homero Hymnus"},
+ {f:'hymne_au_soleil.mp3',t:"Hymne au Soleil"},
+ {f:'hymne_a_la_muse.mp3',t:"Hymne à la Muse"},
+ {f:'hymne_a_nemesis.mp3',t:"Hymne à Némésis"},
+ {f:'hymne_chretienne_d_oxyrhynchus.mp3',t:"Hymne Chrétienne d'Oxyrhynchus"},
+ {f:'nobilissima.mp3',t:"Nobilissima"},
+ {f:'nordica_et_desolata.mp3',t:"Nordica Et Desolata"},
+ {f:'oratio_pro_folia.mp3',t:"Oratio Pro-Folia"},
+ {f:'papyrus_michigan.mp3',t:"Papyrus Michigan"},
+ {f:'papyrus_oslo_ab_epilogos_katastrophe.mp3',t:"Papyrus Oslo AB - Epilogos-Katastrophe"},
+ {f:'papyrus_oxyrhynchus_2436.mp3',t:"Papyrus Oxyrhynchus 2436"},
+ {f:'papyrus_wien_29825.mp3',t:"Papyrus Wien 29825"},
+ {f:'papyrus_zenon_cairo_fragment.mp3',t:"Papyrus Zenon. Cairo fragment"},
+ {f:'parsimonia_aristocraciae.mp3',t:"Parsimonia Aristocraciae"},
+ {f:'pean_papyrus_berlin_6870.mp3',t:"Pean. Papyrus Berlin 6870"},
+ {f:'plaine_de_tecmessa.mp3',t:"Plaine de Tecmessa"},
+ {f:'poem_mo_1_11f_migne_37_523.mp3',t:"Poem. Mo 1, 11f. Migne 37, 523"},
+ {f:'premier_hymne_delphique_a_apollon.mp3',t:"Premier Hymne Delphique à Apollon"},
+ {f:'premiere_ode_pythique.mp3',t:"Première Ode Pythique"},
+ {f:'principalis_fermescens.mp3',t:"Principalis. Fermescens"},
+ {f:'subtilis.mp3',t:"Subtilis"},
+ {f:'terencio_hecyra_861.mp3',t:"Terencio. Hecyra 861"},
+ {f:'theatralis_et_hipocitae.mp3',t:"Theatralis Et Hipocitae"},
+ {f:'vulgaris_sine_populi_notione.mp3',t:"Vulgaris-Sine Populi Notione"},
+ {f:'m01_i_making_of_cyborg.mp3',t:"川井憲次 - M01 謡I-Making of Cyborg"},
+ {f:'m02_ghosthack.mp3',t:"川井憲次 - M02 Ghosthack (本编未使用)"},
+ {f:'m03_puppetmaster.mp3',t:"川井憲次 - M03 Puppetmaster"},
+ {f:'m04_virtual_crime.mp3',t:"川井憲次 - M04 Virtual Crime"},
+ {f:'m05_ii_ghost_city.mp3',t:"川井憲次 - M05 謡II-Ghost City"},
+ {f:'m06_access.mp3',t:"川井憲次 - M06 Access"},
+ {f:'m07_nightstalker.mp3',t:"川井憲次 - M07 Nightstalker"},
+ {f:'m08_floating_museum.mp3',t:"川井憲次 - M08 Floating Museum"},
+ {f:'m09_ghostdive.mp3',t:"川井憲次 - M09 Ghostdive"},
+ {f:'m10_iii_reincarnation.mp3',t:"川井憲次 - M10 謡III-Reincarnation"},
+ {f:'angleharry_go_ghost_tv.mp3',t:"AngleHarry - Go Ghost（TV版）"},
+ {f:'fang_ka_wing_bonus_track.mp3',t:"Fang Ka Wing - Bonus Track 挿入歌 毎天见一见!"},
+ {f:'steve_aoki_utai_iv_reawakening_steve_aoki_remix.mp3',t:"川井憲次,Steve Aoki - Utai IV Reawakening (Steve Aoki Remix)"}
+];
+var BGM={i:0,a:null,on:false,skip:0};
+function bgmEl(){
+  if(BGM.a)return BGM.a;
+  var a=new Audio();a.preload='none';a.volume=0.6;
+  a.addEventListener('ended',function(){BGM.skip=0;bgmPlay((BGM.i+1)%BGM_LIST.length);});
+  a.addEventListener('error',function(){
+    if(!BGM.on)return;
+    if(++BGM.skip>=BGM_LIST.length){BGM.skip=0;return;}   /* 整輪皆敗即止，防死循環 */
+    bgmPlay((BGM.i+1)%BGM_LIST.length);
   });
-  auPluck();
+  BGM.a=a;return a;
+}
+function bgmPlay(i){
+  BGM.i=i;var a=bgmEl();
+  a.src='core/res/bgm/'+BGM_LIST[i].f;
+  var p=a.play();if(p&&p.catch)p.catch(function(){});
+  BGM.on=true;$('#gtSnd').classList.add('on');
+  $('#gtSnd').title='MVSICA · '+BGM_LIST[i].t+'（點擊暫停）';
+}
+function bgmToggle(){
+  if(BGM.on){BGM.on=false;$('#gtSnd').classList.remove('on');if(BGM.a)BGM.a.pause();return;}
+  if(BGM.a&&BGM.a.src){var p=BGM.a.play();if(p&&p.catch)p.catch(function(){});BGM.on=true;$('#gtSnd').classList.add('on');return;}
+  BGM.skip=0;bgmPlay(0);
 }
 $('#gtSnd').addEventListener('click',bgmToggle);
 /* —— 全屏 —— */
