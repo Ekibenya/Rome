@@ -2745,12 +2745,82 @@ function condereOp(line,y,nm,cn){
     +'\n<sec_world>\n◇纪年|'+yl+'\n◇时地|'+cn+'\n</mvu_panel>';
   return {id:'custom',year:y,era:yl,scene:cn,text:body+'\n\n'+mv};
 }
+/* 鑄局用的系統提示：與正式對局同源（卡的鐵則、文風、世界書），世界書以年代地點為檢索詞 */
+function condereSys(line,q){
+  var G=CARDS[line]||{};
+  var preFront=[],preEnd=[];
+  if(typeof SET!=='undefined')(SET.presets||[]).forEach(function(pp){
+    if(pp.on===false)return;(pp.pos===1?preEnd:preFront).push(pp.text);});
+  return [preFront.join('\n'),
+    G.system_prompt||'',
+    '【玩家角色档案】'+(G.description||''),
+    '【叙事者】'+(G.personality||''),
+    '【场景】'+(G.scenario||''),
+    '【世界书·激活条目】\n'+loreFor(q),
+    '【每回自查】'+(G.post_history_instructions||''),
+    preEnd.join('\n')
+  ].filter(Boolean).join('\n\n');
+}
+/* 鑄局指令：附一則既有開局的面板作為格式範例，確保欄位與符號一字不差 */
+function condereAsk(line,y,nm,cn){
+  function v(id){var el=$(id);return el?String(el.value||'').trim():'';}
+  var nomen=v('#pfNomen'),gens=v('#pfGens'),aetas=v('#pfAetas'),ortus=v('#pfOrtus');
+  var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
+  var who=line==='zhou'?'姬瑶':'贝罗娜';
+  var ref=nearestOpening(line,y);
+  var refPanel=ref?((String(ref.text).match(/<mvu_panel>[\s\S]*?<\/mvu_panel>/)||[''])[0]):'';
+  var npcs=[];(PSNPC.list||[]).forEach(function(pp,i){if(i!==PSNPC.sel&&npcs.length<4)npcs.push(pp);});
+  var idLine=nomen
+    ?('她隐去'+who+'之名，以「'+nomen+'」行走此世'+(gens?('，称出身'+gens):'')+(aetas?('，年貌作'+aetas+'岁'):'')+(ortus?('，身份是'+ortus):'')+'。')
+    :('她以'+who+'之身悄然临于此地，未用化名。');
+  return '【任务】为玩家现场铸一个全新开局。不是续写、不是简介，是从零写一幕完整的开场，'
+    +'规格与本卡既有开局看齐。\n'
+    +'【年代】'+yl+'\n【地点】'+cn+(nm?('（'+nm+'）'):'')+'\n【玩家此局身份】'+idLine+'\n'
+    +(npcs.length?('【此时此地可用的人物（可自由取舍、改写、增补）】\n'
+        +npcs.map(function(pp){return '· '+pp.name+'｜'+(pp.role||'')+'｜'+(pp.age||'')+'岁｜'+(pp.blurb||'');}).join('\n')+'\n'):'')
+    +'【写法】\n'
+    +'1. 严格遵守系统提示里的全部铁则与文风，考据须属于该年代。\n'
+    +'2. 正文 700—1200 字，分小节（可用「**壹 · 小标题**」的形式），依次交代：这一年的时代局势、'
+    +'此地此刻正在发生什么、在场的人各自站在哪里揣着什么心思；最后把场面推到需要'+who+'表态之处停笔。\n'
+    +'3. 绝不代替'+who+'说话、行动、下决定、写内心——她的一切属于玩家。\n'
+    +'4. 正文之后必须输出一个完整的 <mvu_panel>，字段名、行首符号、竖线分隔与下面的范例一字不差，'
+    +'内容按你新写的这一幕据实填写（含 ◆心声 一行，写她此刻心里那一句）：\n'
+    +refPanel+'\n'
+    +'5. 只输出正文与 <mvu_panel>，不要任何解释、不要代码围栏、不要提及本指令。';
+}
 function gameEnter(){
   var y=(ERA.year==null?117:ERA.year);
   var line=RING_LINE||'roma';
   var nm=ERA.sel?ERA.sel.n:(line==='zhou'?'SERICA':'ROMA'),cn=ERA.sel?ERA.sel.cn:(line==='zhou'?'洛阳':'罗马');
-  loadOpening(line,condereOp(line,y,nm,cn),(y<0?(-y)+' A.C.N.':'A.D. '+y)+' · '+nm);
+  var loc=(y<0?(-y)+' A.C.N.':'A.D. '+y)+' · '+nm;
+  var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
+  var draft=condereOp(line,y,nm,cn);
+  loadOpening(line,draft,loc);
   gameShow();
+  if(!apiReady()){                       /* 未接神谕：程序化开局即为终稿 */
+    narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;此为程序化开局；接入&nbsp;AI&nbsp;后自定义开局将由神谕现场铸写&nbsp;…',null);
+    return;
+  }
+  BUSY=true;
+  var busy=narrAdd('sys','…&nbsp;神谕正在为你铸此开局&nbsp;·&nbsp;'+esc2(yl+' · '+cn)+'&nbsp;…',null);
+  oracleCall(
+    [{role:'system',content:condereSys(line,yl+' '+cn+' '+nm)},
+     {role:'user',content:condereAsk(line,y,nm,cn)}],
+    function(reply){
+      BUSY=false;try{busy.remove();}catch(_){}
+      var txt=String(reply||'').trim();
+      if(!/<mvu_panel>/.test(txt)){        /* 神谕漏了面板：补上底稿的面板，保证情报台不空 */
+        var mv=(String(draft.text).match(/<mvu_panel>[\s\S]*<\/mvu_panel>/)||[''])[0];
+        txt=txt+'\n\n'+mv;
+      }
+      loadOpening(line,{id:'custom',year:y,era:yl,scene:cn,text:txt},loc);
+    },
+    function(msg){
+      BUSY=false;try{busy.remove();}catch(_){}
+      narrAdd('sys','⚠&nbsp;铸局失败：'+esc2(msg)+'&nbsp;——&nbsp;已回退为程序化开局，可在顶栏&nbsp;↻&nbsp;重演重试',null);
+    },
+    {max_tokens:3200}                      /* 开场长文需要更大篇幅 */
+  );
 }
 function gameExit(){
   TYPE_GEN++;
@@ -3313,10 +3383,11 @@ function sysPrompt(){
     preEnd.join('\n')
   ].filter(Boolean).join('\n\n');
 }
-function oracleCall(messages,cb,err){
+function oracleCall(messages,cb,err,opt){
   var body={model:API.model,messages:messages,
     temperature:(typeof SET!=='undefined'&&SET.samp.temp!=='')?+SET.samp.temp:.9,
     max_tokens:(typeof SET!=='undefined'&&SET.samp.maxt!=='')?+SET.samp.maxt:2200};
+  if(opt)for(var ok in opt)body[ok]=opt[ok];   /* 逐次覆蓋（如鑄局加長） */
   if(typeof SET!=='undefined'){
     if(SET.samp.topp!=='')body.top_p=+SET.samp.topp;
     if(SET.samp.reason)body.reasoning_effort=['','low','medium','high'][SET.samp.reason];
