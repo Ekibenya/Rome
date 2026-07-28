@@ -478,31 +478,26 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 #zjGraphSvg g.gph-sel .fd-fold{filter:drop-shadow(0 0 6px rgba(236,200,120,.65))}
 #zjGraphSvg g.gph-sel .gph-nm{fill:#ecc878}
 .fd-ov,.fd-ov *{border-radius:0!important}
-.fd-ov{position:fixed;inset:0;z-index:2147481300;display:flex;align-items:center;justify-content:center;background:rgba(4,4,4,.72);font-family:var(--mono)}
-.fd-win{background:#0d0d0c;border:1px solid rgba(236,236,232,.28);box-shadow:0 0 0 3px #060606,0 0 0 4px rgba(236,236,232,.12),0 0 26px rgba(0,0,0,.55);width:min(440px,94vw);max-height:88vh;display:flex;flex-direction:column;font-family:var(--mono);color:#d9d9d4}
-.fd-tbar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br);font-size:11px;letter-spacing:.22em;color:var(--gold)}
-.fd-tbar>span:first-child{white-space:nowrap}
-.fd-ttname{flex:1;min-width:0;color:#ecece8;font-size:13.5px;letter-spacing:.14em;overflow:hidden;text-overflow:ellipsis}
-.fd-x{cursor:pointer;flex:none;color:var(--mut);border:1px solid var(--br);padding:1px 8px;font-size:12px}
-.fd-x:hover{color:var(--t-r1);border-color:var(--t-r1)}
-.fd-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px}
-.fd-foot{flex:none;display:flex;justify-content:space-between;padding:7px 10px;border-top:1px solid var(--br)}
-.fd-nav{cursor:pointer;border:1px solid var(--br);color:#d9d9d4;font-size:11px;letter-spacing:.18em;padding:4px 12px;user-select:none}
-.fd-nav:hover{border-color:var(--gold);color:#ecece8}
-.fd-row{display:flex;gap:8px;font-size:12px;line-height:1.8;margin-bottom:6px;letter-spacing:.04em}
-.fd-k{flex:0 0 64px;color:var(--fg-label);letter-spacing:.16em;white-space:nowrap}
+.fd-ov{position:fixed;inset:0;z-index:2147481300;display:flex;align-items:center;justify-content:center;background:rgba(4,4,4,.86);font-family:var(--mono)}
+.fd-win{border:1px solid rgba(236,236,232,.4);background:var(--ink,#060606);padding:30px 36px 24px;width:min(92vw,430px);max-height:80vh;overflow-y:auto;color:#d9d9d4;font-family:var(--mono)}
+.fd-win h2{font-size:14px;letter-spacing:.3em;font-weight:400;color:#d9d9d4;margin:18px 0 6px}
+.fd-row{display:flex;gap:22px;font-size:12px;line-height:1.8;padding:11px 0;border-bottom:1px solid rgba(236,236,232,.12);letter-spacing:.04em}
+.fd-k{flex:0 0 74px;font-size:10px;letter-spacing:.24em;color:var(--mut);padding-top:3px;white-space:nowrap}
 .fd-v{flex:1;min-width:0;color:#d9d9d4;overflow-wrap:break-word;word-break:break-word}
-.fd-nd{color:var(--fg-dim);letter-spacing:.16em}
-.fd-bar{height:3px;background:rgba(236,236,232,.10);position:relative;margin-top:6px}
-.fd-bar>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#c99b3f,#ecc878)}
-.fd-quote{display:block;border-left:2px solid var(--gold);background:rgba(236,236,232,.04);padding:5px 9px;line-height:1.8;margin:2px 0;color:var(--gold-hi,#ecc878);font-style:italic}
-.fd-last{margin-top:9px;font-size:10.5px;color:var(--fg-dim);letter-spacing:.16em}
-.fd-btn{cursor:pointer;display:inline-block;border:1px solid var(--br);background:#060606;color:#d9d9d4;font-size:11.5px;letter-spacing:.14em;padding:5px 12px;user-select:none}
-.fd-btn:hover{border-color:var(--gold);color:#ecece8}
-.fd-btn.fd-warn{color:var(--t-r1);border-color:rgba(200,64,46,.5)}
+.fd-nd{color:#4a4a46;letter-spacing:.16em}
+.fd-bar{height:3px;background:rgba(236,236,232,.10);position:relative;margin-top:7px}
+.fd-bar>i{position:absolute;left:0;top:0;bottom:0;background:var(--gold)}
+.fd-quote{display:block;padding:2px 0;line-height:1.9;color:#ecc878;font-style:italic}
+.fd-last{margin-top:16px;font-size:9px;color:var(--mut);letter-spacing:.3em}
+.fd-btn{cursor:pointer;display:inline-block;border:1px solid rgba(236,236,232,.35);background:transparent;color:#d9d9d4;font-size:10px;letter-spacing:.25em;padding:7px 16px 6px;user-select:none;transition:border-color .2s,color .2s}
+.fd-btn:hover{border-color:var(--gold);color:var(--gold-hi)}
+.fd-btn.fd-warn{color:#c8402e;border-color:rgba(200,64,46,.5)}
+.fd-foot{display:flex;justify-content:space-between;gap:12px;margin-top:22px}
+.fd-nav{cursor:pointer;border:1px solid rgba(236,236,232,.35);color:#d9d9d4;font-size:10px;letter-spacing:.3em;padding:8px 18px 7px;user-select:none;transition:border-color .2s,color .2s}
+.fd-nav:hover{border-color:var(--gold);color:var(--gold-hi)}
 @media (max-width:919px){ /* 手機端：檔案窗全寬底部抽屜 */
  .fd-ov{align-items:flex-end}
- .fd-win{width:100%;max-width:none;max-height:78vh;border-left:none;border-right:none;border-bottom:none;box-shadow:0 -8px 30px rgba(0,0,0,.5)}
+ .fd-win{width:100%;max-width:none;max-height:78vh;border-left:none;border-right:none;border-bottom:none;padding:24px 22px 20px}
 }
 </style>
 
@@ -4413,8 +4408,8 @@ function reducedMotion(){try{return matchMedia('(prefers-reduced-motion: reduce)
 function currentOpening(){return GAME.op||null;}
 function zjSelf(){return ACTIVE==='roma'?'贝罗娜':'姬瑶';}
 function zjL(){return ACTIVE==='roma'
- ?{fdT:'▚ TABVLA PERSONAE ▞',rel:'NEXVS',trust:'FIDES',stat:'STATVS',voice:'VOX',file:'TABVLA',last:'VLTIMA',prev:'◀ PRIOR',next:'PROXIMA ▶',nd:'NVLLA DATA',fr:'AMICVS · 親',ne:'NEVTER · 平',ho:'HOSTIS · 疏',tag:'DEA'}
- :{fdT:'▚ 人物列傳 ▞',rel:'關係',trust:'信任',stat:'近況',voice:'心聲',file:'檔案',last:'末見',prev:'◀ 前一人',next:'後一人 ▶',nd:'無　載',fr:'親厚',ne:'平淡',ho:'疏敵',tag:'神'};}
+ ?{fdT:'TABVLA&nbsp;PERSONAE',rel:'NEXVS',trust:'FIDES',stat:'STATVS',voice:'VOX',file:'TABVLA',last:'VLTIMA',prev:'◀ PRIOR',next:'PROXIMA ▶',nd:'NVLLA DATA',fr:'AMICVS · 親',ne:'NEVTER · 平',ho:'HOSTIS · 疏',tag:'DEA'}
+ :{fdT:'人物列傳',rel:'關係',trust:'信任',stat:'近況',voice:'心聲',file:'檔案',last:'末見',prev:'◀ 前一人',next:'後一人 ▶',nd:'無　載',fr:'親厚',ne:'平淡',ho:'疏敵',tag:'神'};}
 function zjAuxReady(){return (typeof subReady==='function'&&subReady())||apiReady();}
 function callAuxAI(sys,msgs){
   return new Promise(function(res,rej){
@@ -4837,9 +4832,11 @@ function fdOpen(nm){
     var L2=zjL();
     var ov=document.createElement('div');ov.className='fd-ov';ov.id='fdOv';
     ov.innerHTML='<div class="fd-win">'
-      +'<div class="fd-tbar"><span>'+L2.fdT+'</span><span id="fdOvName" class="fd-ttname"></span><span class="fd-x" data-fd="close">✕</span></div>'
-      +'<div id="zjGraphCard" class="fd-body"></div>'
-      +'<div class="fd-foot"><span class="fd-nav" data-fd="prev">'+L2.prev+'</span><span class="fd-nav" data-fd="next">'+L2.next+'</span></div></div>';
+      +'<span class="tag">'+L2.fdT+'</span>'
+      +'<h2 id="fdOvName"></h2>'
+      +'<div id="zjGraphCard"></div>'
+      +'<div class="fd-foot"><span class="fd-nav" data-fd="prev">'+L2.prev+'</span><span class="fd-nav" data-fd="next">'+L2.next+'</span></div>'
+      +'<div class="esc2" style="margin-top:20px">ESC&nbsp;//&nbsp;RETVRN</div></div>';
     ov.addEventListener('click',fdOvClick);
     document.body.appendChild(ov);
   }
@@ -4952,6 +4949,7 @@ document.querySelector('#game .gMfd').addEventListener('click',function(e){
   else if(a==='memCancel'){S.memEdit=null;render();}
   else if(a==='memExport'){try{var gn=(CARDS[ACTIVE]&&CARDS[ACTIVE].name)||'saga';var mb=new Blob([JSON.stringify({__app:gn,__type:'mem-scroll',entries:S.mem},null,1)],{type:'application/json'});var mu=URL.createObjectURL(mb);var ma=document.createElement('a');ma.href=mu;ma.download=gn+'编年长卷.json';document.body.appendChild(ma);ma.click();document.body.removeChild(ma);setTimeout(function(){URL.revokeObjectURL(mu);},4000);}catch(e2){}}
 });
+addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('fdOv')){e.stopPropagation();fdClose();}},true);
 zjLoadPref();
 
 /* ============ opening loader: fill narrative + MFD from a card opening ============ */
