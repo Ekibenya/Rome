@@ -1659,6 +1659,7 @@ var iW=0,iH=0,tp=[],tcur=[],tout=[];
 function introText(){                       /* rasterize SPQR → particle targets (swarm morph) */
   tp=[];tcur=[];tout=[];
   var tw=Math.round(Math.min(iW*.64,760*DPR)),th=Math.round(tw*.34);
+  if(tw<2||th<2)return; /* 視口未就緒（寬 0）：getImageData 會炸掉整個腳本，跳過，resize 時自動重建 */
   var oc=document.createElement('canvas');oc.width=tw;oc.height=th;
   var og=oc.getContext('2d');
   og.fillStyle='#000';og.fillRect(0,0,tw,th);
@@ -1836,6 +1837,7 @@ var MTP=[],MTC=[],MSTEP=4;
 function menuText(){
   MTP=[];MTC=[];
   var tw=Math.round(Math.min(mW*.64,760*DPR)),th=Math.round(tw*.34);
+  if(tw<2||th<2)return; /* 同 introText：零寬視口護欄 */
   MSTEP=Math.max(3,Math.round(tw/200));
   var oc=document.createElement('canvas');oc.width=tw;oc.height=th;
   var og=oc.getContext('2d');
