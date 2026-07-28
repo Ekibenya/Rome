@@ -1,7 +1,7 @@
 /* ROMA.SYS · service worker
    壳层预缓存 + 其余按需缓存。素材总量近 200MB（三维包与乐曲），一次性全预下载既慢又
    会撑爆配额，所以只预存「打得开」所需的那几个档，其余用过哪个存哪个。 */
-var V = 'roma-v2';
+var V = 'roma-v3';
 var SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -96,5 +96,9 @@ self.addEventListener('fetch', function (e) {
 var MAXB = 4 * 1024 * 1024;
 function cacheable(res) {
   var n = parseInt(res.headers.get('content-length') || '', 10);
-  return !(n > MAXB);
+  /* 分块传输（压缩响应普遍如此）没有 content-length，parseInt 得到 NaN，
+     而 NaN > MAXB 恒为 false —— 于是 !(false) === true，护栏形同虚设，
+     近 200MB 的三维包与乐曲照单全收。拿不到长度时一律按「大档」处理。 */
+  if (isNaN(n)) return false;
+  return n <= MAXB;
 }

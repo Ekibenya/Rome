@@ -959,7 +959,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="sub" style="margin-top:14px">高级采样（可选，留空用接口默认）：温度＝越高越放飞；采样核&nbsp;top_p＝一般不与温度同调；单轮输出上限＝最大回复长度；最低字数＝每回正文的篇幅下限（以写作指令约束）；推理强度&nbsp;·&nbsp;关…拉满＝思考预算（开启后温度/top_p&nbsp;失效）。</div>
       <div class="sRow"><span>温度</span><input class="aIn" id="apTemp" placeholder="0.9" style="width:70px"></div>
       <div class="sRow"><span>top_p</span><input class="aIn" id="apTopP" placeholder="—" style="width:70px"></div>
-      <div class="sRow"><span>单轮上限&nbsp;tokens</span><input class="aIn" id="apMaxT" placeholder="2200" style="width:80px"></div>
+      <div class="sRow"><span>单轮上限&nbsp;tokens</span><input class="aIn" id="apMaxT" placeholder="4096" style="width:80px"></div>
       <div class="sRow"><span>最低字数（写作约束）</span><input class="aIn" id="apMinC" placeholder="留空不限" style="width:80px"></div>
       <div class="sRow"><span>推理强度</span><span class="sSeg" id="sgReason"><span class="on">关</span><span>低</span><span>中</span><span>高</span></span></div>
     </div>
@@ -1239,11 +1239,14 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     window.__THREE_OK__=true;
     var g=document.createElement('script');
     var gp=document.createElement('script');   /* 棋子系统：两引擎共用，必须先于引擎就位 */
+    /* 动态插入的 script 默认 async=true，执行顺序不保证——棋子模块很可能后于引擎执行，
+       引擎那边 if(!window.ZJ_PAWN) 就默默退化成柱状火柴人。显式关掉才是按序执行。 */
+    gp.async=false;g.async=false;
     gp.src='core/vendor/three/build/chunks/9d717bc0/36411d0a880f.js?v='+ZJ3D_VER;
     document.head.appendChild(gp);
     g.src='core/vendor/three/build/chunks/9d717bc0/1aa613ec934b.js?v='+ZJ3D_VER;
     document.head.appendChild(g);
-    var g2=document.createElement('script');
+    var g2=document.createElement('script');g2.async=false;
     g2.src='core/vendor/three/build/chunks/9d717bc0/8e2ad10c77b4.js?v='+ZJ3D_VER;
     document.head.appendChild(g2);
   };
@@ -2877,8 +2880,9 @@ function gameEnter(lineOverride){
     return;
   }
   BUSY=true;genOpen('forge');
-  var fLive=null;
+  var fLive=null,fGen=TYPE_GEN;   /* 代际令牌：铸局途中换局/读档/退出，旧回调必须作废 */
   function fDelta(full){
+    if(fGen!==TYPE_GEN)return;
     genFirstToken();GEN.chars=full.length;
     var bd=stripMvuLive(full);if(!bd)return;
     if(!fLive){var nr=$('#gNarr');fLive=document.createElement('div');fLive.className='liveWrap';
@@ -2903,6 +2907,9 @@ function gameEnter(lineOverride){
     function(reply){
       BUSY=false;genClose();
       if(fLive){try{fLive.remove();}catch(_){}fLive=null;}
+      /* 铸局途中换了局／读了档／退出：这份迟到的稿子若照落，会把当前这一局
+         的正文与 TURNS 整个盖掉（loadOpening 会清空两者）。 */
+      if(fGen!==TYPE_GEN)return;
       var txt=String(reply||'').trim();
       if(!/<mvu_panel>/.test(txt)){        /* 神谕漏了面板：补上底稿的面板，保证情报台不空 */
         var mv=(String(draft.text).match(/<mvu_panel>[\s\S]*<\/mvu_panel>/)||[''])[0];
@@ -2913,6 +2920,7 @@ function gameEnter(lineOverride){
     function(msg){
       BUSY=false;genClose();
       if(fLive){try{fLive.remove();}catch(_){}fLive=null;}
+      if(fGen!==TYPE_GEN)return;
       narrAdd('sys','⚠&nbsp;铸局失败：'+esc2(msg)+'&nbsp;——&nbsp;已回退为程序化开局，可在顶栏&nbsp;↻&nbsp;重演重试',null);
     },
     {max_tokens:3200,onDelta:fDelta}       /* 开场长文需要更大篇幅 */
@@ -2920,6 +2928,10 @@ function gameEnter(lineOverride){
 }
 function gameExit(){
   TYPE_GEN++;
+  /* 在途的神谕请求要掐掉：不掐的话它会一直跑到超时，既浪费 token，
+     回调里的代际守卫虽然拦得住，但进度条与 BUSY 会挂在半路。 */
+  try{if(GENAC)GENAC.abort();}catch(_){}
+  BUSY=false;try{genClose();}catch(_){}
   $('#stage').style.display='';$('#rail').style.display='';$('#mission').style.display='';
   GAME.on=false;GAME.txOpen=false;gEl.classList.remove('show','mapOpen','armOpen','txOpen');
   mOv.classList.remove('gbg');
@@ -3459,6 +3471,9 @@ function renderReply(text,tIdx,instant){
        全靠 renderMvu 这一脚往前推，跳过它等于这一回合从记忆里整个蒸发。 */
     renderMvu(panel||GAME.lastPanel);
   };
+  /* memSync 只挂在 renderMvu 里；模型漏写状态栏那一回若不补一脚，
+     这一回合就整个不进编年史与长程记忆。 */
+  try{if(!panel)memSync();}catch(_){}
   if(typeof jsPipeline==='function')jsPipeline(body,after);  /* 脚本管线（沙箱） */
   else after(body);
 }
@@ -3858,6 +3873,16 @@ function askOracle(){
       var t=TURNS.pop();drop+=(t.role==='user')?2:1;
       document.querySelectorAll('#gNarr [data-t="'+t.t+'"]').forEach(function(n){n.remove();});
     }
+    /* 面板必须跟着一起退，否则情报台还挂着刚被丢弃那一轮的状态；
+       编年长卷也要靠 memSync 截回去（回退检测在 memSync 里）。 */
+    GAME.lastPanel=null;
+    for(var li=TURNS.length-1;li>=0;li--){
+      if(TURNS[li].role!=='assistant')continue;
+      GAME.lastPanel=parseMvu(TURNS[li].content)||null;
+      if(GAME.lastPanel)break;
+    }
+    if(!GAME.lastPanel&&GAME.opText)GAME.lastPanel=parseMvu(GAME.opText)||null;
+    if(GAME.lastPanel)renderMvu(GAME.lastPanel);
   });
 })();
 /* —— 语音输入 / 朗读 —— */
@@ -4583,8 +4608,13 @@ function loreRender(){
   });
 }
 function loreSync(){
-  CARDS.roma.lorebook=CARDS.roma.lorebook.filter(function(e){return !e.custom;});
-  loreCustomGet().forEach(function(e){if(e.on!==false)CARDS.roma.lorebook.push(e);});
+  /* 原来只并入 CARDS.roma：玩周卷时自写条目与导入的角色卡设定一条都不生效 */
+  var _cus=loreCustomGet().filter(function(e){return e&&e.on!==false;});
+  ['roma','zhou'].forEach(function(sd){
+    var C=CARDS[sd];if(!C)return;
+    C.lorebook=(C.lorebook||[]).filter(function(e){return !e.custom;});
+    _cus.forEach(function(e){C.lorebook.push(e);});
+  });
 }
 $('#loreNew').addEventListener('click',function(){
   LFEDIT=-1;$('#loreForm').style.display='';
@@ -5122,7 +5152,9 @@ $('#exSave').addEventListener('click',function(){
   var btn=this;if(btn.dataset.busy)return;btn.dataset.busy='1';
   try{
     var slot=0,oldest=null;
-    for(var n=1;n<=3;n++){var v=svGet(n);if(!v){slot=n;break;}
+    /* 槽位共 SVN 格。只扫前 3 格会把玩家手动存在 I/II/III 的档无声覆盖掉，
+       哪怕后面几十格全是空的。 */
+    for(var n=1;n<=SVN;n++){var v=svGet(n);if(!v){slot=n;break;}
       if(!oldest||(v.when||'')<(oldest.when||'')){oldest=v;oldest._n=n;}}
     if(!slot)slot=oldest?oldest._n:1;
     svPut(slot,svSnap());
@@ -5304,6 +5336,14 @@ $('#cxFile').addEventListener('change',function(){
     if(AU.mgain)AU.mgain.gain.value=AU.mvol*.5*(AU.vol*1.4);
   });
   $('#cfgBgm').addEventListener('input',function(){
+    /* 真正在响的是 BGM 那套 <audio>；AU 是从未接线的程序化音源（AU.on 恒 false），
+       原来只写 AU.mvol，等于拖了个空气拉杆。 */
+    try{
+      BGVOL=Math.max(0,Math.min(100,+this.value));
+      if(BGM&&BGM.a)BGM.a.volume=BGVOL/100;
+      localStorage.setItem('rome_bgmvol',''+BGVOL);
+      var _bv=$('#bgVol');if(_bv)_bv.value=BGVOL;
+    }catch(_){}
     AU.mvol=this.value/100;
     if(AU.mgain)AU.mgain.gain.value=AU.mvol*.5*(AU.vol*1.4);
   });
@@ -6014,7 +6054,18 @@ function memSync(){
     if(h.role==='world'){worlds.push(h);acts.push(i>0&&S.history[i-1].role==='user'?S.history[i-1].text:'');}
   }
   var n=S.memN||0;
-  if(worlds.length<n){S.memN=worlds.length;return;} // 历史被重开/回退
+  if(worlds.length<n){
+    /* 只把计数器退回去、却不删条目，等于让「已经不存在的未来」继续每回注入，
+       剧情被硬拽回原来的走向。手记不动，只截自动纪要。 */
+    var _keep=[],_auto=0;
+    for(var _q=0;_q<S.mem.length;_q++){
+      var _m=S.mem[_q];
+      if(_m&&_m.manual){_keep.push(_m);continue;}
+      if(_auto<worlds.length){_keep.push(_m);_auto++;}
+    }
+    S.mem=_keep;S.memN=worlds.length;try{savePref();}catch(_){}
+    return;
+  } // 历史被重开/回退
   var changed=false;
   // 重演此回：条数未增但末条内容换了 → 更新末条
   if(worlds.length===n&&n>0&&S.mem.length&&S.mem[S.mem.length-1].fp!==memFp(worlds[n-1].text)&&!S.mem[S.mem.length-1].manual){
@@ -6421,6 +6472,15 @@ function loadOpening(side,op,locOverride){
   /* 开局可指定三维落点：像「东方尽头」这种在中原一侧的场景，时地里没有任何中原城名，
      medLoc 只能按字面派生出一座地中海式的城，画面就仍旧是罗马。这里直接把落点交给中原引擎。 */
   GAME.dest3d=op.zh3d||null;_zjOpC={};try{fdClose();}catch(_){}zjLoadPref();
+  /* 新局＝新的一卷。zjLoadPref 读的是「按卡」存的全局偏好，会把上一局的编年史整卷
+     读回来，而 sysPrompt 又把它当作「本局全部既定事实」每回注入——于是 AI 不断
+     重演上一局的人和事。这是「剧情一直循环」体感最强的来源。
+     玩家手记（manual）保留，自动纪要清掉。 */
+  try{
+    S.mem=(S.mem||[]).filter(function(m){return m&&m.manual;});
+    S.memN=0;S.memNpc=null;S.memEdit=null;S.npcMeta={};S.graphHidden=[];
+    savePref();
+  }catch(_){}
   var body=stripMvu(op.text),panel=parseMvu(op.text);
   var nr=$('#gNarr');nr.innerHTML='';
   body.split(/\n{2,}/).forEach(function(par){
@@ -6478,12 +6538,24 @@ function ebRenderOps(){
 })();
 /* save slots v2: full snapshots — write / load / delete / export / import */
 function svGet(n){try{return JSON.parse(localStorage.getItem('rome_sv2_'+n)||'null');}catch(_){return null;}}
-function svPut(n,v){try{localStorage.setItem('rome_sv2_'+n,v?JSON.stringify(v):'');if(!v)localStorage.removeItem('rome_sv2_'+n);}catch(_){}}
+function svPut(n,v){
+  try{localStorage.setItem('rome_sv2_'+n,v?JSON.stringify(v):'');
+      if(!v)localStorage.removeItem('rome_sv2_'+n);return true;}
+  catch(e){
+    /* 原来把配额溢出整个吞掉：玩家点了写入、什么都没发生、槽位仍是 VACVVM，毫无提示 */
+    try{var m=$('#svCoreSub');if(m)m.textContent='写入失败 · 本机存储已满（可在备份页清理图库缓存或自定义字体）';}catch(_){}
+    try{narrAdd('sys','⚠&nbsp;存档写入失败：本机存储已满',null);}catch(_){}
+    return false;
+  }
+}
 function svSnap(){
   return {t:$('#gLoc').textContent.trim(),when:new Date().toLocaleString(),
     active:ACTIVE,year:ERA.year,loc:$('#gLoc').innerHTML,
     html:$('#gNarr').innerHTML,mfd:document.querySelector('#game .gMfd').innerHTML,
     inv:JSON.parse(JSON.stringify(INV)),place:GAME.place,
+    ts:Date.now(),                                     /* when 是本地化字符串排不了序，另存真时间戳 */
+    op:GAME.op,opText:GAME.opText,dest3d:GAME.dest3d,   /* 开局锚点：不存则读档后 AI 与三维都不知本局年代场景 */
+    zj:{mem:S.mem,memN:S.memN,memOn:S.memOn,npcMeta:S.npcMeta,graphHidden:S.graphHidden},
     turns:TURNS.slice(-40)};
 }
 function svLoad(v){
@@ -6499,6 +6571,17 @@ function svLoad(v){
   GAME.lastPanel=null;
   for(var li=TURNS.length-1;li>=0;li--){if(TURNS[li].role==='assistant'){GAME.lastPanel=parseMvu(TURNS[li].content)||null;if(GAME.lastPanel)break;}}
   try{zjLoadPref();}catch(_){}
+  /* zjLoadPref 读的是「按卡」的全局偏好，会把最新一局的长卷盖上来。
+     槽位里若存了本局的开局锚点与记忆，一律以槽位为准。老存档没有这些字段，
+     走 if 兜底、行为同旧版，向后兼容。 */
+  if(v.op){GAME.op=v.op;GAME.opText=v.opText||(v.op&&v.op.text)||'';_zjOpC={};}
+  if(v.dest3d!==undefined)GAME.dest3d=v.dest3d||null;
+  if(v.zj){
+    S.mem=v.zj.mem||[];S.memN=(v.zj.memN==null?S.mem.length:v.zj.memN);
+    if(v.zj.memOn!==undefined)S.memOn=v.zj.memOn!==false;
+    S.npcMeta=v.zj.npcMeta||{};S.graphHidden=v.zj.graphHidden||[];
+    try{savePref();}catch(_){}
+  }
   setTimeout(function(){try{if(GAME.lastPanel)renderMvu(GAME.lastPanel);else graphHydrate();}catch(_){}},80);
   $('#dlgSave').style.display='none';
   if(!GAME.on)gameShow();
