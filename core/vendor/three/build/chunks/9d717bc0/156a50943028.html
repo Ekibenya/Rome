@@ -470,6 +470,11 @@ canvas{display:block}
   .gNav span b{display:none}
   .gNav span svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}
   .gNav span.on{color:#0a0a0a;background:var(--gold)}
+  /* 彈窗裡成排的按鈕原本是照桌面寬度排的：手機上不換行就會頂出右緣，
+     像「清除」那樣整顆按鈕落到屏幕外點都點不到。收窄字距內距並允許換行。 */
+  .gDlg .box{padding:26px 20px}
+  .gDlg .box div[style*="display:flex"]{flex-wrap:wrap}
+  .eBtn{padding:9px 20px 7px;font-size:10px;letter-spacing:.24em}
 }
 
 button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-offset:3px}
@@ -980,6 +985,14 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <span class="eBtn" id="apiTest">PROBARE&nbsp;測試</span>
       <span class="eBtn" id="apiSave">SERVARE&nbsp;儲存</span>
       <span class="eBtn" id="apiClear">清除</span>
+    </div>
+    <div style="margin-top:22px;border-top:1px solid rgba(236,236,232,.14);padding-top:16px">
+      <div class="sub">開局前的快速接入&nbsp;·&nbsp;不必先進遊戲</div>
+      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+        <span class="eBtn" id="qkPre" style="margin-top:0">導入預設</span>
+        <span class="eBtn" id="qkLore" style="margin-top:0">導入世界書</span>
+        <span class="eBtn" id="qkImg" style="margin-top:0">生圖通道</span>
+      </div>
     </div>
     <div class="sub" id="apiMsg" style="margin-top:12px"></div>
     <div class="esc2">ESC&nbsp;//&nbsp;RETVRN</div>
@@ -4522,6 +4535,25 @@ function apiOpen(){
   $('#apiMsg').textContent=apiReady()?'狀態：已配置 · '+API.model:'狀態：未接线';
   gDlgShow('#dlgApi');
 }
+/* —— 開局前的快速接入 ——
+   完整設置面板本來只掛在遊戲內的工具欄上，開局之前根本夠不著預設、世界書、生圖這幾項。
+   這裡直接借用設置面板裡現成的檔案輸入與頁籤，不另起一套邏輯。 */
+function qkImport(fileSel,msgSel){
+  var m=$(msgSel);
+  /* 匯入結果本來寫在設置面板的提示位上（此刻不可見），鏡射一份到本窗，用戶才看得到成敗 */
+  var ob=new MutationObserver(function(){$('#apiMsg').textContent=m.textContent;ob.disconnect();});
+  ob.observe(m,{childList:true,characterData:true,subtree:true});
+  setTimeout(function(){ob.disconnect();},120000);   /* 用戶取消選檔就不會有回寫，超時收掉 */
+  $(fileSel).click();
+}
+$('#qkPre').addEventListener('click',function(){qkImport('#preFile','#preMsg');});
+$('#qkLore').addEventListener('click',function(){qkImport('#loreFile','#loreMsg');});
+$('#qkImg').addEventListener('click',function(){
+  /* 兩層 gDlg 疊著時後出現的反而在下（#dlgApi 在 DOM 裡更靠後），所以先收本窗 */
+  $('#dlgApi').style.display='none';
+  applyCfg();gDlgShow('#dlgCfg');
+  var tb=document.querySelector('#cfgTabs span[data-cp="img"]');if(tb)tb.click();
+});
 $('#apiEye').addEventListener('click',function(){
   var k=$('#apiKey');k.type=k.type==='password'?'text':'password';
 });
