@@ -5888,27 +5888,13 @@ var SV_ROMAN=(function(){var R=[],U=['','I','II','III','IV','V','VI','VII','VIII
   for(var i=1;i<=40;i++)R.push(T[Math.floor(i/10)]+U[i%10]);return R;})();
 var SVP={mx:0,my:0,tx:0,ty:0,px:0,py:0,drag:null,raf:0,cards:[]};
 function svRnd(i,k){var x=Math.sin(i*127.1+k*311.7)*43758.5453;return x-Math.floor(x);}
-function svBgDraw(){
-  var cv=$('#svBg');if(!cv)return;
-  var W=cv.width=Math.round(innerWidth*DPR),H=cv.height=Math.round(innerHeight*DPR),g=cv.getContext('2d');
-  var cx=W/2,cy=H/2;g.clearRect(0,0,W,H);
-  /* 透視線場：自中心滅點向外放射的細線，近處亮、遠處淡 */
-  for(var i=0;i<110;i++){
-    var a=svRnd(i,1)*Math.PI*2,r0=(.03+svRnd(i,2)*.10)*H,r1=(.5+svRnd(i,3)*.95)*H;
-    var al=.03+svRnd(i,4)*.085;
-    g.strokeStyle='rgba(236,236,232,'+al.toFixed(3)+')';g.lineWidth=(svRnd(i,5)<.12?1.6:1)*DPR*.8;
-    g.beginPath();g.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0);g.lineTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);g.stroke();
-  }
-  /* 橫向資料流細紋 */
-  for(var q=0;q<40;q++){
-    var y=svRnd(q,7)*H,x0=svRnd(q,8)*W,len=(.05+svRnd(q,9)*.35)*W;
-    g.strokeStyle='rgba(236,236,232,'+(.03+svRnd(q,10)*.06).toFixed(3)+')';g.lineWidth=DPR*.8;
-    g.beginPath();g.moveTo(x0,y);g.lineTo(x0+len,y);g.stroke();
-  }
-  /* 中央網點球：同心點環，外疏內密 */
-  var R=Math.min(W,H)*.165;
+var SVL=[],SVLS=[],SVDISC=null;
+function svDiscMake(){
+  var R=Math.round(Math.min(innerWidth,innerHeight)*DPR*.165);
+  var c=document.createElement('canvas');c.width=c.height=R*2+6;
+  var g=c.getContext('2d'),cx=c.width/2,cy=c.height/2;
   for(var ri=0;ri<20;ri++){
-    var rr=R*(.30+ri/20*.70),n=Math.round(rr/(2.8*DPR));
+    var rr=R*(.30+ri/20*.70),n=Math.max(6,Math.round(rr/(2.8*DPR)));
     for(var k=0;k<n;k++){
       var aa=k/n*Math.PI*2+ri*.21,d=(1-ri/20)*.55+.16;
       g.fillStyle='rgba(216,216,212,'+(d*(.25+svRnd(ri*97+k,11)*.5)).toFixed(3)+')';
@@ -5917,6 +5903,42 @@ function svBgDraw(){
   }
   g.strokeStyle='rgba(236,236,232,.16)';g.lineWidth=DPR;
   g.beginPath();g.arc(cx,cy,R*.42,0,Math.PI*2);g.stroke();
+  SVDISC=c;
+}
+function svBgDraw(){
+  var cv=$('#svBg');if(!cv)return;
+  cv.width=Math.round(innerWidth*DPR);cv.height=Math.round(innerHeight*DPR);
+  SVL=[];
+  for(var i=0;i<125;i++)SVL.push({a:svRnd(i,1)*Math.PI*2,ph:svRnd(i,2),sp:.010+svRnd(i,3)*.048,
+    len:.10+svRnd(i,4)*.40,al:.06+svRnd(i,5)*.16,w:(svRnd(i,6)<.12?1.7:1)});
+  SVLS=[];
+  for(var q=0;q<34;q++)SVLS.push({y:svRnd(q,7),x:svRnd(q,8),len:.05+svRnd(q,9)*.30,
+    sp:.004+svRnd(q,10)*.018,al:.03+svRnd(q,11)*.06});
+  svDiscMake();
+}
+/* 每幀：線流自灭點向外湧出（近端淡入、遠端淡出），橫向資料流平移，網點球緩慢自轉 */
+function svFx(t){
+  var cv=$('#svBg');if(!cv||!cv.width)return;
+  var W=cv.width,H=cv.height,g=cv.getContext('2d'),cx=W/2,cy=H/2;
+  g.clearRect(0,0,W,H);
+  var MR=Math.hypot(W,H)*.62;
+  for(var i=0;i<SVL.length;i++){
+    var L=SVL[i],p=(L.ph+t*L.sp)%1;
+    var r0=p*p*MR,r1=r0+L.len*MR*(.22+p*.9);
+    var fade=Math.min(1,p*7)*Math.max(0,Math.min(1,(1-p)/.26));
+    if(fade<=0)continue;
+    g.strokeStyle='rgba(236,236,232,'+(L.al*fade).toFixed(3)+')';
+    g.lineWidth=L.w*DPR*.85;
+    g.beginPath();g.moveTo(cx+Math.cos(L.a)*r0,cy+Math.sin(L.a)*r0);
+    g.lineTo(cx+Math.cos(L.a)*r1,cy+Math.sin(L.a)*r1);g.stroke();
+  }
+  for(var q=0;q<SVLS.length;q++){
+    var S=SVLS[q],x=((S.x+t*S.sp)%1.35-.18)*W,y=S.y*H;
+    g.strokeStyle='rgba(236,236,232,'+S.al.toFixed(3)+')';g.lineWidth=DPR*.8;
+    g.beginPath();g.moveTo(x,y);g.lineTo(x+S.len*W,y);g.stroke();
+  }
+  if(SVDISC){g.save();g.translate(cx,cy);g.rotate(t*.035);
+    g.drawImage(SVDISC,-SVDISC.width/2,-SVDISC.height/2);g.restore();}
 }
 function svRender(){
   var host=$('#svField');if(!host)return;
@@ -5926,12 +5948,12 @@ function svRender(){
   var P=[];
   for(var k0=0;k0<SVN;k0++){
     var ak=(k0+.5)/SVN*Math.PI*2+(svRnd(k0,21)-.5)*.34;
-    var rk=(.30+svRnd(k0,22)*.30)*m;
-    P.push({x:cx+Math.cos(ak)*rk*1.42,y:cy+Math.sin(ak)*rk*.96,z:.62+svRnd(k0,23)*.58});
+    var rk=(.19+svRnd(k0,22)*.26)*m;
+    P.push({x:cx+Math.cos(ak)*rk*1.26,y:cy+Math.sin(ak)*rk*.96,z:.62+svRnd(k0,23)*.58});
   }
   var padX=Math.max(120,innerWidth*.085),padT=76,padB=112;
   function clampP(q){q.x=Math.max(padX,Math.min(innerWidth-padX,q.x));q.y=Math.max(padT,Math.min(innerHeight-padB,q.y));}
-  var MINX=168,MINY=46,HOLE=Math.min(innerWidth,innerHeight)*.20;
+  var MINX=152,MINY=44,HOLE=Math.min(innerWidth,innerHeight)*.145;
   for(var pass=0;pass<26;pass++){
     for(var i1=0;i1<SVN;i1++){
       var q1=P[i1],hx=q1.x-cx,hy=q1.y-cy,hd=Math.hypot(hx/1.5,hy);
@@ -5989,6 +6011,7 @@ function svTick(){
   }
   var bg=$('#svBg');if(bg)bg.style.transform='translate3d('+(SVP.px*-22).toFixed(1)+'px,'+(SVP.py*-15).toFixed(1)+'px,0)';
   var core=$('#svCore');if(core)core.style.transform='translate(-50%,-50%) translate3d('+(SVP.px*15).toFixed(1)+'px,'+(SVP.py*10).toFixed(1)+'px,0)';
+  svFx(performance.now()/1000);
   var t=new Date();
   $('#svClock').textContent=[t.getHours(),t.getMinutes(),t.getSeconds()].map(function(x){return (x<10?'0':'')+x;}).join(':');
   SVP.raf=requestAnimationFrame(svTick);
