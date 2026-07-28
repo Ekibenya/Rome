@@ -63,7 +63,7 @@
 
   /* ---------------- asset loading ---------------- */
   var MANI = [
-    ['ancient', 'ancient.glb'], ['historic', 'historic.glb'], ['interior', 'interior.glb'], ['nature', 'nature.glb']
+    ['ancient', 'ancient.glb'], ['historic', 'historic.glb'], ['interior', 'interior.glb'], ['nature', 'nature.glb'], ['pawn', 'pawn.glb']
   ];
   var TEXES = ['LowpolyChineseBuilding_Texture_01.png', 'LowpolyChineseBuilding_Texture_02.png', 'LowpolyChineseBuilding_Texture_03.png', 'LowpolyChineseBuilding_Texture_04.png', 'LowpolyChineseBuilding_Texture_05.png',
     'Ancient_Tex_Zhao.png', 'Ancient_Tex_Wei.png',
@@ -104,6 +104,7 @@
       return r.arrayBuffer();
     }).then(function (ab) {
       var pk = unpack(ab); tick();
+      try { Z.pawnRig = JSON.parse(new TextDecoder().decode(pk['pawn.json'])); } catch (e) { }
       var jobs = [];
       MANI.forEach(function (m) {
         jobs.push(new Promise(function (res, rej) {
@@ -151,7 +152,7 @@
     return tinfo[k] = { size: s, center: c, minY: bb.min.y, name: name, pack: pack };
   }
 
-  var USED = { ancient: {}, historic: {}, interior: {}, nature: {} };
+  var USED = { ancient: {}, historic: {}, interior: {}, nature: {}, pawn: {} };
   function spawn(pack, name, texName, opts) {
     opts = opts || {};
     var lib = Z.packs[pack].lib;
@@ -761,20 +762,13 @@
 
   /* ---------------- player ---------------- */
   function buildPlayer() {
-    var g = new T.Group();
-    var robe = new T.Mesh(new T.CylinderGeometry(0.24, 0.42, 1.15, 8), nmat(0x24202c)); robe.position.y = 0.62; robe.castShadow = true; g.add(robe);
-    var band = new T.Mesh(new T.CylinderGeometry(0.25, 0.30, 0.14, 8), nmat(0xa63b26)); band.position.y = 1.0; g.add(band);
-    var chest = new T.Mesh(new T.CylinderGeometry(0.20, 0.25, 0.42, 8), nmat(0x2c2836)); chest.position.y = 1.36; chest.castShadow = true; g.add(chest);
-    var head = new T.Mesh(new T.SphereGeometry(0.155, 8, 7), nmat(0xf0d8bc)); head.position.y = 1.7; g.add(head);
-    var hair = new T.Mesh(new T.SphereGeometry(0.16, 8, 7), nmat(0x1a1512)); hair.scale.set(1, 0.72, 1); hair.position.y = 1.76; g.add(hair);
-    var crown = new T.Mesh(new T.BoxGeometry(0.34, 0.05, 0.2), nmat(0x2c2836)); crown.position.y = 1.9; g.add(crown);
-    var beadF = new T.Mesh(new T.BoxGeometry(0.3, 0.1, 0.02), nmat(0xd8b23a)); beadF.position.set(0, 1.85, 0.11); g.add(beadF);
+    var g = makePawn({ outfit: 'fglad', head: 'Hair_Upsweep', prop: 'sword', robe: 0x24202c, band: 0xa63b26, chest: 0x2c2836 });
     g.userData.isPlayer = true;
     return g;
   }
   /* ---------------- 王室卫队：凯撒仪仗常随 ---------------- */
   Z.escort = [];
-  var GUARD_CFG = { robe: 0x2c2836, band: 0xc9a063, chest: 0x3a3444, hat: 'plume', hatC: 0x2c2836, prop: 'spear', s: 0.94 };
+  var GUARD_CFG = { robe: 0x2c2836, band: 0xc9a063, chest: 0x3a3444, hat: 'plume', hatC: 0x2c2836, prop: 'spear', s: 0.94, outfit: 'corhop', head: 'Spartan_Mohawk_Helmet', shield: 1 };
   function escortOffsets(n) {
     // 御前四卫：前二后二；逾四者再列于后
     var pts = [[-0.95, 1.9], [0.95, 1.9], [-0.95, -1.9], [0.95, -1.9]];
@@ -3508,7 +3502,7 @@
         else doorBtn.style.display = 'none';
       }
     }
-    if (Z.mode === 'city' && Z.ready && Z.scene) { pawnTick(dt, t); animTick(dt); medTick(dt); }
+    if (Z.mode === 'city' && Z.ready && Z.scene) { pawnTick(dt, t); rigTick(dt); animTick(dt); medTick(dt); }
     if (Z.ready && Z.scene && Z.player) { if (!Z.escortBusy) escortTick(dt, t); eventTick(dt, t); }
     // 分块旷野随焦点生成
     if ((tick._ck = (tick._ck || 0) + dt) > 0.4) {
@@ -4983,7 +4977,26 @@
   /* ---------------- 棋子工厂 ---------------- */
   // hat: none|cone(斗笠)|flat(进贤冠)|bun(髻)|plume(将盔)|scarf(帻巾)
   // prop: none|spear|sword|slip(简)|qin(琴)|bundle(货担)|hoe(锄)|staff(杖)|fan(羽扇)|axe(斧)|rod(钓竿)|scroll
-  function makePawn(cfg) {
+  /* 手持道具（两种人形通用） */
+  function pawnProps(gt, cfg) {
+    var pr = cfg.prop;
+    if (pr === 'spear') { var p1 = new T.Mesh(new T.CylinderGeometry(0.022, 0.022, 2.1, 4), nmat(0x8a6a48)); p1.position.set(0.3, 1.05, 0); gt.add(p1); var tip = new T.Mesh(new T.ConeGeometry(0.05, 0.18, 4), nmat(0xb8bec6)); tip.position.set(0.3, 2.2, 0); gt.add(tip); }
+    else if (pr === 'sword') { var p2 = new T.Mesh(new T.BoxGeometry(0.05, 0.85, 0.1), nmat(0x4a4a52)); p2.position.set(-0.02, 1.1, -0.26); p2.rotation.x = 0.5; gt.add(p2); }
+    else if (pr === 'slip') { var p3 = new T.Mesh(new T.BoxGeometry(0.3, 0.05, 0.2), nmat(0xd9c69a)); p3.position.set(0.26, 1.05, 0.12); gt.add(p3); }
+    else if (pr === 'qin') { var p4 = new T.Mesh(new T.BoxGeometry(0.55, 0.06, 0.2), nmat(0x6a4a30)); p4.position.set(0, 1.02, 0.24); p4.rotation.z = 0.3; gt.add(p4); }
+    else if (pr === 'bundle') { var p5 = new T.Mesh(new T.SphereGeometry(0.2, 6, 5), nmat(cfg.bundleC || 0xa8845c)); p5.scale.set(1, 0.7, 0.8); p5.position.set(0, 1.5, -0.3); gt.add(p5); }
+    else if (pr === 'hoe') { var p6 = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 1.5, 4), nmat(0x8a6a48)); p6.position.set(0.3, 0.85, 0); p6.rotation.z = 0.2; gt.add(p6); var bl = new T.Mesh(new T.BoxGeometry(0.2, 0.05, 0.05), nmat(0x6a6a72)); bl.position.set(0.42, 1.6, 0); gt.add(bl); }
+    else if (pr === 'staff') { var p7 = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 1.7, 4), nmat(0x6a4a30)); p7.position.set(0.3, 0.85, 0); gt.add(p7); }
+    else if (pr === 'fan') { var p8 = new T.Mesh(new T.ConeGeometry(0.16, 0.3, 6), nmat(0xf3e6ee)); p8.rotation.z = Math.PI / 2; p8.position.set(0.32, 1.15, 0); gt.add(p8); }
+    else if (pr === 'axe') { var p9 = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 1.1, 4), nmat(0x8a6a48)); p9.position.set(0.3, 0.9, 0); gt.add(p9); var ax = new T.Mesh(new T.BoxGeometry(0.16, 0.14, 0.04), nmat(0x6a6a72)); ax.position.set(0.36, 1.38, 0); gt.add(ax); }
+    else if (pr === 'rod') { var pa = new T.Mesh(new T.CylinderGeometry(0.015, 0.02, 1.9, 4), nmat(0x8a6a48)); pa.rotation.z = -0.6; pa.position.set(0.4, 1.3, 0); gt.add(pa); }
+  }
+  function pawnPick(g) {
+    var pick = new T.Mesh(new T.CylinderGeometry(0.55, 0.55, 2.1, 6), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }));
+    pick.position.y = 1.05; pick.userData.proxy = true; g.add(pick);
+  }
+  /* 火柴人（资材未至时的兜底） */
+  function makePawnStick(cfg) {
     var g = new T.Group();
     var robe = new T.Mesh(new T.CylinderGeometry(0.22, 0.38, 1.05, 7), nmat(cfg.robe));
     robe.position.y = 0.56; robe.castShadow = true; g.add(robe);
@@ -4993,28 +5006,46 @@
     chest.position.y = 1.24; chest.castShadow = true; g.add(chest);
     var head = new T.Mesh(new T.SphereGeometry(0.14, 8, 7), nmat(0xf0d8bc)); head.position.y = 1.56; g.add(head);
     var hair = new T.Mesh(new T.SphereGeometry(0.145, 8, 7), nmat(0x1a1512)); hair.scale.set(1, 0.7, 1); hair.position.y = 1.62; g.add(hair);
-    if (cfg.hat === 'cone') { var h1 = new T.Mesh(new T.ConeGeometry(0.3, 0.16, 8), nmat(0xd9c69a)); h1.position.y = 1.72; g.add(h1); }
-    else if (cfg.hat === 'flat') { var h2 = new T.Mesh(new T.BoxGeometry(0.3, 0.05, 0.18), nmat(cfg.hatC || 0x2c2836)); h2.position.y = 1.74; g.add(h2); }
-    else if (cfg.hat === 'bun') { var h3 = new T.Mesh(new T.SphereGeometry(0.06, 6, 5), nmat(0x1a1512)); h3.position.y = 1.76; g.add(h3); }
-    else if (cfg.hat === 'plume') {
-      var h4 = new T.Mesh(new T.CylinderGeometry(0.15, 0.16, 0.12, 7), nmat(cfg.hatC || 0x4a4a52)); h4.position.y = 1.72; g.add(h4);
-      var pl = new T.Mesh(new T.ConeGeometry(0.05, 0.28, 5), nmat(0xc2492f)); pl.position.y = 1.9; g.add(pl);
+    pawnProps(g, cfg);
+    pawnPick(g);
+    if (cfg.s) g.scale.setScalar(cfg.s);
+    return g;
+  }
+  /* 装束骨架人：基础体+衣壳五段刚体骨架，发/盔挂头，盾挂左臂，道具挂右臂随摆 */
+  function makePawn(cfg) {
+    var lib = Z.packs.pawn && Z.packs.pawn.lib, rig = Z.pawnRig;
+    if (!lib || !rig || !cfg.outfit || !rig.outfits[cfg.outfit]) return makePawnStick(cfg);
+    var g = new T.Group();
+    var mt = matFor(MTEX);
+    var J = rig.joints, of = rig.outfits[cfg.outfit];
+    function dress(node) { node.traverse(function (ch) { if (ch.isMesh) { ch.material = mt; ch.castShadow = true; } }); return node; }
+    function seg(nm, j) {
+      var tpl = lib['PW_' + cfg.outfit + '_' + nm]; if (!tpl) return null;
+      var gr = new T.Group(); gr.add(dress(tpl.clone(true)));
+      gr.position.set(j[0], j[1], j[2] || 0);
+      g.add(gr); return gr;
     }
-    else if (cfg.hat === 'scarf') { var h5 = new T.Mesh(new T.CylinderGeometry(0.15, 0.155, 0.09, 7), nmat(cfg.hatC || 0x6a4a30)); h5.position.y = 1.7; g.add(h5); }
-    var pr = cfg.prop;
-    if (pr === 'spear') { var p1 = new T.Mesh(new T.CylinderGeometry(0.022, 0.022, 2.1, 4), nmat(0x8a6a48)); p1.position.set(0.3, 1.05, 0); g.add(p1); var tip = new T.Mesh(new T.ConeGeometry(0.05, 0.18, 4), nmat(0xb8bec6)); tip.position.set(0.3, 2.2, 0); g.add(tip); }
-    else if (pr === 'sword') { var p2 = new T.Mesh(new T.BoxGeometry(0.05, 0.85, 0.1), nmat(0x4a4a52)); p2.position.set(-0.02, 1.1, -0.26); p2.rotation.x = 0.5; g.add(p2); }
-    else if (pr === 'slip') { var p3 = new T.Mesh(new T.BoxGeometry(0.3, 0.05, 0.2), nmat(0xd9c69a)); p3.position.set(0.26, 1.05, 0.12); g.add(p3); }
-    else if (pr === 'qin') { var p4 = new T.Mesh(new T.BoxGeometry(0.55, 0.06, 0.2), nmat(0x6a4a30)); p4.position.set(0, 1.02, 0.24); p4.rotation.z = 0.3; g.add(p4); }
-    else if (pr === 'bundle') { var p5 = new T.Mesh(new T.SphereGeometry(0.2, 6, 5), nmat(cfg.bundleC || 0xa8845c)); p5.scale.set(1, 0.7, 0.8); p5.position.set(0, 1.5, -0.3); g.add(p5); }
-    else if (pr === 'hoe') { var p6 = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 1.5, 4), nmat(0x8a6a48)); p6.position.set(0.3, 0.85, 0); p6.rotation.z = 0.2; g.add(p6); var bl = new T.Mesh(new T.BoxGeometry(0.2, 0.05, 0.05), nmat(0x6a6a72)); bl.position.set(0.42, 1.6, 0); g.add(bl); }
-    else if (pr === 'staff') { var p7 = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 1.7, 4), nmat(0x6a4a30)); p7.position.set(0.3, 0.85, 0); g.add(p7); }
-    else if (pr === 'fan') { var p8 = new T.Mesh(new T.ConeGeometry(0.16, 0.3, 6), nmat(0xf3e6ee)); p8.rotation.z = Math.PI / 2; p8.position.set(0.32, 1.15, 0); g.add(p8); }
-    else if (pr === 'axe') { var p9 = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 1.1, 4), nmat(0x8a6a48)); p9.position.set(0.3, 0.9, 0); g.add(p9); var ax = new T.Mesh(new T.BoxGeometry(0.16, 0.14, 0.04), nmat(0x6a6a72)); ax.position.set(0.36, 1.38, 0); g.add(ax); }
-    else if (pr === 'rod') { var pa = new T.Mesh(new T.CylinderGeometry(0.015, 0.02, 1.9, 4), nmat(0x8a6a48)); pa.rotation.z = -0.6; pa.position.set(0.4, 1.3, 0); g.add(pa); }
-    // 拾取柱（透明）
-    var pick = new T.Mesh(new T.CylinderGeometry(0.55, 0.55, 2.1, 6), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }));
-    pick.position.y = 1.05; pick.userData.proxy = true; g.add(pick);
+    var R = {};
+    if (of.rigid) { seg('all', [0, 0, 0]); }
+    else {
+      R.torso = seg('torso', [0, J.hip, 0]);
+      R.armL = seg('armL', J.armL); R.armR = seg('armR', J.armR);
+      R.legL = seg('legL', J.legL); R.legR = seg('legR', J.legR);
+      if (cfg.head && R.torso) { var at = lib['PW_at_' + cfg.head]; if (at) R.torso.add(dress(at.clone(true))); }
+      if (cfg.shield && R.armL) {
+        var sh = lib['PW_at_Roman_Shield'];
+        if (sh) { var s2 = dress(sh.clone(true)); s2.position.set(-0.14, -0.4, 0.08); s2.rotation.y = Math.PI / 2; R.armL.add(s2); }
+      }
+      USED.pawn['PW_' + cfg.outfit + '_torso'] = 1;
+    }
+    g.userData.rig = R;
+    if (cfg.prop) {
+      var pg = new T.Group();
+      pawnProps(pg, cfg);
+      if (R.armR) { pg.position.set(-J.armR[0], -J.armR[1], 0); R.armR.add(pg); }
+      else g.add(pg);
+    }
+    pawnPick(g);
     if (cfg.s) g.scale.setScalar(cfg.s);
     return g;
   }
@@ -5095,13 +5126,31 @@
     '灵寿': ['lianpo']
   };
   /* 军旅编制 */
+  var PAWN_FIT = {
+    shi: ['siderobe', 'Half_Bald'], nong: ['shorts', 'Farmer_Hat'], gong: ['fisher', 'Mid_Hair'], shang: ['citizen', 'Mid_Hair'],
+    guan: ['normal', 'Half_Bald'], jiang: ['mcart', 'Helmet_Mohawk'], fangshi: ['siderobe', 'Bald_and_Long_Hair'],
+    yueshi: ['fshoulder', 'Hair_Bun_High'], shiguan: ['normal', 'Half_Bald'], wuzhu: ['fpriest', 'Hair_Tiara'],
+    youxia: ['mglad', 'Helmet_Face_Mask'], rusheng: ['citizen', 'Mid_Hair'], mozhe: ['skirt', 'Bald_and_Long_Hair'],
+    shuike: ['siderobe', 'Long_Hair'], yizhe: ['normal', 'Mid_Hair'], buzhe: ['fpriest', 'Hair_Bun_Low'],
+    yufu: ['fisher', 'Farmer_Hat'], qiaofu: ['shorts', 'Mid_Hair'], muren: ['shorts', 'Mid_Hair'], paoren: ['citizen', 'Half_Bald'],
+    zhinu: ['fdress', 'Hair_Bun_Mid'], yinshi: ['skirt', 'Bald_and_Long_Hair'], dizi: ['citizen', 'Mid_Hair'], yushou: ['fisher', 'Mid_Hair']
+  };
+  Object.keys(PAWN_FIT).forEach(function (k) { if (NPC_TYPES[k]) { NPC_TYPES[k].cfg.outfit = PAWN_FIT[k][0]; NPC_TYPES[k].cfg.head = PAWN_FIT[k][1]; } });
+  var HIST_FIT = {
+    laodan: ['siderobe', 'Half_Bald'], gongshu: ['fisher', 'Half_Bald'], kongzi: ['siderobe', 'Mid_Hair'], yanhui: ['skirt', 'Bald_and_Long_Hair'],
+    zilu: ['corhop', 'Spartan_Mohawk_Helmet', 1], changhong: ['citizen', 'Long_Hair'], yinxi: ['normal', 'Mid_Hair'], shangyang: ['siderobe', 'Half_Bald'],
+    baiqi: ['mcart', 'Helmet_650_BC'], lianpo: ['athhop', 'Helmet_Mohawk', 1], linxiangru: ['normal', 'Half_Bald'], yanying: ['shorts', 'Half_Bald'],
+    zouyan: ['siderobe', 'Bald_and_Long_Hair'], yueyi: ['corhop', 'Helmet_Atheniens', 1], jingke: ['normal', 'Mid_Hair'],
+    xinlingjun: ['corhop', 'Helmet_Without_Mohawk'], hanfei: ['normal', 'Mid_Hair'], quyuan: ['skirt', 'Bald_and_Long_Hair']
+  };
+  Object.keys(HIST_FIT).forEach(function (k) { if (HIST[k]) { HIST[k].cfg.outfit = HIST_FIT[k][0]; HIST[k].cfg.head = HIST_FIT[k][1]; if (HIST_FIT[k][2]) HIST[k].cfg.shield = 1; } });
   var TROOPS = {
     zu: { disp: '军团兵', count: 1, price: 60, cols: 1 },
     wu: { disp: '一什', count: 5, price: 260, cols: 5 },
     ying: { disp: '百人队', count: 20, price: 950, cols: 5 },
     jun: { disp: '一大队', count: 48, price: 2100, cols: 8 }
   };
-  var SOLDIER_CFG = { robe: 0x3a3a42, band: 0x8a6a48, chest: 0x4a4a52, hat: 'plume', hatC: 0x3a3a42, prop: 'spear' };
+  var SOLDIER_CFG = { robe: 0x3a3a42, band: 0x8a6a48, chest: 0x4a4a52, hat: 'plume', hatC: 0x3a3a42, prop: 'spear', outfit: 'athhop', head: 'Helmet_Mohawk', shield: 1 };
   var NAME_POOL = ['盖乌斯', '卢修斯', '马库斯', '提图斯', '昆图斯', '塞克图', '普布利', '格奈乌', '奥卢斯', '曼利乌', '德基乌', '弗拉维', '尤利乌', '瓦莱里', '科尔涅', '霍拉提'];
 
   function unitFormation(count, cols) {
@@ -5191,6 +5240,30 @@
   }
 
   /* ---------------- 游走 / 军令 / 战斗 tick ---------------- */
+  function rigSwing(root, dt) {
+    var R = root.userData.rig; if (!R || !R.armL) return;
+    if (!isFinite(dt) || dt <= 0) return;
+    var ud = root.userData;
+    var dx = root.position.x - (ud._px != null ? ud._px : root.position.x);
+    var dz = root.position.z - (ud._pz != null ? ud._pz : root.position.z);
+    ud._px = root.position.x; ud._pz = root.position.z;
+    var sp = Math.hypot(dx, dz) / Math.max(dt, 1e-3);
+    if (!isFinite(sp)) sp = 0;
+    var target = sp > 0.25 ? Math.min(0.6, 0.25 + sp * 0.1) : 0;
+    var a0 = isFinite(ud._amp) ? ud._amp : 0;
+    ud._amp = a0 + (target - a0) * Math.min(1, dt * 6);
+    var p0 = isFinite(ud._ph) ? ud._ph : 0;
+    ud._ph = p0 + dt * (5 + Math.min(sp, 6) * 1.4);
+    var sw = Math.sin(ud._ph) * ud._amp;
+    R.armL.rotation.x = sw; R.armR.rotation.x = -sw;
+    if (R.legL) R.legL.rotation.x = -sw * 0.9;
+    if (R.legR) R.legR.rotation.x = sw * 0.9;
+    if (R.torso) R.torso.rotation.z = Math.sin(ud._ph * 0.5) * ud._amp * 0.05;
+  }
+  function rigTick(dt) {
+    for (var i = 0; i < Z.pawns.length; i++) { var r = Z.pawns[i].root; if (r.parent) rigSwing(r, dt); }
+    if (Z.player) rigSwing(Z.player, dt);
+  }
   function pawnTick(dt, t) {
     for (var i = 0; i < Z.pawns.length; i++) {
       var p = Z.pawns[i];
@@ -6009,6 +6082,24 @@
   Z.debugCity = function (locName, night) {
     Z.night = !!night; Z.mode = 'city'; Z.cityKey = '';
     buildFor(locName); Z.cityKey = locName;
+  };
+  Z.debugPawns = function () {
+    var st = medSt('latium');
+    SEA = null; SHIPS = []; RIVER = null; AQUA = [];
+    newScene(0x9fc9e4, 0xd6dfc9, 200, 1600, false);
+    addGround(st, 220, [], [], []);
+    var ks = Z.pawnRig ? Object.keys(Z.pawnRig.outfits) : [];
+    var out = [];
+    for (var i = 0; i < ks.length; i++) {
+      var g = makePawn({ outfit: ks[i], head: i % 2 ? 'Mid_Hair' : 'Helmet_Mohawk', shield: i % 3 === 0, prop: i % 2 ? 'sword' : 'staff', robe: 0x666666, band: 0x444444 });
+      g.position.set((i % 6) * 3 - 7.5, 0, Math.floor(i / 6) * 3 - 4.5);
+      Z.scene.add(g);
+      var bb = new T.Box3().setFromObject(g), sz = new T.Vector3(); bb.getSize(sz);
+      out.push(ks[i] + ' h' + sz.y.toFixed(2) + ' w' + sz.x.toFixed(2));
+    }
+    placePlayer(0, 14, Math.PI);
+    hudCity(st, 'PAWNS');
+    return out;
   };
   Z.debugInterior = function (kind) { enterInterior(kind, kind); };
   // coverage report (dev)
