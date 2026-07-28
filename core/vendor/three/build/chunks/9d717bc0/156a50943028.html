@@ -514,11 +514,11 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 #arrTx:hover{color:var(--gold-hi);border-color:var(--gold)}
 #arrTx .a{font-size:11px;transition:transform .35s}
 #arrTx .t{font-size:8px;letter-spacing:.3em}
-#pnTx{position:absolute;left:0;right:322px;top:46px;height:min(34vh,300px);z-index:25;background:#0b0906;border-bottom:1px solid rgba(236,236,232,.14);visibility:hidden;transform:translateY(-103%) translateZ(0);transition:transform .45s cubic-bezier(.2,.85,.25,1),height .3s,visibility .45s;overflow:hidden;font-family:'ZCOOL XiaoWei','STKaiti','KaiTi','楷体',serif}
+#pnTx{position:absolute;left:0;right:322px;top:46px;height:min(24vh,215px);z-index:25;background:#0b0906;border-bottom:1px solid rgba(236,236,232,.14);visibility:hidden;transform:translateY(-103%) translateZ(0);transition:transform .45s cubic-bezier(.2,.85,.25,1),height .3s,visibility .45s;overflow:hidden;font-family:'ZCOOL XiaoWei','STKaiti','KaiTi','楷体',serif}
 #game.tx2 #pnTx{height:min(58vh,540px)}
 #game.txBig #pnTx{height:min(84vh,760px)}
 #game.txOpen #pnTx{visibility:visible;transform:translateZ(0)}
-#game.txOpen #arrTx{top:calc(46px + min(34vh,300px))}
+#game.txOpen #arrTx{top:calc(46px + min(24vh,215px))}
 #game.txOpen.tx2 #arrTx{top:calc(46px + min(58vh,540px))}
 #game.txOpen.txBig #arrTx{top:calc(46px + min(84vh,760px))}
 #game.txOpen #arrTx .a{transform:rotate(180deg)}
@@ -529,11 +529,11 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 @keyframes zj3dMarq{to{transform:translateX(-50%)}}
 .zj3dMarq{animation:zj3dMarq linear infinite}
 @media(max-width:760px){ /* 手机版三维照常可用：全宽三档，TERRA 拉手居中 */
-  #pnTx{right:0;height:min(32vh,300px)}
+  #pnTx{right:0;height:min(23vh,205px)}
   #game.tx2 #pnTx{height:min(52vh,460px)}
   #game.txBig #pnTx{height:min(78vh,640px)}
   #arrTx{left:50%}
-  #game.txOpen #arrTx{top:calc(46px + min(32vh,300px))}
+  #game.txOpen #arrTx{top:calc(46px + min(23vh,205px))}
   #game.txOpen.tx2 #arrTx{top:calc(46px + min(52vh,460px))}
   #game.txOpen.txBig #arrTx{top:calc(46px + min(78vh,640px))}
   #game .gTop{overflow-x:auto;scrollbar-width:none}
