@@ -129,6 +129,9 @@
       var pk = unpack(ab); tick();
       var jobs = [];
       MANI.forEach(function (m) {
+        /* 包里没有这一项就跳过：代码与资材包若因缓存错配（旧代码新包），
+           这里硬取会整个引擎起不来，宁可少一套模型也不能全崩 */
+        if (!pk[m[1]]) { console.warn('pack entry missing', m[1]); tick(); return; }
         jobs.push(new Promise(function (res, rej) {
           loader.parse(pk[m[1]].slice().buffer, '', res, rej);
         }).then(function (g) {
@@ -139,6 +142,7 @@
         }));
       });
       TEXES.forEach(function (t) {
+        if (!pk['tex/' + t]) { console.warn('pack tex missing', t); tick(); return; }
         var url = URL.createObjectURL(new Blob([pk['tex/' + t]], { type: 'image/png' }));
         jobs.push(texLoader.loadAsync(url).then(function (tx) {
           URL.revokeObjectURL(url);
