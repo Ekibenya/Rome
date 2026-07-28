@@ -2596,16 +2596,26 @@ function gameShow(){
   $('#stage').style.display='none';$('#rail').style.display='none';$('#mission').style.display='none';
   setTimeout(gmapSize,80);
 }
+/* 自定義開局（CONDERE）：以所選年代·地點·身份現場鑄一個全新開局。
+   舊實現吸附最近的正史開局，退出重進常撞回上一局同一開局；現在必開新局、必用所選之地與化名 */
+function condereOp(line,y,nm,cn){
+  function v(id){var el=$(id);return el?String(el.value||'').trim():'';}
+  var nomen=v('#pfNomen'),gens=v('#pfGens'),aetas=v('#pfAetas'),ortus=v('#pfOrtus');
+  var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
+  var who=line==='zhou'?'姬瑤':'貝羅娜';
+  var npcs=[];(PSNPC.list||[]).forEach(function(p,i){if(i!==PSNPC.sel&&npcs.length<3)npcs.push(p);});
+  var idLine=nomen?('你隱去'+who+'之名，以「'+nomen+'」行走此世'+(gens?('，稱出身'+gens):'')+(aetas?('，年貌作'+aetas+'歲'):'')+(ortus?('，身份是'+ortus):'')+'。'):('你以'+who+'之身悄然臨於此地。');
+  var body='【自定義開局】'+yl+'，'+cn+(nm?('（'+nm+'）'):'')+'。\n'+idLine+'\n這一幕自你落腳之刻寫起——開口、動身，或先看看四周。';
+  var mv='<mvu_panel>\n<sec_npc>\n'
+    +npcs.map(function(p){return '◈'+p.name+'|初逢|50||'+(p.role||'')+'|'+cn;}).join('\n')
+    +'\n<sec_world>\n◇纪年|'+yl+'\n◇时地|'+cn+'\n</mvu_panel>';
+  return {id:'custom',year:y,era:yl,scene:cn,text:body+'\n\n'+mv};
+}
 function gameEnter(){
   var y=(ERA.year==null?117:ERA.year);
-  var nm=ERA.sel?ERA.sel.n:'ROMA',cn=ERA.sel?ERA.sel.cn:'羅馬';
-  var op=nearestOpening('roma',y);
-  if(op){
-    loadOpening('roma',op,(y<0?(-y)+' A.C.N.':'A.D. '+y)+' · '+nm);
-  }else{
-    $('#gLoc').innerHTML=(y<0?(-y)+'&nbsp;A.C.N.':'A.D.&nbsp;'+y)+
-      '&nbsp;<i>·</i>&nbsp;'+nm+'&nbsp;<i>·</i>&nbsp;'+cn;
-  }
+  var line=RING_LINE||'roma';
+  var nm=ERA.sel?ERA.sel.n:(line==='zhou'?'SERICA':'ROMA'),cn=ERA.sel?ERA.sel.cn:(line==='zhou'?'洛陽':'羅馬');
+  loadOpening(line,condereOp(line,y,nm,cn),(y<0?(-y)+' A.C.N.':'A.D. '+y)+' · '+nm);
   gameShow();
 }
 function gameExit(){
