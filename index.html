@@ -501,13 +501,17 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 }
 /* ══ 天下三維 · 頂部停靠（RitusZhou zj3d）══ */
 @font-face{font-family:'ZCOOL XiaoWei';font-style:normal;font-weight:400;font-display:swap;src:url('core/res/fonts/zcool-xiaowei.woff2') format('woff2');unicode-range:U+0-56DD,U+56DF-10FFFF}
-#arrTx{display:inline-flex;align-items:center;gap:6px}
-#arrTx .a{font-size:10px;transition:transform .35s}
-#arrTx .t{font-size:inherit;letter-spacing:inherit}
+#arrTx{position:absolute;top:46px;left:calc((100% - 322px)/2);transform:translateX(-50%);height:26px;padding:0 16px;z-index:26;cursor:pointer;border:1px solid rgba(236,236,232,.16);border-top:0;background:rgba(6,6,6,.88);display:flex;align-items:center;gap:10px;color:var(--mut);transition:top .45s cubic-bezier(.2,.85,.25,1),color .2s,border-color .2s}
+#arrTx:hover{color:var(--gold-hi);border-color:var(--gold)}
+#arrTx .a{font-size:11px;transition:transform .35s}
+#arrTx .t{font-size:8px;letter-spacing:.3em}
 #pnTx{position:absolute;left:0;right:322px;top:46px;height:min(34vh,300px);z-index:25;background:#0b0906;border-bottom:1px solid rgba(236,236,232,.14);visibility:hidden;transform:translateY(-103%) translateZ(0);transition:transform .45s cubic-bezier(.2,.85,.25,1),height .3s,visibility .45s;overflow:hidden;font-family:'ZCOOL XiaoWei','STKaiti','KaiTi','楷体',serif}
 #game.tx2 #pnTx{height:min(58vh,540px)}
 #game.txBig #pnTx{height:min(84vh,760px)}
 #game.txOpen #pnTx{visibility:visible;transform:translateZ(0)}
+#game.txOpen #arrTx{top:calc(46px + min(34vh,300px))}
+#game.txOpen.tx2 #arrTx{top:calc(46px + min(58vh,540px))}
+#game.txOpen.txBig #arrTx{top:calc(46px + min(84vh,760px))}
 #game.txOpen #arrTx .a{transform:rotate(180deg)}
 #txBar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:8px;padding:8px 10px;background:linear-gradient(0deg,rgba(6,6,6,.92),rgba(6,6,6,.55) 70%,transparent);align-items:center}
 #txIn{flex:1;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.22);color:#e8d9b0;font-size:12.5px;padding:7px 10px;font-family:inherit;outline:none}
@@ -5189,8 +5193,6 @@ function medEdictSync(){ /* 環海側 sec_deed 敕令：同 edictSync，落到 M
 (function(){
   var ar=document.getElementById('arrTx');
   if(ar){
-    var _snd=document.getElementById('gtSnd');
-    if(_snd&&_snd.parentNode){ar.classList.add('gt');_snd.parentNode.insertBefore(ar,_snd);} /* 迁入顶栏按钮排 */
     ar.addEventListener('click',function(){
       var g=document.getElementById('game');
       var E=(ACTIVE==='roma')?window.MED3D:window.ZJ3D;
