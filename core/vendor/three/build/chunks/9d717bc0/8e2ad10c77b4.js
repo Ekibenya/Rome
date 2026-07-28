@@ -2462,6 +2462,33 @@
     gates.forEach(function (g) { mput('gate', g.x, g.z, g.ry, { s: opts.gateS || 1.25, solid: false, autodoor: false }); });
   }
 
+  /* 基建件丙：引水道连拱 —— 立柱+拱肩连梁+顶水槽，任意两点间等高长列 */
+  function aqueductRun(x0, z0, x1, z1, hgt) {
+    hgt = hgt || 9;
+    var dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz), ang = Math.atan2(dx, dz);
+    var ux = dx / L, uz = dz / L;
+    var stone = nmat(0xcfc5b0), cap = nmat(0xbfb49d), water = nmat(0x3b86a6);
+    for (var d = 0; d <= L; d += 5.6) {
+      var px = x0 + ux * d, pz = z0 + uz * d;
+      var pier = new T.Mesh(new T.BoxGeometry(1.7, hgt, 1.7), stone);
+      pier.position.set(px, hgt / 2, pz); pier.rotation.y = ang;
+      pier.castShadow = pier.receiveShadow = true; Z.scene.add(pier);
+      Z.colliders.push({ x: px, z: pz, hw: 1.1, hd: 1.1, ry: ang, cx: 0, cz: 0 });
+    }
+    var segs = Math.max(1, Math.round(L / 8));
+    for (var s2 = 0; s2 < segs; s2++) {
+      var t0 = (s2 + 0.5) / segs, segL = L / segs + 0.3;
+      var mx = x0 + dx * t0, mz = z0 + dz * t0;
+      var beam = new T.Mesh(new T.BoxGeometry(2.2, 2.4, segL), stone);
+      beam.position.set(mx, hgt + 1.2, mz); beam.rotation.y = ang;
+      beam.castShadow = true; Z.scene.add(beam);
+      var rim = new T.Mesh(new T.BoxGeometry(2.6, 0.7, segL), cap);
+      rim.position.set(mx, hgt + 2.75, mz); rim.rotation.y = ang; Z.scene.add(rim);
+      var wat = new T.Mesh(new T.BoxGeometry(1.5, 0.35, segL), water);
+      wat.position.set(mx, hgt + 3.1, mz); wat.rotation.y = ang; Z.scene.add(wat);
+    }
+  }
+
   /* ═══ 基建件乙：样条弯河（河床/沙岸/活水三层 ribbon · 顶点波动不破面 · 沿线行船/架桥） ═══ */
   var RIVER = null;
   function ribbonGeo(curve, width, N) {
@@ -2573,12 +2600,12 @@
       { x: -56, z: -46, rx: 6, rz: 5, stone: true }    /* 万神殿前庭 */
     ];
     addGround(st, R, paths, plazas, []);
-    mountainRing(R, seed, [27, 40, 100, 145, 196, 203, 325, 336]);
+    mountainRing(205, seed, [27, 40, 100, 145, 196, 203, 325, 336]);
 
     /* —— 台伯河：反S样条三层活水全程墙外 · 台伯岛医神庙 · Fabricius/Cestius岛桥+Aemilius整桥 —— */
     riverSpline([[-66, -158], [-104, -128], [-128, -84], [-116, -32], [-102, -4], [-72, 10], [-52, 20], [-60, 48], [-69, 84], [-110, 158]], 11, {});
-    var isl = riverIsland(0.655, 6.5, 13);
-    if (isl) mput('temple3', isl.x, isl.z, 0.6, { y: isl.y, s: .35, autodoor: false });
+    var isl = riverIsland(0.655, 8, 15);
+    if (isl) mput('temple3', isl.x, isl.z, 0.6, { y: isl.y, s: .4, autodoor: false });
     riverBridge(0.635, { s: .85 });
     riverBridge(0.675, { s: .85 });
     riverBridge(0.70, { s: 1.0 });
@@ -2659,8 +2686,8 @@
     /* —— 谷地COLOSSEVM：斗兽场被街区贴身包裹 · 尼禄巨像 · 君士坦丁/提图斯双凯旋门 · 梅塔喷泉 —— */
     mput('amphi', 50, 16, 0, { s: .85 });
     mput('amphi', 50, 20, Math.PI, { s: .85 });
-    mput('base2', 26, 2, 0, { solid: false, autodoor: false });
-    mput('colossus', 26, 2, 1, { y: .5, s: .16, autodoor: false });
+    mput('base2', 36, -2, 0, { solid: false, autodoor: false });
+    mput('colossus', 36, -2, 1, { y: .4, s: .16, autodoor: false });
     mput('arch', 26, 25, 1.05, { s: .85 });
     mput('arch', 14, 12, 0.9, { s: .8 });
     mput('fountain2', 28, 10, 0, { autodoor: false });
@@ -2669,8 +2696,8 @@
 
     /* —— CIRCVS MAXIMVS：卡帕拉丁/阿文丁之间 · SE端经Appia指向Capena门 —— */
     mput('circus', -8, 60, 0.59, { s: .8 });
-    mput('base3', -22, 40, 0.59, { solid: false, autodoor: false });
-    mput('base3', 6, 80, 0.59, { solid: false, autodoor: false });
+    mput('base2', -22, 40, 0.59, { solid: false, autodoor: false });
+    mput('base2', 6, 80, 0.59, { solid: false, autodoor: false });
     crowd(-30, 52, 5, 6, seed + 'cx');
 
     /* —— CAMPVS MARTIVS 墙外战神原：万神殿+日晷方尖碑+伊西斯庙 · 空旷校场感 —— */
@@ -2687,11 +2714,11 @@
 
     /* —— THERMAE+AQVA CLAVDIA：十五连拱自东南入城 于(74,60)跨墙低平段 终点接浴场 —— */
     mput('univ', 52, 46, 2.5, { s: .65, door: { side: 0, dist: 12, interior: 'inn', label: 'THERMAE 大浴场' } });
-    mput('fountain', 47, 36.5, 0, { autodoor: false });
-    mrow(['aqueduct'], 150, 116, -2.585, -1.888, 34, -2.2, { s: .75, autodoor: false });
+    mput('fountain', 42, 42, 0, { autodoor: false });
+    aqueductRun(150, 116, 59, 49.6, 9);
     mput('colRuin2', 140, 128, 0.7, { solid: false, autodoor: false });
     mput('colRuin', 126, 120, -0.5, { solid: false, autodoor: false });
-    mrow(['pine'], 146, 108, -8.57, -6.29, 8, 0, { solid: false, autodoor: false });
+    mrow(['tree', 'pine'], 146, 108, -8.57, -6.29, 8, 0, { solid: false, autodoor: false });
 
     /* —— 凯里安/奎里纳莱条形台地小神庙 —— */
     var caeH = rockTerrace(48, 66, 20, 8, 2, 1.8, seed + 'cae');
@@ -2737,10 +2764,10 @@
     mput('flag', 100, -87, 0, { solid: false, autodoor: false });
 
     /* —— 十五街区：墙内铺满到墙脚 · 苏布拉最密 · 墙外仅战神原稀疏带 —— */
-    mblock(['house2f', 'houseLong', 'house4', 'house6'], 26, -46, 8, 6, 5.5, 5.5, seed + 'sub'); /* 苏布拉 */
+    mblock(['house3', 'house2', 'house6', 'houseSlope'], 26, -46, 8, 6, 5.5, 5.5, seed + 'sub'); /* 苏布拉 */
     mblock(['house2f', 'house3', 'house5'], 24, -62, 5, 3, 5, 5, seed + 'vim');                  /* 维米纳莱谷 */
     mblock(['house', 'house3', 'houseGarden'], 74, -44, 5, 5, 5, 5.5, seed + 'esq');             /* 埃斯奎林 */
-    mblock(['house2f', 'house4', 'house5'], 34, -12, 6, 2, 5, 4.5, seed + 'car');                /* 卡里纳 */
+    mblock(['house2', 'house3', 'house6'], 34, -12, 6, 2, 5, 4.5, seed + 'car');                /* 卡里纳 */
     mblock(['house', 'house2', 'house3'], 72, 8, 3, 5, 5, 5.5, seed + 'cel');                    /* 卡厄利乌斯坡 */
     mblock(['house', 'house2', 'houseSlope', 'house6'], -12, 86, 5, 3, 5, 5, seed + 'avp');      /* 阿文丁平民区 */
     mblock(['shop', 'shop2', 'house2f'], -26, 14, 2, 3, 5, 5, seed + 'vel');                     /* 韦拉布鲁姆商业带 */
@@ -2748,7 +2775,7 @@
     mblock(['house', 'house2', 'house4'], 74, -14, 4, 4, 5, 5, seed + 'ess');                    /* 埃斯奎林南坡 */
     mblock(['house2f', 'house3'], -10, -30, 2, 2, 5, 5, seed + 'flg');                           /* 弗拉米尼亚门坊 */
     mblock(['houseGarden', 'house'], -80, -40, 3, 3, 8, 8, seed + 'cam');                        /* 战神原稀疏带 */
-    mblock(['house2f', 'house3', 'house4'], 62, -70, 5, 4, 5, 5.5, seed + 'ad1');                /* 奎里纳莱东北 */
+    mblock(['house2', 'house3', 'houseSlope'], 62, -70, 5, 4, 5, 5.5, seed + 'ad1');                /* 奎里纳莱东北 */
     mblock(['house', 'house5'], 98, -52, 2, 4, 5, 5.5, seed + 'ad2');                            /* Esquilina门内侧 */
     mblock(['house', 'house2f', 'house2'], 26, 44, 3, 5, 5, 5, seed + 'ad3');                    /* 帕拉丁东坡 */
     mblock(['house', 'house3', 'house2'], 86, -16, 3, 7, 5, 5, seed + 'ad4');                    /* 东缘填充带 */
@@ -2757,22 +2784,25 @@
     mblock(['house2f', 'shop'], -17, 26, 2, 3, 5, 5, seed + 'ad7');                              /* 韦拉布鲁姆东 */
     mblock(['house', 'house4'], 38, 52, 2, 2, 5, 5, seed + 'ad8');                               /* 浴场西 */
     mblock(['house2', 'house'], 8, 64, 2, 2, 5, 4, seed + 'ad9');                                /* 卡佩纳门内 */
+    mblock(['house3', 'house2'], 14, 44, 2, 2, 5, 4, seed + 'adA');                              /* 帕拉丁东南脚 */
+    mblock(['house2', 'house6'], 26, -70, 4, 1, 5, 5, seed + 'adB');                             /* 北墙内沿 */
+    mblock(['house3', 'houseSlope'], 46, -56, 3, 2, 5, 4, seed + 'adC');                         /* 苏布拉北 */
 
     /* —— 石松只成行成簇 · 城郊农庄带 —— */
-    mrow(['pine2'], 40, 81, 5, 8, 7, 0, { solid: false, autodoor: false });                      /* Appia东列 */
-    mrow(['pine2'], 28, 88, 5, 8, 7, 0, { solid: false, autodoor: false });                      /* Appia西列 */
-    mput('farm', 118, 96, 0.2); mput('vineyard', 130, 84, -0.3);
+    mrow(['tree', 'pine2'], 40, 81, 5, 8, 7, 0, { solid: false, autodoor: false });              /* Appia东列 */
+    mrow(['tree', 'pine2'], 28, 88, 5, 8, 7, 0, { solid: false, autodoor: false });              /* Appia西列 */
+    mput('farm', 118, 96, 0.2); mput('house', 109, 90, 0.4); mput('vineyard', 130, 84, -0.3);
     mput('silo', 112, 108, 0.5); mput('granary', 58, 124, 0.3);
     mput('hay', 96, 104, 0.5, { solid: false, autodoor: false });
     mput('straw', 88, 112, -0.4, { solid: false, autodoor: false });
-    mput('farm', -56, -120, 0.1);
+    mput('farm', -56, -120, 0.1); mput('houseGarden', -47, -116, 0.3);
     mrow(['fruitTree'], -48, -100, -1, -10, 5, 0, { solid: false, autodoor: false });
     mput('watermill', -94, -6, -Math.PI / 2, { solid: false, autodoor: false });
     mput('sawmill', -90, -118, 0.6);
     oliveGrove(128, -56, 13, 7, seed + 'h2', ['olive', 'olive', 'pine']);
     mput('houseGarden', 114, -44, 0.3); mput('houseGarden', 122, -42, -0.4); mput('houseGarden', 130, -46, 0.7);
 
-    for (var c = 0; c < 6; c++) cloud((c - 2.5) * 56, 52 + c * 4, -60 + c * 36, 3, seed + c);
+    for (var c = 0; c < 6; c++) cloud((c - 2.5) * 56, 74 + c * 4, -60 + c * 36, 3, seed + c);
     placePlayer(4, 5, Math.PI);
     hudCity(st, 'ROMA');
   }
