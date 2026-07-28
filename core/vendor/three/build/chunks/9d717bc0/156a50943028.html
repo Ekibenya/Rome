@@ -5920,8 +5920,15 @@ function svBgDraw(){
   var cv=$('#svBg');if(!cv)return;
   cv.width=Math.round(innerWidth*DPR);cv.height=Math.round(innerHeight*DPR);
   SVL=[];
-  for(var i=0;i<125;i++)SVL.push({a:svRnd(i,1)*Math.PI*2,ph:svRnd(i,2),sp:.010+svRnd(i,3)*.048,
-    len:.10+svRnd(i,4)*.40,al:.06+svRnd(i,5)*.16,w:(svRnd(i,6)<.12?1.7:1)});
+  for(var i=0;i<190;i++)SVL.push({
+    a:svRnd(i,1)*Math.PI*2,                    /* 起始角 */
+    r0:.02+svRnd(i,2)*.13,                     /* 內端（灭點附近） */
+    r1:.55+svRnd(i,3)*.85,                     /* 外端（越出畫面邊界，永不斷開） */
+    w:(svRnd(i,4)<.12?1.7:1),
+    al:.05+svRnd(i,5)*.15,
+    sp:(svRnd(i,6)-.5)*.022,                   /* 角速度：整片扇面緩慢旋擰 */
+    bp:svRnd(i,7)*6.283,bs:.22+svRnd(i,8)*.55  /* 明暗呼吸相位／頻率 */
+  });
   SVLS=[];
   for(var q=0;q<34;q++)SVLS.push({y:svRnd(q,7),x:svRnd(q,8),len:.05+svRnd(q,9)*.30,
     sp:.004+svRnd(q,10)*.018,al:.03+svRnd(q,11)*.06});
@@ -5932,21 +5939,23 @@ function svFx(t){
   var cv=$('#svBg');if(!cv||!cv.width)return;
   var W=cv.width,H=cv.height,g=cv.getContext('2d'),cx=W/2,cy=H/2;
   g.clearRect(0,0,W,H);
-  var MR=Math.hypot(W,H)*.62;
+  var DIAG=Math.hypot(W,H);
   for(var i=0;i<SVL.length;i++){
-    var L=SVL[i],p=(L.ph+t*L.sp)%1;
-    var r0=p*p*MR,r1=r0+L.len*MR*(.22+p*.9);
-    var fade=Math.min(1,p*7)*Math.max(0,Math.min(1,(1-p)/.26));
-    if(fade<=0)continue;
-    g.strokeStyle='rgba(236,236,232,'+(L.al*fade).toFixed(3)+')';
+    var L=SVL[i],aa=L.a+t*L.sp;                       /* 整根線只轉不斷 */
+    var sh=.70+.30*Math.sin(t*L.bs+L.bp);             /* 明暗呼吸 */
+    var r0=L.r0*H*(1+.07*Math.sin(t*.55+L.bp));       /* 內端輕微伸縮 */
+    var r1=L.r1*DIAG;
+    var ca=Math.cos(aa),sa=Math.sin(aa);
+    g.strokeStyle='rgba(236,236,232,'+(L.al*sh).toFixed(3)+')';
     g.lineWidth=L.w*DPR*.85;
-    g.beginPath();g.moveTo(cx+Math.cos(L.a)*r0,cy+Math.sin(L.a)*r0);
-    g.lineTo(cx+Math.cos(L.a)*r1,cy+Math.sin(L.a)*r1);g.stroke();
+    g.beginPath();g.moveTo(cx+ca*r0,cy+sa*r0);g.lineTo(cx+ca*r1,cy+sa*r1);g.stroke();
   }
   for(var q=0;q<SVLS.length;q++){
-    var S=SVLS[q],x=((S.x+t*S.sp)%1.35-.18)*W,y=S.y*H;
+    var S=SVLS[q],x=((S.x+t*S.sp)%1-.05)*W,y=S.y*H,ln=S.len*W;
     g.strokeStyle='rgba(236,236,232,'+S.al.toFixed(3)+')';g.lineWidth=DPR*.8;
-    g.beginPath();g.moveTo(x,y);g.lineTo(x+S.len*W,y);g.stroke();
+    g.beginPath();g.moveTo(x,y);g.lineTo(x+ln,y);
+    g.moveTo(x-W,y);g.lineTo(x-W+ln,y);      /* 環繞副本：捲回不閃斷 */
+    g.stroke();
   }
   if(SVDISC){g.save();g.translate(cx,cy);g.rotate(t*.035);
     g.drawImage(SVDISC,-SVDISC.width/2,-SVDISC.height/2);g.restore();}
