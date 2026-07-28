@@ -1693,6 +1693,7 @@
     xBtn.textContent = '×';
     xBtn.title = '完全隐藏三维横条（文字区右上可随时展开）';
     xBtn.onclick = function () {
+      if (window.ZJ3D_closePane) { ZJ3D_closePane(); return; }
       try { localStorage.setItem('zj3d_hide', '1'); } catch (e) { }
       if (window.ZJ3D_onExpand) window.ZJ3D_onExpand();
     };
@@ -1746,8 +1747,8 @@
     else loadEl.style.display = 'none';
     expBtn.textContent = Z.expanded ? '收起' : '营造'; // 展开默认即营造；游历是营造内的切换项
     if (Z._xBtn) {
-      Z._xBtn.style.display = Z.expanded ? 'none' : 'block';
-      expBtn.style.right = !Z.expanded ? '44px' : '10px';
+      Z._xBtn.style.display = 'block'; /* 關閉鈕常駐：任何檔位都能一鍵收起 */
+      expBtn.style.right = '44px';
     }
     if (Z._lowBtn) Z._lowBtn();
     if (Z._txtBtn) Z._txtBtn.style.display = Z.expanded ? 'block' : 'none';

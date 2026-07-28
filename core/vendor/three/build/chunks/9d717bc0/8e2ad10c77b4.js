@@ -3266,8 +3266,8 @@
     else loadEl.style.display = 'none';
     expBtn.textContent = Z.tier === 0 ? 'OPVS·建造' : (Z.tier === 1 ? 'MAIOR·放大' : 'CLAVDE·收起'); // 展开默认即营造；游历是营造内的切换项
     if (Z._xBtn) {
-      Z._xBtn.style.display = Z.expanded ? 'none' : 'block';
-      expBtn.style.right = !Z.expanded ? '44px' : '10px';
+      Z._xBtn.style.display = 'block'; /* 關閉鈕常駐：任何檔位都能一鍵收起 */
+      expBtn.style.right = '44px';
     }
     if (Z._lowBtn) Z._lowBtn();
     if (Z._txtBtn) Z._txtBtn.style.display = Z.expanded ? 'block' : 'none';
