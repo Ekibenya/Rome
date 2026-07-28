@@ -2342,6 +2342,129 @@
     hudCity(st, locName);
   }
 
+  /* 通用：凯尔特山堡 oppidum —— 土垣木栅环丘、酋长长屋、圆仓草垛、林牧田猎（努曼西亚/比布拉克特/阿莱西亚/卡姆罗敦） */
+  function medOppidum(locName, palKey, seedKey) {
+    var st = medSt(palKey || 'gallia'), R = 112, seed = seedKey || locName;
+    var r = rng('op' + seed);
+    newScene(0x9ac2de, 0xcddbc2, 150, 640, Z.night);
+    var paths = [
+      { w: 5, pts: [[0, R * .85], [2, 30], [0, 0], [-2, -30], [0, -R * .85]] },
+      { w: 3, pts: [[-R * .7, 8], [-30, 4], [0, 0]] }
+    ];
+    addGround(st, R, paths, [{ x: 0, z: 0, rx: 12, rz: 9 }], []);
+    mountainRing(R, seed, [0, 180]);
+    /* 不规则土垣：南北二门 */
+    var wpts = [], NW = 10, rw = 46 + r() * 8;
+    for (var i = 0; i < NW; i++) {
+      var ang = i / NW * Math.PI * 2;
+      var rad = (i === 0 || i === NW / 2) ? rw : rw * (0.86 + r() * 0.3);
+      wpts.push([Math.sin(ang) * rad, Math.cos(ang) * rad]);
+    }
+    cityWall(wpts, {
+      h: 4.2, th: 1.8, color: 0x8a6b4a, cap: 0x74583c, towerS: 0.6, gateS: 0.62, gateGap: 5.5,
+      gates: [{ x: 0, z: rw, ry: 0 }, { x: 0, z: -rw, ry: Math.PI }]
+    });
+    /* 酋长长屋 + 圣所 + 集会火塘 */
+    mput('houseLong', 0, -20, Math.PI, { s: 1.35, door: { side: 0, dist: 9, interior: 'hall', label: locName + '·酋长长屋' } });
+    mput('temple3', -22, -12, 0.4, { s: .55, autodoor: false });
+    mput('campfire', 0, 0, 0, { solid: false, autodoor: false });
+    mput('base', 6, -2, 0, { solid: false, autodoor: false });
+    mput('hercules', 6, -2, -0.8, { y: .35, solid: false, autodoor: false });
+    crowd(0, 4, 7, 6, seed + 'cw');
+    /* 环火塘的圆形聚落：茅舍 + 谷仓 + 草垛 */
+    var hs = ['houseGarden', 'house', 'house2', 'houseSlope'];
+    for (var k = 0; k < 11; k++) {
+      var ka = k / 11 * Math.PI * 2 + r() * 0.3, kd = 17 + r() * 16;
+      var kx = Math.sin(ka) * kd, kz = Math.cos(ka) * kd;
+      if (Math.abs(kx) < 6 || Math.hypot(kx, kz - (-20)) < 13) continue;
+      mput(hs[k % hs.length], kx, kz, ka + Math.PI + (r() - .5) * 0.5);
+      if (k % 3 === 0) mput('hay', kx + 4, kz + 3, r() * 3, { solid: false, autodoor: false });
+    }
+    mput('granary', 24, 14, -Math.PI / 2); mput('silo', 30, 20, 0.4);
+    mput('forge', -26, 18, Math.PI / 2, { door: { side: 0, interior: 'shop', label: 'FABRICA 铁工坊' } });
+    mput('anvil', -22, 21, 0, { solid: false, autodoor: false });
+    mput('well', 8, 8, 0, { solid: false, autodoor: false });
+    mput('stable', -14, 34, Math.PI); mput('horse', -8, 38, 0.8, { solid: false, autodoor: false });
+    mput('straw', 14, 30, 0.6, { solid: false, autodoor: false });
+    mput('cart', -4, 24, 0.5, { solid: false, autodoor: false });
+    /* 垣外：田亩 + 针叶林 + 猎场 */
+    mput('farm', -70, 40, 0.2); mput('farm', 66, -44, -0.15); mput('vineyard', 62, 52, 0.3);
+    mput('hay', -62, 48, 0.4, { solid: false, autodoor: false });
+    treeCluster(-64, -50, ['pine', 'green'], seed + 'f1');
+    treeCluster(70, 10, ['pine', 'pine'], seed + 'f2');
+    treeCluster(-76, -8, ['green', 'pine'], seed + 'f3');
+    oliveGrove(0, -84, 26, 12, seed + 'f4', ['pine', 'tree', 'pine2']);
+    oliveGrove(80, 78, 22, 9, seed + 'f5', ['pine', 'tree']);
+    mput('tentSm', 54, -70, 0.8, { solid: false, autodoor: false });
+    mput('campfire', 58, -66, 0, { solid: false, autodoor: false });
+    for (var c = 0; c < 4; c++) cloud((c - 1.5) * 52, 66 + c * 4, -40 + c * 30, 2.6, seed + c);
+    placePlayer(0, 26, Math.PI);
+    hudCity(st, locName);
+  }
+
+  /* 通用：东方丝路城 —— 方城二门、王宫圣塔、巴扎长街、园圃棕榈、驼队帐营（巴克特拉/撒马尔罕/塔克西拉/华氏城） */
+  function medOrient(locName, palKey, seedKey) {
+    var st = medSt(palKey || 'levant'), R = 128, seed = seedKey || locName;
+    var r = rng('or' + seed);
+    newScene(0xa8cbe0, 0xdcd8b4, 150, 640, Z.night);
+    var paths = [
+      { w: 6, pts: [[0, R * .85], [0, 30], [0, -30], [0, -R * .85]] },
+      { w: 5, pts: [[-R * .8, -2], [-30, -2], [30, -2], [R * .8, -2]] },
+      { w: 3, pts: [[-34, 40], [30, 40]] }
+    ];
+    addGround(st, R, paths, [{ x: 0, z: -2, rx: 14, rz: 10, stone: true }], []);
+    mountainRing(R, seed, [0, 90, 180]);
+    /* 方形土城：南北二门 */
+    var q = 6 + r() * 4;
+    var wq = [[-58, -50 - q], [0, -56 - q], [58, -50 - q], [64 + q, 0], [58, 50 + q], [0, 56 + q], [-58, 50 + q], [-64 - q, 0]];
+    cityWall(wq, {
+      h: 5.2, th: 2.2, color: 0xc9b184, cap: 0xb59d72, towerS: 0.7, gateS: 0.8, gateGap: 6,
+      gates: [{ x: 0, z: 56 + q, ry: 0 }, { x: 0, z: -56 - q, ry: Math.PI }]
+    });
+    /* 王宫 + 圣塔 + 拜火坛 */
+    mput('palace', -26, -30, 0.35, { y: 0, s: 1.5, door: { side: 0, dist: 12, interior: 'throne', label: locName + '·王宫' } });
+    mput('colossus', 30, -34, -0.4, { s: .13, autodoor: false });
+    mput('oracle', 34, 26, Math.PI, { s: .5, autodoor: false });
+    mput('altarStone', 0, -16, 0, { solid: false, autodoor: false });
+    mput('campfire', 0, -16, 0, { y: .5, solid: false, autodoor: false });
+    /* 巴扎长街：沿东西大道两侧摊棚货栈 */
+    for (var b = 0; b < 7; b++) {
+      var bx = -30 + b * 10;
+      mput(b % 2 ? 'shop' : 'shop2', bx, 7, Math.PI, { autodoor: false });
+      if (b % 2 === 0) mput('shopBox', bx + 3, 3.5, r() * 2, { solid: false, autodoor: false });
+      if (b % 3 === 0) mput('jar', bx - 3, 4, 0, { solid: false, autodoor: false });
+    }
+    agoraStalls(0, -6, 10, 10, seed + 'bz');
+    crowd(2, -4, 9, 8, seed + 'cw');
+    mput('banner', -8, 6, 0, { solid: false, autodoor: false });
+    mput('banner2', 8, 6, 0, { solid: false, autodoor: false });
+    /* 平顶民居街区 */
+    var hs2 = ['house4', 'house5', 'house2f', 'house'];
+    mblock(hs2, -48, 14, 3, 3, 12, 11, seed + 'h1');
+    mblock(hs2, 20, 14, 3, 3, 12, 11, seed + 'h2');
+    mblock(hs2, -48, -44, 2, 2, 12, 11, seed + 'h3');
+    mblock(['houseGarden', 'house2'], 36, -12, 2, 2, 12, 10, seed + 'h4');
+    /* 园圃水法 + 棕榈行道 */
+    pondOrganic(-34, 42, 8, 6, seed + 'pq', { lotus: false, lantern: false });
+    palmRow(-24, 48, 12, 0, 5, seed + 'p1');
+    palmRow(12, -52, 11, 2, 5, seed + 'p2');
+    oliveGrove(52, 40, 20, 8, seed + 'g1', ['palm', 'palm2', 'olive']);
+    /* 城外驼队帐营 + 田亩 */
+    mput('tentBig', 22, 78, 0.5, { solid: false, autodoor: false });
+    mput('tentSm', 30, 84, 1.2, { solid: false, autodoor: false });
+    mput('tentOpen', 14, 84, -0.4, { solid: false, autodoor: false });
+    mput('campfire', 22, 84, 0, { solid: false, autodoor: false });
+    mput('horseCart', 10, 74, 0.3, { solid: false, autodoor: false });
+    mput('cart', 30, 72, -0.5, { solid: false, autodoor: false });
+    mput('horse', 16, 70, 0.9, { solid: false, autodoor: false });
+    mput('farm', -76, 66, 0.2); mput('vineyard', 76, -60, -0.3);
+    mput('granary', -68, -60, 0.4); mput('silo', -60, -66, 0);
+    palmRow(-70, 84, 13, -2, 4, seed + 'p3');
+    for (var c2 = 0; c2 < 4; c2++) cloud((c2 - 1.5) * 54, 68 + c2 * 4, -36 + c2 * 28, 2.8, seed + c2);
+    placePlayer(0, 30, Math.PI);
+    hudCity(st, locName);
+  }
+
   /* 通用：村庄 —— 无神庙无巨像，只有农舍、井、田、畜栏 */
   function medVicus(locName, palKey, seedKey) {
     var st = medSt(palKey || 'latium'), R = 108, seed = seedKey || locName;
@@ -2791,7 +2914,15 @@
     '埃及底比斯': ['rock', 'aegypt'], '麦罗埃': ['rock', 'aegypt'], '马里卜': ['rock', 'levant'],
     '安条克': ['colonia', 'levant'], '巴比伦': ['rock', 'levant'], '波斯波利斯': ['rock', 'levant'],
     '泰西封': ['rock', 'levant'], '苏薩': ['rock', 'levant'], '苏萨': ['rock', 'levant'],
-    '埃克巴坦那': ['rock', 'levant'], '塞琉西亚': ['colonia', 'levant']
+    '埃克巴坦那': ['rock', 'levant'], '塞琉西亚': ['colonia', 'levant'],
+    '潘提卡派翁': ['port', 'pontus'], '奥尔比亚': ['port', 'pontus'],
+    '塔拉科': ['port', 'hispania'], '瑙克拉提斯': ['port', 'aegypt'],
+    '赛伊斯': ['colonia', 'aegypt'], '布巴斯提斯': ['colonia', 'aegypt'],
+    '赛伊尼·阿斯旺': ['rock', 'aegypt'], '赛伊尼': ['rock', 'aegypt'],
+    '努曼西亚': ['oppidum', 'hispania'], '比布拉克特': ['oppidum', 'gallia'],
+    '阿莱西亚': ['oppidum', 'gallia'], '卡姆罗敦': ['oppidum', 'gallia'],
+    '巴克特拉': ['orient', 'levant'], '撒马尔罕': ['orient', 'hispania'],
+    '塔克西拉': ['orient', 'graecia'], '华氏城': ['orient', 'gallia']
   };
   function medBuild(locName) {
     SEA = null; SHIPS = []; RIVER = null;
@@ -2801,6 +2932,8 @@
     if (g) {
       if (g[0] === 'port') medPort(locName, g[1], locName);
       else if (g[0] === 'colonia') medColonia(locName, g[1], locName);
+      else if (g[0] === 'oppidum') medOppidum(locName, g[1], locName);
+      else if (g[0] === 'orient') medOrient(locName, g[1], locName);
       else medRock(locName, g[1], locName);
       return true;
     }
