@@ -641,7 +641,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   <div class="gArr" id="arrMap"><span class="a">▸</span><span class="t">TABVLA&nbsp;地圖</span></div>
   <div class="gArr" id="arrArm"><span class="a">▸</span><span class="t">ARMA&nbsp;裝備</span></div>
 
-  <div id="pnTx"><div id="zjScene3D" style="position:absolute;inset:0"></div>
+  <div id="pnTx"><div id="zjScene3D" style="position:absolute;inset:0"></div><div id="mdScene3D" style="position:absolute;inset:0;display:none;outline:none"></div>
     <div id="txHint"></div>
     <div id="txBar"><input id="txIn" placeholder="敕令：营造／毁损／移驾……（如：修一座望楼 · 移驾洛邑）" autocomplete="off"><button id="txGo">颁 令</button></div>
   </div>
@@ -1057,6 +1057,9 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     var g=document.createElement('script');
     g.src='core/vendor/three/build/chunks/9d717bc0/1aa613ec934b.js?v='+ZJ3D_VER;
     document.head.appendChild(g);
+    var g2=document.createElement('script');
+    g2.src='core/vendor/three/build/chunks/9d717bc0/8e2ad10c77b4.js?v='+ZJ3D_VER;
+    document.head.appendChild(g2);
   };
   b.onerror=cdn;
   document.head.appendChild(b);
@@ -5127,20 +5130,38 @@ window.ZJ3D_say=function(text,tries){
 window.ZJ3D_onExpand=function(){
   try{
     var g=document.getElementById('game');
-    if(window.ZJ3D&&ZJ3D.expanded)g.classList.add('txBig');else g.classList.remove('txBig');
+    var E=(ACTIVE==='roma')?window.MED3D:window.ZJ3D;
+    if(E&&E.expanded)g.classList.add('txBig');else g.classList.remove('txBig');
     setTimeout(zj3dTick,330);
   }catch(e){}
 };
 function zj3dTick(){
   try{
-    if(!window.ZJ3D||!GAME.txOpen)return;
+    if(!GAME.txOpen)return;
+    var med=(ACTIVE==='roma');
+    var zh=document.getElementById('zjScene3D'),mh=document.getElementById('mdScene3D');
+    if(zh)zh.style.display=med?'none':'block';
+    if(mh)mh.style.display=med?'block':'none';
+    var E=med?window.MED3D:window.ZJ3D;
+    if(!E)return;
     var p=currentPanel(),cw=p?p.world:{};
-    if(ZJ3D.setEra)ZJ3D.setEra(cw['纪年']||(GAME.op?GAME.op.era:'')||'');
+    if(E.setEra)E.setEra(cw['纪年']||(GAME.op?GAME.op.era:'')||'');
     var _m=mood();
-    if(ZJ3D.onRender)ZJ3D.onRender(playerLoc().name,_m.night);
-    if(ZJ3D.onStory){var _lm=null;for(var i=S.history.length-1;i>=0;i--){if(S.history[i].role!=='user'){_lm=S.history[i];break;}}ZJ3D.onStory(_lm&&_lm.text?_lm.text:'');}
-    edictSync();
+    var _loc=med?E.match(String(cw['时地']||'')).al[0]:playerLoc().name;
+    if(E.onRender)E.onRender(_loc,_m.night);
+    if(E.onStory){var _lm=null;for(var i=S.history.length-1;i>=0;i--){if(S.history[i].role!=='user'){_lm=S.history[i];break;}}E.onStory(_lm&&_lm.text?_lm.text:'');}
+    if(med){medEdictSync();}else{edictSync();}
   }catch(e){}
+}
+function medEdictSync(){ /* 環海側 sec_deed 敕令：同 edictSync，落到 MED3D */
+  if(!GAME.on||!window.MED3D||!MED3D.owns()||!MED3D.applyEdict)return;
+  zjSyncHist();
+  for(var i=S.history.length-1;i>=0;i--){
+    var h=S.history[i];if(h.role!=='world')continue;
+    var d=parseDeed(h.text);
+    if(d)MED3D.applyEdict(d,'t'+i+'@'+deedHash(h.text));
+    return;
+  }
 }
 (function(){
   var ar=document.getElementById('arrTx');
@@ -5153,7 +5174,16 @@ function zj3dTick(){
   function zjTxGo(){
     if(!ti)return;var raw=ti.value.trim();if(!raw)return;
     S.input=raw;S.cmdHint=null;
-    worldCommand(raw);
+    if(ACTIVE==='roma'){
+      if(!(window.MED3D&&MED3D.owns()&&MED3D.command)){S.cmdHint='环海三维尚未加载，请先展开上方画面';}
+      else{
+        var r=MED3D.command(raw);
+        if(!r||!r.ok){S.cmdHint=(r&&r.report)||'未能辨识敕令';}
+        else{S.input='';sendText('（神谕敕令行于此城：「'+raw+'」。其果如下——'+r.report+'。此为既成事实：请顺此结果叙事见闻与众人反应，不得更改、推翻或另行虚构执行细节。）');}
+      }
+    }else{
+      worldCommand(raw);
+    }
     if(S.input==='')ti.value='';
     var h=document.getElementById('txHint');if(h)h.textContent=S.cmdHint?('令未行：'+S.cmdHint):'';
   }
