@@ -244,8 +244,8 @@ canvas{display:block}
       transition:color .2s,border-color .2s}
 #game .gAux:hover{color:var(--gold-hi);border-color:var(--gold)}
 #game .gAux.on{color:#0a0a0a;background:var(--gold);border-color:var(--gold)}
-.cfgTabs{display:flex;gap:2px;margin-top:16px;border-bottom:1px solid rgba(236,236,232,.16);
-      overflow-x:auto;scrollbar-width:none;padding-bottom:0}
+.cfgTabs{display:flex;flex-wrap:wrap;gap:2px;margin-top:16px;border-bottom:1px solid rgba(236,236,232,.16);
+      padding-bottom:0} /* 换行铺开：12 个页签任何窗宽都全部可见，不再裁掉备份/图库 */
 .cfgTabs span{flex:none;font-size:9px;letter-spacing:.16em;color:var(--mut);cursor:pointer;
       padding:8px 10px 7px;border:1px solid transparent;border-bottom:0;white-space:nowrap;
       transition:color .15s}
@@ -366,11 +366,11 @@ canvas{display:block}
       min-width:min(92vw,360px);max-width:min(94vw,680px);max-height:80vh;overflow:auto}
 .gDlg h2{font-size:14px;letter-spacing:.3em;font-weight:400;color:var(--txt);margin:20px 0 8px}
 .gDlg .sub{font-size:9px;letter-spacing:.22em;color:var(--mut);line-height:2}
-.sRow{display:flex;justify-content:space-between;align-items:center;gap:40px;
+.sRow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px 40px;
       border-bottom:1px solid rgba(236,236,232,.12);padding:13px 0;font-size:9px;
       letter-spacing:.24em;color:var(--mut)}
 .sRow input[type=range]{width:150px;accent-color:#c99b3f}
-.sSeg{display:flex;gap:4px}
+.sSeg{display:flex;flex-wrap:wrap;gap:4px} /* 选项多时换行，永不被右缘裁切 */
 .sSeg span{border:1px solid rgba(236,236,232,.2);padding:5px 12px 4px;cursor:pointer;font-size:9px;
       letter-spacing:.18em;color:var(--mut);transition:all .2s}
 .sSeg span.on{background:var(--gold);color:#0a0a0a;border-color:var(--gold)}
