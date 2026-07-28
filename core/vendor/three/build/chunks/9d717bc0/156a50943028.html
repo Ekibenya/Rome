@@ -385,6 +385,15 @@ canvas{display:block}
 #dlgCfg .box>.tag{align-self:flex-start}
 #dlgCfg .box>.tag,#dlgCfg .box>h2,#dlgCfg .box>.cfgTabs,#dlgCfg .box>.esc2{flex:none}
 #dlgCfg .cfgPane{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-gutter:stable}
+/* 設置面板整體加大一級：原本 9px 配 .24em 字距，密密一片根本讀不清。
+   只作用於 #dlgCfg，其餘彈窗維持原樣。textarea／select 的字號寫在行內，需要 !important。 */
+#dlgCfg .sRow,#dlgCfg .sub,#dlgCfg .vLine{font-size:11px}
+#dlgCfg .sSeg span,#dlgCfg .cfgTabs span,#dlgCfg .lRow{font-size:10.5px}
+#dlgCfg .aIn{font-size:11.5px}
+#dlgCfg .esc2{font-size:10px}
+#dlgCfg textarea,#dlgCfg select{font-size:11px !important}
+#dlgCfg .gt,#dlgApi .gt{font-size:10.5px;letter-spacing:.2em;color:var(--mut);border:1px solid rgba(236,236,232,.22);padding:5px 10px 4px;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap}
+#dlgCfg .gt:hover,#dlgApi .gt:hover{color:var(--gold-hi);border-color:var(--gold)}
 .gDlg h2{font-size:14px;letter-spacing:.3em;font-weight:400;color:var(--txt);margin:20px 0 8px}
 .gDlg .sub{font-size:9px;letter-spacing:.22em;color:var(--mut);line-height:2}
 .sRow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px 40px;
@@ -597,8 +606,8 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 #game.txOpen.txBig #arrTx{top:calc(46px + min(84vh,760px))}
 /* 箭頭恆朝下：此鈕語義=向下逐級展開遊戲畫面 */
 #txBar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:8px;padding:8px 10px;background:linear-gradient(0deg,rgba(6,6,6,.92),rgba(6,6,6,.55) 70%,transparent);align-items:center}
-#txIn{flex:1;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.22);color:#e8d9b0;font-size:12.5px;padding:7px 10px;font-family:inherit;outline:none}
-#txGo{flex:none;border:1px solid rgba(201,155,63,.5);color:#ecc878;background:transparent;font-size:11px;letter-spacing:.2em;padding:7px 14px;cursor:pointer;font-family:inherit}
+#txIn{flex:1;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.22);color:#e8d9b0;font-size:10.5px;padding:7px 10px;font-family:inherit;outline:none}
+#txGo{flex:none;border:1px solid rgba(201,155,63,.5);color:#ecc878;background:transparent;font-size:9.5px;letter-spacing:.2em;padding:7px 14px;cursor:pointer;font-family:inherit}
 #txHint{position:absolute;left:12px;bottom:44px;z-index:3;font-size:11.5px;color:#d9a06a;text-shadow:0 1px 3px #000}
 @keyframes zj3dMarq{to{transform:translateX(-50%)}}
 .zj3dMarq{animation:zj3dMarq linear infinite}

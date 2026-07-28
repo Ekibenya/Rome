@@ -3191,11 +3191,11 @@
     hud.style.cssText = 'position:absolute;inset:0;pointer-events:none;font-family:inherit;z-index:5';
     // location chip
     locChip = document.createElement('div');
-    locChip.style.cssText = 'position:absolute;top:8px;left:10px;padding:3px 10px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:12px;letter-spacing:.15em;border-radius:0;backdrop-filter:blur(2px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+    locChip.style.cssText = 'position:absolute;top:8px;left:10px;padding:3px 10px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:10px;letter-spacing:.15em;border-radius:0;backdrop-filter:blur(2px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
     hud.appendChild(locChip);
     // 纪年：地名框下方一行半透明小字（不进框），太长自动跑马灯
     eraChip = document.createElement('div');
-    eraChip.style.cssText = 'position:absolute;top:36px;left:10px;max-width:62%;padding:2px 8px;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.14);font-size:10px;letter-spacing:.08em;color:#d9d9d4;text-shadow:0 1px 2px #000;white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
+    eraChip.style.cssText = 'position:absolute;top:36px;left:10px;max-width:62%;padding:2px 8px;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.14);font-size:8.5px;letter-spacing:.08em;color:#d9d9d4;text-shadow:0 1px 2px #000;white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
     hud.appendChild(eraChip);
     applyChip();
     /* 右上按钮排：flex 布局，宽标签不再重叠 */
@@ -3204,11 +3204,11 @@
     hud.appendChild(tr0); Z._topRow = tr0;
     // expand button
     expBtn = document.createElement('div');
-    expBtn.style.cssText = 'order:9;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap';
+    expBtn.style.cssText = 'order:9;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:8.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap';
     expBtn.onclick = function () { Z.toggleExpand(); };
     tr0.appendChild(expBtn);
     var xBtn = document.createElement('div');
-    xBtn.style.cssText = 'order:10;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:11px;cursor:pointer;border-radius:0;display:none';
+    xBtn.style.cssText = 'order:10;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;cursor:pointer;border-radius:0;display:none';
     xBtn.textContent = '×';
     xBtn.title = '收起面板（TERRA·天下 可重新展开）';
     xBtn.onclick = function () {
@@ -3221,14 +3221,14 @@
     if (isTouch()) {
       var lowBtn = document.createElement('div');
       var lowSty = function () {
-        lowBtn.style.cssText = 'order:2;padding:3px 9px;background:rgba(6,6,6,.62);border:1px solid ' + (PERF.low ? 'rgba(201,155,63,.8)' : 'rgba(236,236,232,.22)') + ';color:' + (PERF.low ? '#ecc878' : '#d9d9d4') + ';font-size:9.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap;display:' + (Z.expanded ? 'block' : 'none');
+        lowBtn.style.cssText = 'order:2;padding:3px 9px;background:rgba(6,6,6,.62);border:1px solid ' + (PERF.low ? 'rgba(201,155,63,.8)' : 'rgba(236,236,232,.22)') + ';color:' + (PERF.low ? '#ecc878' : '#d9d9d4') + ';font-size:8.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap;display:' + (Z.expanded ? 'block' : 'none');
       };
       lowSty();
       lowBtn.textContent = 'LEVIS·低配';
       lowBtn.onclick = function () { PERF.low = !PERF.low; perfSave(); applyPerf(); lowSty(); };
       tr0.appendChild(lowBtn); Z._lowBtn = lowSty;
       var txtBtn = document.createElement('div');
-      txtBtn.style.cssText = 'order:1;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap;display:' + (Z.expanded ? 'block' : 'none');
+      txtBtn.style.cssText = 'order:1;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:8.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap;display:' + (Z.expanded ? 'block' : 'none');
       txtBtn.textContent = 'TEXTVS·纯文字';
       txtBtn.title = '关闭三维，纯文字游玩（最省电），可随时开回';
       txtBtn.onclick = function () { try { localStorage.setItem('med3d_off', '1'); } catch (e) { } location.reload(); };
@@ -3236,7 +3236,7 @@
     }
     // door button
     doorBtn = document.createElement('div');
-    doorBtn.style.cssText = 'position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:5px 16px;background:rgba(6,6,6,.7);-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%);border:1px solid rgba(236,236,232,.28);color:#d9d9d4;font-size:12px;letter-spacing:.25em;cursor:pointer;pointer-events:auto;display:none;border-radius:0';
+    doorBtn.style.cssText = 'position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:5px 16px;background:rgba(6,6,6,.7);-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%);border:1px solid rgba(236,236,232,.28);color:#d9d9d4;font-size:10px;letter-spacing:.25em;cursor:pointer;pointer-events:auto;display:none;border-radius:0';
     doorBtn.onclick = function () { tryDoor(); };
     hud.appendChild(doorBtn);
     // joystick (mobile)
@@ -3249,11 +3249,11 @@
     hud.appendChild(joyEl);
     // tip
     tipEl = document.createElement('div');
-    tipEl.style.cssText = 'position:absolute;bottom:8px;left:12px;color:rgba(217,217,212,.45);font-size:10.5px;letter-spacing:.12em;text-align:left';
+    tipEl.style.cssText = 'position:absolute;bottom:8px;left:12px;color:rgba(217,217,212,.45);font-size:9px;letter-spacing:.12em;text-align:left';
     hud.appendChild(tipEl);
     // loading overlay
     loadEl = document.createElement('div');
-    loadEl.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#c99b3f;font-size:12px;letter-spacing:.34em;background:rgba(6,6,6,.6)';
+    loadEl.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#c99b3f;font-size:10px;letter-spacing:.34em;background:rgba(6,6,6,.6)';
     hud.appendChild(loadEl);
     host.appendChild(hud);
     ensureBuildHud(host);
@@ -4585,22 +4585,22 @@
     w.style.cssText = 'position:absolute;inset:0;pointer-events:none';
     // 国库
     var gold = document.createElement('div');
-    gold.style.cssText = isTouch() ? 'order:0;padding:3px 9px;background:rgba(6,6,6,.66);border:1px solid rgba(236,236,232,.22);color:#ecc878;font-size:10px;letter-spacing:.04em;border-radius:0;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(6,6,6,.66);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,155,63,.55);color:#ecc878;font-size:12.5px;letter-spacing:.1em;border-radius:0;display:none;white-space:nowrap';
+    gold.style.cssText = isTouch() ? 'order:0;padding:3px 9px;background:rgba(6,6,6,.66);border:1px solid rgba(236,236,232,.22);color:#ecc878;font-size:8.5px;letter-spacing:.04em;border-radius:0;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(6,6,6,.66);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,155,63,.55);color:#ecc878;font-size:10.5px;letter-spacing:.1em;border-radius:0;display:none;white-space:nowrap';
     (isTouch() && Z._topRow ? Z._topRow : w).appendChild(gold); bHud.goldChip = gold;
     // 模式切换
     var vb = document.createElement('div');
-    vb.style.cssText = 'order:5;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:9.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap';
+    vb.style.cssText = 'order:5;padding:3px 9px;background:rgba(6,6,6,.62);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:8.5px;letter-spacing:.22em;cursor:pointer;border-radius:0;white-space:nowrap';
     vb.onclick = function () { if (Z.intPlan) { exitInterior(); return; } Z.toggleView(); };
     (Z._topRow || w).appendChild(vb); bHud.viewBtn = vb;
     // 托盘开关
     var tb = document.createElement('div');
-    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(201,155,63,.6);color:#ecc878;font-size:' + (isTouch() ? '10.5px' : '11px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
+    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(201,155,63,.6);color:#ecc878;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
     tb.textContent = isTouch() ? '清单' : 'OPERA·建造清单';
     tb.onclick = function () { bHud.tray.style.display = bHud.tray.style.display === 'none' ? 'block' : 'none'; fillTray(); };
     w.appendChild(tb); bHud.trayBtn = tb;
     // 奏报（集中通报本轮兴作/拆除）
     var rb = document.createElement('div');
-    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '86px' : '190px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:' + (isTouch() ? '10.5px' : '11px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
+    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '86px' : '190px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
     rb.onclick = function () { submitLedger(); };
     w.appendChild(rb); bHud.reportBtn = rb;
     // 托盘
@@ -4634,7 +4634,7 @@
   }
   function mkBtn(txt, fn, danger) {
     var b = document.createElement('div');
-    b.style.cssText = 'padding:' + (isTouch() ? '4px 9px' : '4px 12px') + ';cursor:pointer;font-size:' + (isTouch() ? '12px' : '13px') + ';letter-spacing:.12em;white-space:nowrap;border:1px solid ' + (danger ? 'rgba(176,101,90,.55);color:#c98f82' : 'rgba(236,236,232,.25);color:#d9d9d4') + ';border-radius:0;user-select:none';
+    b.style.cssText = 'padding:' + (isTouch() ? '4px 9px' : '4px 12px') + ';cursor:pointer;font-size:' + (isTouch() ? '10px' : '11px') + ';letter-spacing:.12em;white-space:nowrap;border:1px solid ' + (danger ? 'rgba(176,101,90,.55);color:#c98f82' : 'rgba(236,236,232,.25);color:#d9d9d4') + ';border-radius:0;user-select:none';
     b.textContent = txt; b.onclick = fn; return b;
   }
   function fillTray() {
@@ -4645,7 +4645,7 @@
     cats.forEach(function (c, i) {
       var t = document.createElement('div');
       t.textContent = c.lab || c.tab;
-      t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '11px' : '12.5px') + ';letter-spacing:.16em;border-radius:0;' +
+      t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '9.5px' : '10.5px') + ';letter-spacing:.16em;border-radius:0;' +
         (i === bHud.tab ? 'background:transparent;color:#ecc878;border:1px solid rgba(201,155,63,.6);border-bottom:none' : 'color:#6b6b66;border:1px solid transparent');
       t.onclick = function () { bHud.tab = i; fillTray(); };
       bHud.tabsEl.appendChild(t);
@@ -4663,12 +4663,12 @@
       card.appendChild(im);
       var nm = document.createElement('div');
       nm.textContent = item.disp;
-      nm.style.cssText = 'font-size:' + (mob ? '9px' : '10.5px') + ';color:#d9d9d4;white-space:nowrap;overflow:hidden;max-width:' + (cw - 6) + 'px';
+      nm.style.cssText = 'font-size:' + (mob ? '8.5px' : '9px') + ';color:#d9d9d4;white-space:nowrap;overflow:hidden;max-width:' + (cw - 6) + 'px';
       card.appendChild(nm);
       var pr = document.createElement('div');
       var afford = ECON.gold >= item.price;
       pr.textContent = '金 ' + item.price;
-      pr.style.cssText = 'font-size:' + (mob ? '8.5px' : '10px') + ';color:' + (afford ? '#8a8a85' : '#a05a4e');
+      pr.style.cssText = 'font-size:' + (mob ? '8.5px' : '8.5px') + ';color:' + (afford ? '#8a8a85' : '#a05a4e');
       card.appendChild(pr);
       card.onclick = function () {
         startGhost(item);
@@ -4779,7 +4779,7 @@
     if (Z.expanded && Z.mode === 'city' && np && np.root.parent) {
       nb.style.display = 'flex'; nb.innerHTML = '';
       var nl = document.createElement('div');
-      nl.style.cssText = 'color:#d9d9d4;font-size:12.5px;letter-spacing:.06em;padding-right:4px;white-space:nowrap;max-width:' + (isTouch() ? '120px' : '260px') + ';overflow:hidden;text-overflow:ellipsis';
+      nl.style.cssText = 'color:#d9d9d4;font-size:10.5px;letter-spacing:.06em;padding-right:4px;white-space:nowrap;max-width:' + (isTouch() ? '120px' : '260px') + ';overflow:hidden;text-overflow:ellipsis';
       nl.textContent = np.name + '（' + np.cat + '）';
       nl.title = np.desc || '';
       nb.appendChild(nl);
@@ -4821,7 +4821,7 @@
         bHud.gKey = gKey; gb.innerHTML = '';
         var mob0 = isTouch();
         var lab = document.createElement('div');
-        lab.style.cssText = 'color:#d9d9d4;font-size:12.5px;white-space:nowrap;max-width:' + (mob0 ? '58px' : '150px') + ';overflow:hidden;text-overflow:ellipsis;flex:none';
+        lab.style.cssText = 'color:#d9d9d4;font-size:10.5px;white-space:nowrap;max-width:' + (mob0 ? '58px' : '150px') + ';overflow:hidden;text-overflow:ellipsis;flex:none';
         lab.textContent = (Z.B.movingId ? '迁·' : '') + Z.B.item.disp;
         gb.appendChild(lab);
         gb.style.width = mob0 ? '96%' : 'auto';
@@ -4831,7 +4831,7 @@
         }
         var mkSlider = function (icon, min, max, val, w, fn) {
           var wrap = document.createElement('div');
-          wrap.style.cssText = 'display:flex;align-items:center;gap:3px;color:#9c9c98;font-size:12px;white-space:nowrap' + (mob0 ? ';flex:1 1 40px;min-width:40px' : '');
+          wrap.style.cssText = 'display:flex;align-items:center;gap:3px;color:#9c9c98;font-size:10px;white-space:nowrap' + (mob0 ? ';flex:1 1 40px;min-width:40px' : '');
           if (icon && !mob0) { var ic = document.createElement('span'); ic.textContent = icon; wrap.appendChild(ic); }
           var sl = document.createElement('input');
           sl.type = 'range'; sl.min = min; sl.max = max; sl.value = val;
@@ -4873,7 +4873,7 @@
             grp.style.cssText = 'display:flex;align-items:center;gap:2px;border-bottom:2px solid ' + AXC[ax] + ';padding:0 2px 2px';
             var t = document.createElement('span');
             t.textContent = ax.toUpperCase();
-            t.style.cssText = 'color:' + AXC[ax] + ';font-size:12px;padding-right:2px';
+            t.style.cssText = 'color:' + AXC[ax] + ';font-size:10px;padding-right:2px';
             grp.appendChild(t);
             var step = function (degStep) {
               if (!Z.B) return;
@@ -4914,7 +4914,7 @@
     if (on && Z.tp) {
       sb.style.display = 'flex'; sb.innerHTML = '';
       var tl = document.createElement('div');
-      tl.style.cssText = 'color:#a9cbb8;font-size:12.5px;letter-spacing:.06em;white-space:nowrap';
+      tl.style.cssText = 'color:#a9cbb8;font-size:10.5px;letter-spacing:.06em;white-space:nowrap';
       if (Z.tp.phase === 'confirm') {
         tl.textContent = '移驾至 ' + posName(Math.round(Z.tp.x / CELL), Math.round(Z.tp.z / CELL)) + '？';
         sb.appendChild(tl);
@@ -4928,14 +4928,14 @@
     } else if (on && !Z.sel && !Z.B && !Z.selNpc && Z.actor && Z.actor.root.parent) {
       sb.style.display = 'flex'; sb.innerHTML = '';
       var al = document.createElement('div');
-      al.style.cssText = 'color:#a9cbb8;font-size:12.5px;letter-spacing:.06em;white-space:nowrap';
+      al.style.cssText = 'color:#a9cbb8;font-size:10.5px;letter-spacing:.06em;white-space:nowrap';
       al.textContent = Z.actor.escort ? '已选 禁卫军（' + Z.escort.length + '人）· 点目标即出击' : '已选 ' + Z.actor.name + ' · 点地行军，点目标可攻可谈';
       sb.appendChild(al);
       sb.appendChild(mkBtn('✕', function () { setActor(null); }));
     } else if (on && Z.sel && !Z.B) {
       sb.style.display = 'flex'; sb.innerHTML = '';
       var lab2 = document.createElement('div');
-      lab2.style.cssText = 'color:#d9d9d4;font-size:12.5px;letter-spacing:.08em;padding-right:4px;white-space:nowrap';
+      lab2.style.cssText = 'color:#d9d9d4;font-size:10.5px;letter-spacing:.08em;padding-right:4px;white-space:nowrap';
       var selDisp = Z.sel.rec ? Z.sel.rec.disp : (Z.sel.disp || buildingDisp(Z.sel.root));
       lab2.textContent = selDisp + ' · ' + posName(Math.round(Z.sel.root.position.x / CELL), Math.round(Z.sel.root.position.z / CELL));
       sb.appendChild(lab2);

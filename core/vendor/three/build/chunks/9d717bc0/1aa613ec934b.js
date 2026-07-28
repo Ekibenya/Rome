@@ -1676,20 +1676,20 @@
     hud.style.cssText = 'position:absolute;inset:0;pointer-events:none;font-family:inherit;z-index:5';
     // location chip
     locChip = document.createElement('div');
-    locChip.style.cssText = 'position:absolute;top:8px;left:10px;padding:3px 10px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.35);color:#e8cf9e;font-size:12px;letter-spacing:.15em;border-radius:9px;backdrop-filter:blur(2px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+    locChip.style.cssText = 'position:absolute;top:8px;left:10px;padding:3px 10px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.35);color:#e8cf9e;font-size:10px;letter-spacing:.15em;border-radius:9px;backdrop-filter:blur(2px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
     hud.appendChild(locChip);
     // 纪年：地名框下方一行半透明小字（不进框），太长自动跑马灯
     eraChip = document.createElement('div');
-    eraChip.style.cssText = 'position:absolute;top:34px;left:12px;max-width:62%;font-size:10px;letter-spacing:.06em;color:rgba(232,207,158,.5);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
+    eraChip.style.cssText = 'position:absolute;top:34px;left:12px;max-width:62%;font-size:8.5px;letter-spacing:.06em;color:rgba(232,207,158,.5);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;overflow:hidden;pointer-events:none;display:none';
     hud.appendChild(eraChip);
     applyChip();
     // expand button
     expBtn = document.createElement('div');
-    expBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:11px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
+    expBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
     expBtn.onclick = function () { Z.toggleExpand(); };
     hud.appendChild(expBtn);
     var xBtn = document.createElement('div');
-    xBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:11px;cursor:pointer;pointer-events:auto;border-radius:9px;display:none';
+    xBtn.style.cssText = 'position:absolute;top:8px;right:10px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;cursor:pointer;pointer-events:auto;border-radius:9px;display:none';
     xBtn.textContent = '×';
     xBtn.title = '完全隐藏三维横条（文字区右上可随时展开）';
     xBtn.onclick = function () {
@@ -1702,14 +1702,14 @@
     if (isTouch()) {
       var lowBtn = document.createElement('div');
       var lowSty = function () {
-        lowBtn.style.cssText = 'position:absolute;top:8px;right:102px;padding:2px 8px;background:' + (PERF.low ? 'rgba(201,160,99,.4)' : 'rgba(12,9,6,.62)') + ';border:1px solid rgba(201,160,99,.45);color:' + (PERF.low ? '#1a1208' : '#e8cf9e') + ';font-size:11px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
+        lowBtn.style.cssText = 'position:absolute;top:8px;right:102px;padding:2px 8px;background:' + (PERF.low ? 'rgba(201,160,99,.4)' : 'rgba(12,9,6,.62)') + ';border:1px solid rgba(201,160,99,.45);color:' + (PERF.low ? '#1a1208' : '#e8cf9e') + ';font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
       };
       lowSty();
       lowBtn.textContent = '低配';
       lowBtn.onclick = function () { PERF.low = !PERF.low; perfSave(); applyPerf(); lowSty(); };
       hud.appendChild(lowBtn); Z._lowBtn = lowSty;
       var txtBtn = document.createElement('div');
-      txtBtn.style.cssText = 'position:absolute;top:8px;right:148px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:11px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
+      txtBtn.style.cssText = 'position:absolute;top:8px;right:148px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px;display:' + (Z.expanded ? 'block' : 'none');
       txtBtn.textContent = '纯文字';
       txtBtn.title = '关闭三维，纯文字游玩（最省电），可随时开回';
       txtBtn.onclick = function () { try { localStorage.setItem('zj3d_off', '1'); } catch (e) { } location.reload(); };
@@ -1717,7 +1717,7 @@
     }
     // door button
     doorBtn = document.createElement('div');
-    doorBtn.style.cssText = 'position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:5px 18px;background:rgba(24,18,11,.5);-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%);border:1px solid rgba(224,190,130,.8);color:#f0d8a8;font-size:13px;letter-spacing:.25em;cursor:pointer;pointer-events:auto;display:none;border-radius:9px';
+    doorBtn.style.cssText = 'position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:5px 18px;background:rgba(24,18,11,.5);-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%);border:1px solid rgba(224,190,130,.8);color:#f0d8a8;font-size:11px;letter-spacing:.25em;cursor:pointer;pointer-events:auto;display:none;border-radius:9px';
     doorBtn.onclick = function () { tryDoor(); };
     hud.appendChild(doorBtn);
     // joystick (mobile)
@@ -1730,11 +1730,11 @@
     hud.appendChild(joyEl);
     // tip
     tipEl = document.createElement('div');
-    tipEl.style.cssText = 'position:absolute;bottom:8px;left:12px;color:rgba(232,207,158,.5);font-size:10.5px;letter-spacing:.12em;text-align:left';
+    tipEl.style.cssText = 'position:absolute;bottom:8px;left:12px;color:rgba(232,207,158,.5);font-size:9px;letter-spacing:.12em;text-align:left';
     hud.appendChild(tipEl);
     // loading overlay
     loadEl = document.createElement('div');
-    loadEl.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#c9a063;font-size:13px;letter-spacing:.3em;background:rgba(11,9,6,.5)';
+    loadEl.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#c9a063;font-size:11px;letter-spacing:.3em;background:rgba(11,9,6,.5)';
     hud.appendChild(loadEl);
     host.appendChild(hud);
     ensureBuildHud(host);
@@ -3050,22 +3050,22 @@
     w.style.cssText = 'position:absolute;inset:0;pointer-events:none';
     // 国库
     var gold = document.createElement('div');
-    gold.style.cssText = isTouch() ? 'position:absolute;top:8px;right:204px;padding:2px 8px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:11px;letter-spacing:.04em;border-radius:9px;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:12.5px;letter-spacing:.1em;border-radius:9px;display:none;white-space:nowrap';
+    gold.style.cssText = isTouch() ? 'position:absolute;top:8px;right:204px;padding:2px 8px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:9.5px;letter-spacing:.04em;border-radius:9px;display:none;white-space:nowrap' : 'position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;background:rgba(24,18,11,.45);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(224,190,130,.5);color:#f0d8a8;font-size:10.5px;letter-spacing:.1em;border-radius:9px;display:none;white-space:nowrap';
     w.appendChild(gold); bHud.goldChip = gold;
     // 模式切换
     var vb = document.createElement('div');
-    vb.style.cssText = 'position:absolute;top:8px;right:56px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:11px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
+    vb.style.cssText = 'position:absolute;top:8px;right:56px;padding:2px 8px;background:rgba(24,18,11,.42);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(201,160,99,.45);color:#e8cf9e;font-size:9.5px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;border-radius:9px';
     vb.onclick = function () { if (Z.intPlan) { exitInterior(); return; } Z.toggleView(); };
     w.appendChild(vb); bHud.viewBtn = vb;
     // 托盘开关
     var tb = document.createElement('div');
-    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:linear-gradient(180deg,#b8894e,#8a6535);color:#231a0c;font-size:' + (isTouch() ? '11.5px' : '13px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:9px;display:none;font-weight:600';
+    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:linear-gradient(180deg,#b8894e,#8a6535);color:#231a0c;font-size:' + (isTouch() ? '10px' : '11px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:9px;display:none;font-weight:600';
     tb.textContent = isTouch() ? '清单' : '营造清单';
     tb.onclick = function () { bHud.tray.style.display = bHud.tray.style.display === 'none' ? 'block' : 'none'; fillTray(); };
     w.appendChild(tb); bHud.trayBtn = tb;
     // 奏报（集中通报本轮兴作/拆除）
     var rb = document.createElement('div');
-    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '70px' : '124px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:linear-gradient(180deg,#6f9a68,#4c7148);color:#0f1a0d;font-size:' + (isTouch() ? '11.5px' : '13px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:9px;display:none;font-weight:600';
+    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '70px' : '124px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 16px') + ';background:linear-gradient(180deg,#6f9a68,#4c7148);color:#0f1a0d;font-size:' + (isTouch() ? '10px' : '11px') + ';letter-spacing:.18em;cursor:pointer;pointer-events:auto;border-radius:9px;display:none;font-weight:600';
     rb.onclick = function () { submitLedger(); };
     w.appendChild(rb); bHud.reportBtn = rb;
     // 托盘
@@ -3099,7 +3099,7 @@
   }
   function mkBtn(txt, fn, danger) {
     var b = document.createElement('div');
-    b.style.cssText = 'padding:' + (isTouch() ? '4px 9px' : '4px 12px') + ';cursor:pointer;font-size:' + (isTouch() ? '12px' : '13px') + ';letter-spacing:.12em;white-space:nowrap;border:1px solid ' + (danger ? 'rgba(224,110,90,.7);color:#f0a898' : 'rgba(224,190,130,.7);color:#f0d8a8') + ';border-radius:9px;user-select:none';
+    b.style.cssText = 'padding:' + (isTouch() ? '4px 9px' : '4px 12px') + ';cursor:pointer;font-size:' + (isTouch() ? '10px' : '11px') + ';letter-spacing:.12em;white-space:nowrap;border:1px solid ' + (danger ? 'rgba(224,110,90,.7);color:#f0a898' : 'rgba(224,190,130,.7);color:#f0d8a8') + ';border-radius:9px;user-select:none';
     b.textContent = txt; b.onclick = fn; return b;
   }
   function fillTray() {
@@ -3110,7 +3110,7 @@
     cats.forEach(function (c, i) {
       var t = document.createElement('div');
       t.textContent = c.tab;
-      t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '11px' : '12.5px') + ';letter-spacing:.16em;border-radius:9px 2px 0 0;' +
+      t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '9.5px' : '10.5px') + ';letter-spacing:.16em;border-radius:9px 2px 0 0;' +
         (i === bHud.tab ? 'background:rgba(201,160,99,.28);color:#f0d8a8;border:1px solid rgba(224,190,130,.5);border-bottom:none' : 'color:#9d8c6b;border:1px solid transparent');
       t.onclick = function () { bHud.tab = i; fillTray(); };
       bHud.tabsEl.appendChild(t);
@@ -3128,12 +3128,12 @@
       card.appendChild(im);
       var nm = document.createElement('div');
       nm.textContent = item.disp;
-      nm.style.cssText = 'font-size:' + (mob ? '9px' : '10.5px') + ';color:#e8cf9e;white-space:nowrap;overflow:hidden;max-width:' + (cw - 6) + 'px';
+      nm.style.cssText = 'font-size:' + (mob ? '8.5px' : '9px') + ';color:#e8cf9e;white-space:nowrap;overflow:hidden;max-width:' + (cw - 6) + 'px';
       card.appendChild(nm);
       var pr = document.createElement('div');
       var afford = ECON.gold >= item.price;
       pr.textContent = '金 ' + item.price;
-      pr.style.cssText = 'font-size:' + (mob ? '8.5px' : '10px') + ';color:' + (afford ? '#a9cbb8' : '#c2492f');
+      pr.style.cssText = 'font-size:' + (mob ? '8.5px' : '8.5px') + ';color:' + (afford ? '#a9cbb8' : '#c2492f');
       card.appendChild(pr);
       card.onclick = function () {
         startGhost(item);
@@ -3244,7 +3244,7 @@
     if (Z.expanded && Z.mode === 'city' && np && np.root.parent) {
       nb.style.display = 'flex'; nb.innerHTML = '';
       var nl = document.createElement('div');
-      nl.style.cssText = 'color:#e8cf9e;font-size:12.5px;letter-spacing:.06em;padding-right:4px;white-space:nowrap;max-width:' + (isTouch() ? '120px' : '260px') + ';overflow:hidden;text-overflow:ellipsis';
+      nl.style.cssText = 'color:#e8cf9e;font-size:10.5px;letter-spacing:.06em;padding-right:4px;white-space:nowrap;max-width:' + (isTouch() ? '120px' : '260px') + ';overflow:hidden;text-overflow:ellipsis';
       nl.textContent = np.name + '（' + np.cat + '）';
       nl.title = np.desc || '';
       nb.appendChild(nl);
@@ -3279,7 +3279,7 @@
         bHud.gKey = gKey; gb.innerHTML = '';
         var mob0 = isTouch();
         var lab = document.createElement('div');
-        lab.style.cssText = 'color:#e8cf9e;font-size:12.5px;white-space:nowrap;max-width:' + (mob0 ? '58px' : '150px') + ';overflow:hidden;text-overflow:ellipsis;flex:none';
+        lab.style.cssText = 'color:#e8cf9e;font-size:10.5px;white-space:nowrap;max-width:' + (mob0 ? '58px' : '150px') + ';overflow:hidden;text-overflow:ellipsis;flex:none';
         lab.textContent = (Z.B.movingId ? '迁·' : '') + Z.B.item.disp;
         gb.appendChild(lab);
         gb.style.width = mob0 ? '96%' : 'auto';
@@ -3289,7 +3289,7 @@
         }
         var mkSlider = function (icon, min, max, val, w, fn) {
           var wrap = document.createElement('div');
-          wrap.style.cssText = 'display:flex;align-items:center;gap:3px;color:#c8b088;font-size:12px;white-space:nowrap' + (mob0 ? ';flex:1 1 40px;min-width:40px' : '');
+          wrap.style.cssText = 'display:flex;align-items:center;gap:3px;color:#c8b088;font-size:10px;white-space:nowrap' + (mob0 ? ';flex:1 1 40px;min-width:40px' : '');
           if (icon && !mob0) { var ic = document.createElement('span'); ic.textContent = icon; wrap.appendChild(ic); }
           var sl = document.createElement('input');
           sl.type = 'range'; sl.min = min; sl.max = max; sl.value = val;
@@ -3331,7 +3331,7 @@
             grp.style.cssText = 'display:flex;align-items:center;gap:2px;border-bottom:2px solid ' + AXC[ax] + ';padding:0 2px 2px';
             var t = document.createElement('span');
             t.textContent = ax.toUpperCase();
-            t.style.cssText = 'color:' + AXC[ax] + ';font-size:12px;padding-right:2px';
+            t.style.cssText = 'color:' + AXC[ax] + ';font-size:10px;padding-right:2px';
             grp.appendChild(t);
             var step = function (degStep) {
               if (!Z.B) return;
@@ -3372,7 +3372,7 @@
     if (on && Z.tp) {
       sb.style.display = 'flex'; sb.innerHTML = '';
       var tl = document.createElement('div');
-      tl.style.cssText = 'color:#a9cbb8;font-size:12.5px;letter-spacing:.06em;white-space:nowrap';
+      tl.style.cssText = 'color:#a9cbb8;font-size:10.5px;letter-spacing:.06em;white-space:nowrap';
       if (Z.tp.phase === 'confirm') {
         tl.textContent = '移驾至 ' + posName(Math.round(Z.tp.x / CELL), Math.round(Z.tp.z / CELL)) + '？';
         sb.appendChild(tl);
@@ -3386,14 +3386,14 @@
     } else if (on && !Z.sel && !Z.B && !Z.selNpc && Z.actor && Z.actor.root.parent) {
       sb.style.display = 'flex'; sb.innerHTML = '';
       var al = document.createElement('div');
-      al.style.cssText = 'color:#a9cbb8;font-size:12.5px;letter-spacing:.06em;white-space:nowrap';
+      al.style.cssText = 'color:#a9cbb8;font-size:10.5px;letter-spacing:.06em;white-space:nowrap';
       al.textContent = Z.actor.escort ? '已选 御前卫队（' + Z.escort.length + '人）· 点目标即出击' : '已选 ' + Z.actor.name + ' · 点地行军，点目标可攻可谈';
       sb.appendChild(al);
       sb.appendChild(mkBtn('✕', function () { setActor(null); }));
     } else if (on && Z.sel && !Z.B) {
       sb.style.display = 'flex'; sb.innerHTML = '';
       var lab2 = document.createElement('div');
-      lab2.style.cssText = 'color:#e8cf9e;font-size:12.5px;letter-spacing:.08em;padding-right:4px;white-space:nowrap';
+      lab2.style.cssText = 'color:#e8cf9e;font-size:10.5px;letter-spacing:.08em;padding-right:4px;white-space:nowrap';
       var selDisp = Z.sel.rec ? Z.sel.rec.disp : (Z.sel.disp || buildingDisp(Z.sel.root));
       lab2.textContent = selDisp + ' · ' + posName(Math.round(Z.sel.root.position.x / CELL), Math.round(Z.sel.root.position.z / CELL));
       sb.appendChild(lab2);
