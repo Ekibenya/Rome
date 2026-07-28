@@ -270,23 +270,23 @@ canvas{display:block}
 #game .gMfd{position:absolute;right:0;top:46px;bottom:0;width:322px;overflow-y:auto;z-index:20;
       border-left:1px solid rgba(236,236,232,.14);background:rgba(8,8,8,.26);padding:20px 18px 34px}
 .mSec{margin-bottom:26px}
-.mHead{font-size:10px;letter-spacing:.3em;color:var(--txt);margin-bottom:13px}
+.mHead{font-size:12px;letter-spacing:.3em;color:var(--txt);margin-bottom:13px}
 .mHead i{font-style:normal;color:var(--gold)}
-.mRow{display:flex;justify-content:space-between;align-items:baseline;font-size:9px;
+.mRow{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;
       letter-spacing:.22em;color:var(--mut);margin:11px 0 5px}
-.mRow b{color:var(--txt);font-weight:400;font-size:11px}
+.mRow b{color:var(--txt);font-weight:400;font-size:13px}
 .mBar{height:3px;background:rgba(236,236,232,.10);position:relative}
 .mBar i{position:absolute;left:0;top:0;bottom:0;background:var(--gold)}
 .mBar.red i{background:#c8402e}
 .mSteps{display:flex;gap:5px}
-.mStep{flex:1;text-align:center;font-size:8px;letter-spacing:.08em;color:var(--mut);padding-top:7px;
+.mStep{flex:1;text-align:center;font-size:9.5px;letter-spacing:.08em;color:var(--mut);padding-top:7px;
       border-top:2px solid rgba(236,236,232,.12)}
 .mStep.on{color:var(--gold-hi);border-top-color:var(--gold)}
-.mLead{font-size:9px;letter-spacing:.12em;line-height:1.9;color:#b9b9b3;margin:7px 0}
+.mLead{font-size:11px;letter-spacing:.12em;line-height:1.9;color:#b9b9b3;margin:7px 0}
 .mLead i{font-style:normal;color:var(--gold)}
 .mOps{display:flex;gap:5px}
 .mOp{flex:1;border:1px solid rgba(236,236,232,.18);text-align:center;padding:9px 0 7px;
-      font-size:8px;letter-spacing:.12em;color:var(--mut);cursor:pointer;transition:color .2s,border-color .2s}
+      font-size:9.5px;letter-spacing:.12em;color:var(--mut);cursor:pointer;transition:color .2s,border-color .2s}
 .mOp.on{border-color:var(--gold);color:var(--gold-hi)}
 .mOp:hover{color:var(--txt)}
 /* left edge: two arrows, slide panels with bottom blur-fade */
@@ -403,13 +403,13 @@ canvas{display:block}
 /* MFD mvu render */
 .mNpc{border:1px solid rgba(236,236,232,.12);padding:10px 12px 9px;margin:8px 0}
 .mNpc .nHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.mNpc .nName{font-size:10px;letter-spacing:.22em;color:var(--txt)}
-.mNpc .nRole{font-size:8px;letter-spacing:.14em;color:var(--mut)}
-.mNpc .nLine{font-size:8.5px;letter-spacing:.1em;line-height:1.8;color:#a9a9a3;margin-top:5px}
-.mNpc .nMind{font-size:8.5px;letter-spacing:.1em;line-height:1.7;color:var(--gold);margin-top:3px;font-style:italic}
-.mCap{font-size:8px;letter-spacing:.2em;color:var(--gold-hi);margin-top:4px}
-.mGlyph{display:flex;align-items:center;gap:10px;font-size:9px;color:var(--mut);letter-spacing:.12em;margin-top:8px}
-.mGlyph b{font-size:15px;font-weight:400}
+.mNpc .nName{font-size:12px;letter-spacing:.22em;color:var(--txt)}
+.mNpc .nRole{font-size:10px;letter-spacing:.14em;color:var(--mut)}
+.mNpc .nLine{font-size:10.5px;letter-spacing:.1em;line-height:1.8;color:#a9a9a3;margin-top:5px}
+.mNpc .nMind{font-size:10.5px;letter-spacing:.1em;line-height:1.7;color:var(--gold);margin-top:3px;font-style:italic}
+.mCap{font-size:10px;letter-spacing:.2em;color:var(--gold-hi);margin-top:4px}
+.mGlyph{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--mut);letter-spacing:.12em;margin-top:8px}
+.mGlyph b{font-size:17px;font-weight:400}
 .svSlot{display:flex;justify-content:space-between;align-items:baseline;gap:30px;
       border:1px solid rgba(236,236,232,.18);padding:14px 18px;margin:10px 0;cursor:pointer;
       transition:border-color .2s}
@@ -466,25 +466,12 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 .zjP .gbtn:hover{filter:brightness(1.12)}
 .zjP .obtn{cursor:pointer;background:transparent;border:1px solid rgba(236,236,232,.22);color:var(--mut);transition:all .15s}
 .zjP .obtn:hover{border-color:var(--gold);color:#d9d9d4;background:rgba(236,236,232,.04)}
-.zjP .glass{position:relative;background:rgba(236,236,232,.025);border:1px solid rgba(236,236,232,.12)}
-.zjP .glass::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.65;transition:opacity .2s;background:
- linear-gradient(var(--br-corner),var(--br-corner)) 0 0/7px 1px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 0 0/1px 7px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 100% 0/7px 1px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 100% 0/1px 7px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 0 100%/7px 1px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 0 100%/1px 7px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 100% 100%/7px 1px no-repeat,
- linear-gradient(var(--br-corner),var(--br-corner)) 100% 100%/1px 7px no-repeat}
-.zjP .glass:hover{border-color:rgba(201,155,63,.5)}
-.zjP .glass:hover::before{opacity:1}
 .zjP .fade{animation:zjfadeup .25s steps(4)}
 @keyframes zjfadeup{0%{opacity:0}100%{opacity:1}}
-.zjP .zjSecH{display:flex;align-items:baseline;font-size:10px;letter-spacing:.3em;color:#d9d9d4;padding:12px 13px;cursor:pointer}
-.zjP .zjSecH i{font-style:normal;color:var(--gold)}
-.zjP .zjSecH .zjCar{margin-left:auto;color:var(--mut);letter-spacing:0;font-size:9px}
+.zjP .zjSecH{display:flex;align-items:baseline;cursor:pointer}
+.zjP .zjSecH .zjCar{margin-left:auto;color:var(--mut);letter-spacing:0;font-size:10px}
 .zjP input::placeholder,.zjP textarea::placeholder{color:#4a4a46}
-.zjP .gph-hint{font-size:9.5px;color:var(--mut);line-height:1.85;margin:2px 0 8px;letter-spacing:.08em}
+.zjP .gph-hint{font-size:11px;color:var(--mut);line-height:1.85;margin:2px 0 8px;letter-spacing:.08em}
 #zjGraphSvg .gph-nm{font-family:var(--mono);letter-spacing:.08em;fill:#b9b9b3;pointer-events:none}
 #zjGraphSvg g[data-npc]:hover .fd-fold{filter:drop-shadow(0 0 5px rgba(236,200,120,.5))}
 #zjGraphSvg g[data-npc]:hover .gph-nm{fill:#ecc878}
@@ -493,24 +480,24 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 .fd-ov,.fd-ov *{border-radius:0!important}
 .fd-ov{position:fixed;inset:0;z-index:2147481300;display:flex;align-items:center;justify-content:center;background:rgba(4,4,4,.72);font-family:var(--mono)}
 .fd-win{background:#0d0d0c;border:1px solid rgba(236,236,232,.28);box-shadow:0 0 0 3px #060606,0 0 0 4px rgba(236,236,232,.12),0 0 26px rgba(0,0,0,.55);width:min(440px,94vw);max-height:88vh;display:flex;flex-direction:column;font-family:var(--mono);color:#d9d9d4}
-.fd-tbar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br);font-size:10px;letter-spacing:.22em;color:var(--gold)}
+.fd-tbar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br);font-size:11px;letter-spacing:.22em;color:var(--gold)}
 .fd-tbar>span:first-child{white-space:nowrap}
-.fd-ttname{flex:1;min-width:0;color:#ecece8;font-size:12px;letter-spacing:.14em;overflow:hidden;text-overflow:ellipsis}
+.fd-ttname{flex:1;min-width:0;color:#ecece8;font-size:13.5px;letter-spacing:.14em;overflow:hidden;text-overflow:ellipsis}
 .fd-x{cursor:pointer;flex:none;color:var(--mut);border:1px solid var(--br);padding:1px 8px;font-size:12px}
 .fd-x:hover{color:var(--t-r1);border-color:var(--t-r1)}
 .fd-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px}
 .fd-foot{flex:none;display:flex;justify-content:space-between;padding:7px 10px;border-top:1px solid var(--br)}
-.fd-nav{cursor:pointer;border:1px solid var(--br);color:#d9d9d4;font-size:10px;letter-spacing:.18em;padding:4px 12px;user-select:none}
+.fd-nav{cursor:pointer;border:1px solid var(--br);color:#d9d9d4;font-size:11px;letter-spacing:.18em;padding:4px 12px;user-select:none}
 .fd-nav:hover{border-color:var(--gold);color:#ecece8}
-.fd-row{display:flex;gap:8px;font-size:10.5px;line-height:1.8;margin-bottom:6px;letter-spacing:.04em}
-.fd-k{flex:0 0 58px;color:var(--fg-label);letter-spacing:.16em;white-space:nowrap}
+.fd-row{display:flex;gap:8px;font-size:12px;line-height:1.8;margin-bottom:6px;letter-spacing:.04em}
+.fd-k{flex:0 0 64px;color:var(--fg-label);letter-spacing:.16em;white-space:nowrap}
 .fd-v{flex:1;min-width:0;color:#d9d9d4;overflow-wrap:break-word;word-break:break-word}
 .fd-nd{color:var(--fg-dim);letter-spacing:.16em}
 .fd-bar{height:3px;background:rgba(236,236,232,.10);position:relative;margin-top:6px}
 .fd-bar>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#c99b3f,#ecc878)}
 .fd-quote{display:block;border-left:2px solid var(--gold);background:rgba(236,236,232,.04);padding:5px 9px;line-height:1.8;margin:2px 0;color:var(--gold-hi,#ecc878);font-style:italic}
-.fd-last{margin-top:9px;font-size:9px;color:var(--fg-dim);letter-spacing:.16em}
-.fd-btn{cursor:pointer;display:inline-block;border:1px solid var(--br);background:#060606;color:#d9d9d4;font-size:10px;letter-spacing:.14em;padding:5px 12px;user-select:none}
+.fd-last{margin-top:9px;font-size:10.5px;color:var(--fg-dim);letter-spacing:.16em}
+.fd-btn{cursor:pointer;display:inline-block;border:1px solid var(--br);background:#060606;color:#d9d9d4;font-size:11.5px;letter-spacing:.14em;padding:5px 12px;user-select:none}
 .fd-btn:hover{border-color:var(--gold);color:#ecece8}
 .fd-btn.fd-warn{color:var(--t-r1);border-color:rgba(200,64,46,.5)}
 @media (max-width:919px){ /* 手機端：檔案窗全寬底部抽屜 */
@@ -4411,8 +4398,8 @@ function renderMvu(panel){
   GAME.lastPanel=panel;
   try{memSync();}catch(_){}
   h+='<div class="zjP">'
-    +'<div class="glass" style="margin:11px 12px 0">'+zjHead(S.secG,'tgG','',ACTIVE==='roma'?'NEXVS&nbsp;·&nbsp;人物圖譜':'牽絲譜&nbsp;·&nbsp;人物圖譜',S.secG)+(S.secG?'<div id="zjGraphBox" class="fade" style="padding:0 15px 16px">'+graphInner()+'</div>':'')+'</div>'
-    +'<div class="glass" style="margin:11px 12px 14px">'+zjHead(S.secM,'tgM','',ACTIVE==='roma'?'MEMORIA&nbsp;·&nbsp;長程記憶':'起居注&nbsp;·&nbsp;長程記憶',S.secM)+(S.secM?'<div class="fade zjMemPane" style="padding:0 15px 16px">'+memPaneInner(true)+'</div>':'')+'</div>'
+    +'<div class="mSec">'+zjHead(S.secG,'tgG','',ACTIVE==='roma'?'NEXVS&nbsp;·&nbsp;人物圖譜':'牽絲譜&nbsp;·&nbsp;人物圖譜',S.secG)+(S.secG?'<div id="zjGraphBox" class="fade">'+graphInner()+'</div>':'')+'</div>'
+    +'<div class="mSec">'+zjHead(S.secM,'tgM','',ACTIVE==='roma'?'MEMORIA&nbsp;·&nbsp;長程記憶':'起居注&nbsp;·&nbsp;長程記憶',S.secM)+(S.secM?'<div class="fade zjMemPane">'+memPaneInner(true)+'</div>':'')+'</div>'
     +'</div>';
   document.querySelector('#game .gMfd').innerHTML=h;
   try{graphHydrate();}catch(_){}
@@ -4589,7 +4576,7 @@ function fdFolderSvg(lamp,self){ /* 羅馬名牌 TABVLA：方框+四角刻線+�
 }
 function graphInner(){
   var ns=npcStats();
-  if(!ns.length)return '<div style="padding:18px 0 6px;text-align:center;font-size:10px;letter-spacing:.2em;color:var(--mut);line-height:2">尚無人物入譜<br>與眾人相逢相知後，此處自動結成人物圖譜</div>';
+  if(!ns.length)return '<div style="padding:18px 0 6px;text-align:center;font-size:11.5px;letter-spacing:.2em;color:var(--mut);line-height:2">尚無人物入譜<br>與眾人相逢相知後，此處自動結成人物圖譜</div>';
   var vis={};ns.forEach(function(o){vis[o.name]=1;});
   var pc=npcPairs();
   var adj={'__c':[]};ns.forEach(function(o){adj[o.name]=[];});
@@ -4663,18 +4650,18 @@ function graphInner(){
     nodes+='<g data-npc="'+esc(o.name)+'" class="gph-n'+(sel?' gph-sel':'')+'" data-x="'+x.toFixed(1)+'" data-y="'+y.toFixed(1)+'" transform="translate('+x.toFixed(1)+','+y.toFixed(1)+')" style="cursor:grab">'
       +'<g transform="translate(-21,-25)" style="pointer-events:none">'+fdFolderSvg(fdLampCol(o),false)+'</g>'
       +'<rect x="-22" y="-26" width="44" height="52" fill="transparent"/>'
-      +'<text class="gph-nm" x="0" y="21" text-anchor="middle" font-size="10">'+esc(_pshow)+'</text></g>';
+      +'<text class="gph-nm" x="0" y="21" text-anchor="middle" font-size="11">'+esc(_pshow)+'</text></g>';
   });
   var center='<g data-gcenter="1" class="gph-n gph-c" data-x="'+cx+'" data-y="'+cy+'" transform="translate('+cx+','+cy+')" style="cursor:grab">'
     +'<g transform="translate(-26,-30) scale(1.18)" style="pointer-events:none">'+fdFolderSvg('',true)+'</g>'
     +'<rect x="-27" y="-31" width="54" height="62" fill="transparent"/>'
-    +'<text x="0" y="25" text-anchor="middle" font-size="10.5" style="fill:#ecc878;font-family:var(--mono);letter-spacing:.05em;pointer-events:none">本體│'+esc(zjSelf())+'</text></g>';
+    +'<text x="0" y="25" text-anchor="middle" font-size="11.5" style="fill:#ecc878;font-family:var(--mono);letter-spacing:.05em;pointer-events:none">本體│'+esc(zjSelf())+'</text></g>';
   var hid=(S.graphHidden||[]).length;
-  var resetLine=hid?'<div style="text-align:right;margin-top:6px"><span class="btn" data-act="npcUnhide" style="cursor:pointer;font-size:11px;color:var(--mut)">已移除 '+hid+' 人 · 還原全部</span></div>':'';
+  var resetLine=hid?'<div style="text-align:right;margin-top:6px"><span class="btn" data-act="npcUnhide" style="cursor:pointer;font-size:12px;color:var(--mut)">已移除 '+hid+' 人 · 還原全部</span></div>':'';
   return '<div class="gph-hint">人物圖譜：常現之人繫於本體、結成一張網——節點=人物名牌（狀態燈示好感 <span style="color:#ecc878">金親</span>·<span style="color:#c99b3f">褐平</span>·<span style="color:#c8402e">赤疏</span>），同幕共處者細線互連（虛線=僅一面之緣），孤身偶現者外環漂浮。名牌可拖拽、輕點開人物檔案——手機雙指、電腦滾輪放大細看，拖背景平移。</div>'
     +'<div id="zjGraphWrap" style="position:relative;overflow:hidden">'
     +'<svg id="zjGraphSvg" data-bw="'+W+'" data-bh="'+H+'" viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;touch-action:none">'+lines+center+nodes+'</svg>'
-    +'<span data-act="graphZoomReset" class="btn" style="position:absolute;right:8px;bottom:8px;font-size:10px;letter-spacing:.15em;color:var(--mut);background:rgba(6,6,6,.85);border:1px solid rgba(236,236,232,.25);padding:3px 10px;cursor:pointer">復位</span>'
+    +'<span data-act="graphZoomReset" class="btn" style="position:absolute;right:8px;bottom:8px;font-size:11px;letter-spacing:.15em;color:var(--mut);background:rgba(6,6,6,.85);border:1px solid rgba(236,236,232,.25);padding:3px 10px;cursor:pointer">復位</span>'
     +'</div>'+resetLine;
 }
 function gphMark(){ /* 选中态即时刷（fd窗开关/◀▶切换时调用，不整树重渲） */
@@ -4908,7 +4895,7 @@ function memPaneInner(compact){
   var n=S.mem?S.mem.length:0;
   var chars=0;S.mem.forEach(function(m){chars+=(m.a||'').length+(m.s||'').length+(m.e||'').length;});
   var on=S.memOn!==false;
-  var min='width:100%;background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.22);color:var(--ink);padding:7px 10px;font-size:11px;font-family:var(--mono)';
+  var min='width:100%;background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.22);color:var(--ink);padding:7px 10px;font-size:12px;font-family:var(--mono)';
   var rows=S.mem.slice().reverse().map(function(m,ri){
     var i=n-1-ri;
     if(S.memEdit===i){
@@ -4916,31 +4903,31 @@ function memPaneInner(compact){
         +'<div style="display:flex;gap:8px"><input id="zjMeE" value="'+esc(m.e||'')+'" placeholder="紀年" style="'+min+';flex:1"><input id="zjMeD" value="'+esc(m.d||'')+'" placeholder="時地" style="'+min+';flex:1"></div>'
         +'<input id="zjMeA" value="'+esc(m.a||'')+'" placeholder="我之舉" style="'+min+';margin-top:7px">'
         +'<textarea id="zjMeS" placeholder="史筆" style="'+min+';margin-top:7px;min-height:64px;resize:vertical;font-family:inherit;line-height:1.6">'+esc(m.s||'')+'</textarea>'
-        +'<div style="display:flex;gap:9px;margin-top:9px;justify-content:flex-end"><button data-act="memCancel" class="obtn btn" style="font-size:10px;letter-spacing:.15em;padding:6px 14px">取消</button><button data-act="memSave" class="gbtn btn" style="font-size:10px;letter-spacing:.18em;padding:6px 16px">保 存</button></div></div>';
+        +'<div style="display:flex;gap:9px;margin-top:9px;justify-content:flex-end"><button data-act="memCancel" class="obtn btn" style="font-size:11.5px;letter-spacing:.15em;padding:6px 14px">取消</button><button data-act="memSave" class="gbtn btn" style="font-size:11.5px;letter-spacing:.18em;padding:6px 16px">保 存</button></div></div>';
     }
     return '<div style="display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(236,236,232,.12);padding:9px 12px;margin-bottom:6px;background:rgba(236,236,232,.015)">'
-      +'<div style="flex:none;font-size:10px;color:var(--mut);min-width:26px;text-align:right;padding-top:2px">'+(i+1)+'</div>'
-      +'<div style="flex:1;min-width:0"><div style="font-size:10px;color:var(--gold);letter-spacing:.08em">'+esc((m.e||'')+(m.d?('·'+m.d):''))+(m.manual?' · <span style="color:var(--gold2)">手記</span>':'')+'</div>'
-      +(m.a?'<div style="font-size:10px;color:#a9a9a3;margin-top:3px;letter-spacing:.06em">我：'+esc(m.a)+'</div>':'')
-      +(m.s?'<div style="font-size:10.5px;color:var(--ink2);line-height:1.8;margin-top:3px;letter-spacing:.05em">'+esc(m.s)+'</div>':'')+'</div>'
-      +'<div class="btn" data-medit="'+(i+1)+'" style="flex:none;cursor:pointer;font-size:10px;color:var(--gold);border:1px solid rgba(201,155,63,.4);padding:2px 8px">編輯</div>'
-      +'<div class="btn" data-mdel="'+i+'" style="flex:none;cursor:pointer;font-size:10px;color:#c8402e;border:1px solid rgba(200,64,46,.4);padding:2px 8px">刪</div></div>';
+      +'<div style="flex:none;font-size:11px;color:var(--mut);min-width:26px;text-align:right;padding-top:2px">'+(i+1)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:11.5px;color:var(--gold);letter-spacing:.08em">'+esc((m.e||'')+(m.d?('·'+m.d):''))+(m.manual?' · <span style="color:var(--gold2)">手記</span>':'')+'</div>'
+      +(m.a?'<div style="font-size:11.5px;color:#a9a9a3;margin-top:3px;letter-spacing:.06em">我：'+esc(m.a)+'</div>':'')
+      +(m.s?'<div style="font-size:12px;color:var(--ink2);line-height:1.8;margin-top:3px;letter-spacing:.05em">'+esc(m.s)+'</div>':'')+'</div>'
+      +'<div class="btn" data-medit="'+(i+1)+'" style="flex:none;cursor:pointer;font-size:11px;color:var(--gold);border:1px solid rgba(201,155,63,.4);padding:2px 8px">編輯</div>'
+      +'<div class="btn" data-mdel="'+i+'" style="flex:none;cursor:pointer;font-size:11px;color:#c8402e;border:1px solid rgba(200,64,46,.4);padding:2px 8px">刪</div></div>';
   }).join('');
-  if(!rows)rows='<div style="text-align:center;padding:30px 0;font-size:10px;letter-spacing:.25em;color:var(--mut)">長卷尚空 · 行過一輪自動記一筆</div>';
+  if(!rows)rows='<div style="text-align:center;padding:30px 0;font-size:11.5px;letter-spacing:.25em;color:var(--mut)">長卷尚空 · 行過一輪自動記一筆</div>';
   var intro=compact
-    ?'<div style="font-size:9.5px;letter-spacing:.08em;line-height:1.9;color:var(--mut)">長程記憶：每輪自動摘成一條紀要，永久保存並全文送呈 AI。</div>'
+    ?'<div style="font-size:11px;letter-spacing:.08em;line-height:1.9;color:var(--mut)">長程記憶：每輪自動摘成一條紀要，永久保存並全文送呈 AI。</div>'
     :'<div style="font-size:11px;line-height:1.9;color:var(--ink2)">長程記憶替你記性好：<b style="color:var(--gold2)">每一輪</b>的紀年、時地、我之舉與史筆都會自動摘成一條紀要，<b style="color:var(--gold2)">永久保存並每輪全文送呈 AI</b>——即使你的模型上下文很短、正文歷史被截斷，它也始終知道這一局發生過什麼。</div>';
   return intro
     +'<div style="display:flex;gap:12px;align-items:center;margin:16px 0;flex-wrap:wrap">'
-    +'<div class="btn" data-act="memToggle" style="cursor:pointer;padding:7px 14px;font-size:10px;letter-spacing:.18em;border:1px solid '+(on?'rgba(201,155,63,.55)':'rgba(236,236,232,.2)')+';color:'+(on?'var(--gold2)':'var(--mut)')+'">'+(on?'✓ 注入中':'已停用')+'</div>'
-    +'<div style="font-size:9.5px;letter-spacing:.08em;color:var(--mut)">'+n+' 條 · 約'+chars+'字'+(chars>7000?'（超長部分自動中略，首尾保留）':'')+'</div>'
-    +'<div class="btn" data-act="memExport" style="cursor:pointer;margin-left:auto;font-size:10px;letter-spacing:.15em;color:var(--gold2);border:1px solid rgba(201,155,63,.4);padding:6px 12px">導出長卷</div>'
-    +'<div class="btn" data-act="memClear" style="cursor:pointer;font-size:10px;letter-spacing:.15em;color:#c8402e;border:1px solid rgba(200,64,46,.4);padding:6px 12px">清空長卷</div></div>'
-    +'<div style="display:flex;gap:8px;margin-bottom:14px"><input id="zjMemAdd" placeholder="手記一筆（重要設定/約定/伏筆，AI 會永遠記住）…" style="flex:1;background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.2);color:#b9b9b3;font-size:10.5px;padding:9px 12px;font-family:var(--mono)" autocomplete="off"><button data-act="memAdd" class="obtn btn" style="flex:none;font-size:10px;letter-spacing:.2em;padding:0 16px">記 入</button></div>'
+    +'<div class="btn" data-act="memToggle" style="cursor:pointer;padding:7px 14px;font-size:11.5px;letter-spacing:.18em;border:1px solid '+(on?'rgba(201,155,63,.55)':'rgba(236,236,232,.2)')+';color:'+(on?'var(--gold2)':'var(--mut)')+'">'+(on?'✓ 注入中':'已停用')+'</div>'
+    +'<div style="font-size:11px;letter-spacing:.08em;color:var(--mut)">'+n+' 條 · 約'+chars+'字'+(chars>7000?'（超長部分自動中略，首尾保留）':'')+'</div>'
+    +'<div class="btn" data-act="memExport" style="cursor:pointer;margin-left:auto;font-size:11.5px;letter-spacing:.15em;color:var(--gold2);border:1px solid rgba(201,155,63,.4);padding:6px 12px">導出長卷</div>'
+    +'<div class="btn" data-act="memClear" style="cursor:pointer;font-size:11.5px;letter-spacing:.15em;color:#c8402e;border:1px solid rgba(200,64,46,.4);padding:6px 12px">清空長卷</div></div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:14px"><input id="zjMemAdd" placeholder="手記一筆（重要設定/約定/伏筆，AI 會永遠記住）…" style="flex:1;background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.2);color:#b9b9b3;font-size:12px;padding:9px 12px;font-family:var(--mono)" autocomplete="off"><button data-act="memAdd" class="obtn btn" style="flex:none;font-size:11.5px;letter-spacing:.2em;padding:0 16px">記 入</button></div>'
     +(compact?'<div style="max-height:340px;overflow-y:auto">'+rows+'</div>':rows);
 }
 /* 折叠节头（Ghost 侧栏 head() 同款） */
-function zjHead(open,act,color,title,mark){return '<div class="btn zjSecH" data-act="'+act+'"><i>◆</i>&nbsp;'+title+'<span class="zjCar">'+(open?'▾':'▸')+'</span></div>';}
+function zjHead(open,act,color,title,mark){return '<div class="mHead btn zjSecH" data-act="'+act+'"><i>◆</i>&nbsp;'+title+'<span class="zjCar">'+(open?'▾':'▸')+'</span></div>';}
 /* 侧栏 data-act 委托：図譜/記憶 两节的全部按钮 */
 document.querySelector('#game .gMfd').addEventListener('click',function(e){
   var t=e.target;
