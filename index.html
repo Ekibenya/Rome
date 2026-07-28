@@ -200,7 +200,7 @@ canvas{display:block}
 .esc2{margin-top:24px;font-size:9px;letter-spacing:.3em;color:var(--mut)}
 
 /* ---------- game stage (Ghost layout, ROME dress) ---------- */
-#game{position:fixed;inset:0;z-index:50;background:rgba(4,4,4,.26);display:none;isolation:isolate}
+#game{position:fixed;inset:0;z-index:50;background:rgba(4,4,4,.26);display:none;isolation:isolate;cursor:default}
 #game::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
       background:rgba(5,5,5,.31);transform:translateZ(0);will-change:backdrop-filter;
       backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
@@ -219,14 +219,17 @@ canvas{display:block}
       padding:5px 10px 4px;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap}
 #game .gt:hover{color:var(--gold-hi);border-color:var(--gold)}
 #game .gMain{position:absolute;left:64px;right:322px;top:46px;bottom:0;display:flex;flex-direction:column}
-#game .gNarr{flex:1;overflow-y:auto;padding:36px 7% 24px;font-size:13px;line-height:2.2;
+#game .gNarr{flex:1;overflow-y:auto;padding:36px 7% 118px;font-size:13px;line-height:2.2;
       letter-spacing:.06em;color:#c8c8c2;background:transparent}
 #game .gNarr p{margin-bottom:1.5em}
 #game .gNarr .q{color:var(--gold-hi)}
 #game .gNarr .sys{font-size:10px;letter-spacing:.32em;color:var(--mut)}
 #game .gNarr .me{color:#9fb4c8}
 #game .gEot{text-align:center;font-size:9px;letter-spacing:.4em;color:#4a4a44;margin:28px 0 8px}
-#game .gInput{border-top:1px solid rgba(236,236,232,.14);background:rgba(6,6,6,.24)}
+/* 输入区浮于正文之上（Ghost 式）：正文滚到底下透出，阅读面拉满；渐隐底幕保字可读 */
+#game .gInput{position:absolute;left:0;right:0;bottom:0;z-index:6;pointer-events:none;padding-top:14px;
+      background:linear-gradient(0deg,rgba(6,6,6,.88) 0%,rgba(6,6,6,.66) 55%,rgba(6,6,6,0) 100%)}
+#game .gModes,#game .gLine{pointer-events:auto}
 #game .gModes{display:flex;gap:2px;padding:10px 14px 0;flex-wrap:wrap}
 #game .gm{font-size:9px;letter-spacing:.2em;color:var(--mut);padding:6px 12px 5px;cursor:pointer;
       border:1px solid transparent;white-space:nowrap}
@@ -555,6 +558,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 <div id="menu">
   <canvas id="menuCv"></canvas>
   <div class="mItems">
+    <span class="mItem" id="miCont" style="display:none">REDIRE&nbsp;<i>·</i>&nbsp;繼續遊戲</span>
     <span class="mItem" id="miMiss">MISSIONES&nbsp;<i>·</i>&nbsp;選開局</span>
     <span class="mItem" id="miOrac">ORACVLVM&nbsp;<i>·</i>&nbsp;連接AI</span>
     <span class="mItem" id="miArch">ARCHIVVM&nbsp;<i>·</i>&nbsp;存檔</span>
@@ -1566,8 +1570,7 @@ function engage(){
   if(linked)return;
   var i=mod(Math.round(pos),N),o=OPS[i];
   if(o.id==='custom'){                 /* 自定義開局：年份 → 地球選地 → 人物 */
-    menuEnter();
-    setTimeout(function(){ebShow('year');},60);
+    ebShow('year');                    /* 弹窗直接盖在选局环上，背景不退回菜单 */
     return;
   }
   /* ring → 简介确认弹窗，再入局 */
@@ -1827,6 +1830,7 @@ menuSize();
 function menuEnter(){MENU.gen=(MENU.gen||0)+1;MENU.exiting=false;MENU.on=true;MENU.t0=performance.now();menuScatter();
   /* 菜單期間把選局環 DOM 全部收起：淡入過程不再透出殘留畫面 */
   $('#stage').style.display='none';$('#rail').style.display='none';$('#mission').style.display='none';
+  var mc=$('#miCont');if(mc)mc.style.display=(GAME.op?'':'none'); /* 有局在身才給「繼續遊戲」 */
   mOv.classList.add('show');}
 function menuExit(){
   if(MENU.exiting)return;MENU.exiting=true;
@@ -2247,7 +2251,9 @@ function eraConfirm(){
   var ok=!isNaN(v)&&((v>=-800&&v<=476)||(v>=1800&&v<=2100));
   if(!ok){eIn.classList.add('bad');
     setTimeout(function(){eIn.classList.remove('bad');},700);return;}
-  ebClose();eraEnter(v);
+  ebClose();
+  if(!MENU.on)menuEnter();  /* 年代落定才切菜单画布：地球选地在菜单层进行 */
+  eraEnter(v);
 }
 function eraEnter(y){
   ERA.year=y;ERA.lon=15*Math.PI/180;ERA.vel=0;ERA.t0=performance.now();
@@ -2503,6 +2509,7 @@ ebEl.addEventListener('pointerup',function(e){if(e.target===ebEl)ebClose();});
 psEl.addEventListener('pointerup',function(e){if(e.target===psEl)psClose();});
 
 $('#miMiss').addEventListener('pointerup',function(e){e.stopPropagation();menuExit();});
+$('#miCont').addEventListener('pointerup',function(e){e.stopPropagation();if(GAME.op)gameShow();});
 $('#miOrac').addEventListener('pointerup',function(e){e.stopPropagation();apiOpen();});
 $('#miArch').addEventListener('pointerup',function(e){e.stopPropagation();
   $('#lkTitle').textContent='ARCHIVVM — 存檔';
@@ -3269,7 +3276,7 @@ function applyGlass(){
   var a=SET.glass/100;
   glassCss.textContent='#game::before{background:rgba(5,5,5,'+(.04+.34*a).toFixed(2)+') !important}'
     +'#game .gMfd{background:rgba(8,8,8,'+(.06+.25*a).toFixed(2)+') !important}'
-    +'#game .gInput{background:rgba(6,6,6,'+(.05+.24*a).toFixed(2)+') !important}'
+    +'#game .gInput{background:linear-gradient(0deg,rgba(6,6,6,'+(.55+.4*a).toFixed(2)+') 0%,rgba(6,6,6,'+(.35+.35*a).toFixed(2)+') 55%,rgba(6,6,6,0) 100%) !important}'
     +'#game .gTop{background:rgba(6,6,6,'+(.05+.22*a).toFixed(2)+') !important}'
     +'.gPanel{background:rgba(6,6,6,'+(.10+.36*a).toFixed(2)+') !important}';
 }
