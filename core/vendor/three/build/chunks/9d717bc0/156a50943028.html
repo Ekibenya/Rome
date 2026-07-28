@@ -433,13 +433,13 @@ canvas{display:block}
 .svChip .vt{transform:rotate(90deg);white-space:nowrap;font-size:6.5px;letter-spacing:.16em;font-weight:400}
 #svCore{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;text-align:center;pointer-events:none;width:min(52vw,340px)}
 #svCoreT{font-size:clamp(16px,3vw,25px);letter-spacing:.55em;text-indent:.55em;color:#ececec}
-#svCoreSub{margin:12px auto 0;font-size:8px;letter-spacing:.24em;color:var(--mut);line-height:1.8;border:1px solid rgba(236,236,232,.22);background:rgba(10,10,10,.6);padding:8px 14px;max-width:280px}
+#svCoreSub{display:inline-block;margin:14px auto 0;font-size:8px;letter-spacing:.22em;color:var(--mut);line-height:1.7;border:1px solid rgba(236,236,232,.2);background:rgba(14,14,14,.75);padding:7px 16px;max-width:min(46vw,230px)}
 #svCoreBtns{margin-top:13px;display:flex;gap:9px;justify-content:center;flex-wrap:wrap;pointer-events:auto}
 .svAct{border:1px solid rgba(236,236,232,.35);padding:7px 14px 6px;font-size:9px;letter-spacing:.26em;color:var(--txt);cursor:pointer;background:rgba(5,5,5,.7)}
 .svAct:hover{border-color:var(--gold);color:var(--gold-hi)}
 .svAct.warn{border-color:rgba(200,64,46,.5);color:#c8402e}
 #svClock{position:absolute;left:50%;top:63%;transform:translateX(-50%);z-index:3;font-size:12px;letter-spacing:.4em;text-indent:.4em;color:#ececec;pointer-events:none}
-#svRedX{position:absolute;right:10%;top:23%;width:36px;height:36px;border:1px solid rgba(200,64,46,.75);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#c8402e;font-size:13px;cursor:pointer;z-index:3;background:rgba(5,5,5,.5)}
+#svRedX{position:absolute;transform:translate(-50%,-50%);width:36px;height:36px;border:1px solid rgba(200,64,46,.75);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#c8402e;font-size:13px;cursor:pointer;z-index:3;background:rgba(5,5,5,.5)}
 #svRedX:hover{border-color:#c8402e;box-shadow:0 0 10px rgba(200,64,46,.35)}
 #svFootBar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;justify-content:space-between;align-items:center;gap:10px 14px;padding:9px 16px;font-size:8px;letter-spacing:.22em;color:var(--mut);border-top:1px solid rgba(236,236,232,.12);flex-wrap:wrap}
 .svfbtn{cursor:pointer;color:var(--txt);white-space:nowrap}
@@ -5728,8 +5728,9 @@ function svLoad(v){
   if(!GAME.on)gameShow();
 }
 /* ── ARCHIVVM 環形存檔盤：24 槽雙層色環（外環彩虹色卡＝檔位，內環灰卡＝標籤），拖動/滾輪旋轉＋慣性＋閒時自轉 ── */
-var SVN=24,SVSEL=0,SVR={rot:0,vel:0,drag:null,raf:0};
-var SV_ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII','XXIII','XXIV'];
+var SVN=32,SVSEL=0,SVR={rot:0,vel:0,drag:null,raf:0};
+var SV_ROMAN=(function(){var R=[],U=['','I','II','III','IV','V','VI','VII','VIII','IX'],T=['','X','XX','XXX'];
+  for(var i=1;i<=40;i++)R.push(T[Math.floor(i/10)]+U[i%10]);return R;})();
 function svBgDraw(){
   var cv=$('#svBg');if(!cv)return;
   var W=cv.width=Math.round(innerWidth*DPR),H=cv.height=Math.round(innerHeight*DPR),g=cv.getContext('2d');
@@ -5752,31 +5753,47 @@ function svRender(){
   var ring=$('#svRing');if(!ring)return;
   ring.innerHTML='';
   var m=Math.min(innerWidth,innerHeight);
-  /* 最外：連續彩虹色帶（48 段細弧，數處故意留黑口） */
-  var Rb=m*.47,bw=2*Math.PI*Rb/48*.93,bh=Math.max(8,m*.027);
-  for(var sg=0;sg<48;sg++){
-    if(sg===7||sg===23||sg===36)continue;
-    var hb=Math.round(sg/48*360);
-    var bd=document.createElement('div');
-    bd.style.cssText='position:absolute;left:0;top:0;width:'+bw.toFixed(1)+'px;height:'+bh.toFixed(1)+'px;margin:'+(-bh/2).toFixed(1)+'px 0 0 '+(-bw/2).toFixed(1)+'px;background:hsl('+hb+',92%,57%);transform:rotate('+(sg/48*360).toFixed(2)+'deg) translateY('+(-Rb).toFixed(1)+'px)';
-    ring.appendChild(bd);
+  /* 四層同心（比例取自參考稿）：淡彩帶 1.00 · 外卡圈 .85 · 濃彩帶 .70 · 內卡圈 .55 */
+  var Rp=m*.40,R1=m*.34,Rv=m*.28,R2=m*.22;
+  var bt=Math.max(3,m*.0125),SEG=72;
+  function band(R,sat,lig,th){
+    var w=2*Math.PI*R/SEG*.86;
+    for(var i=0;i<SEG;i++){
+      var h=Math.round(i/SEG*360);
+      var d=document.createElement('div');
+      d.style.cssText='position:absolute;left:0;top:0;width:'+w.toFixed(2)+'px;height:'+th.toFixed(2)+'px;'
+        +'margin:'+(-th/2).toFixed(2)+'px 0 0 '+(-w/2).toFixed(2)+'px;background:hsl('+h+','+sat+'%,'+lig+'%);'
+        +'transform:rotate('+(i/SEG*360).toFixed(2)+'deg) translateY('+(-R).toFixed(1)+'px)';
+      ring.appendChild(d);
+    }
   }
-  /* 兩圈黑底描邊框卡：外圈=槽（#編號），內圈=槽標籤（時地/VACVVM），文字豎排 */
-  var R1=m*.405,R2=m*.325;
-  var w1=Math.max(19,2*Math.PI*R1/SVN*.60),h1=w1*1.6;
-  var w2=Math.max(17,2*Math.PI*R2/SVN*.58),h2=w2*1.5;
+  band(Rp,68,79,bt);   /* 外：粉彩色帶 */
+  band(Rv,94,55,bt);   /* 內：飽和色帶 */
+  /* 兩圈暗卡：徑向長條、圓角、細描邊、徑向小字 */
+  var cw1=2*Math.PI*R1/SVN*.52,cl1=cw1*2.05;
+  var cw2=2*Math.PI*R2/SVN*.68,cl2=cw2*1.95;
   for(var i=0;i<SVN;i++)(function(n){
     var v=svGet(n+1),a=(n/SVN*360).toFixed(2),sel=SVSEL===n+1;
-    var bc=sel?'#fff':(v?'rgba(236,236,232,.7)':'rgba(236,236,232,.2)');
-    var d=document.createElement('div');d.className='svChip';d.setAttribute('data-n',n+1);
-    d.style.cssText='width:'+w1.toFixed(1)+'px;height:'+h1.toFixed(1)+'px;margin:'+(-h1/2).toFixed(1)+'px 0 0 '+(-w1/2).toFixed(1)+'px;transform:rotate('+a+'deg) translateY('+(-R1).toFixed(1)+'px);background:rgba(8,8,8,.92);border:1px solid '+bc+((sel||v)?';box-shadow:0 0 9px rgba(236,236,232,.22)':'');
-    d.innerHTML='<span class="vt" style="color:'+(v?'#ececec':'var(--mut)')+'">'+(v?'●&nbsp;':'')+'#'+SV_ROMAN[n]+'</span>';
-    ring.appendChild(d);
-    var e=document.createElement('div');e.className='svChip';e.setAttribute('data-n',n+1);
-    e.style.cssText='width:'+w2.toFixed(1)+'px;height:'+h2.toFixed(1)+'px;margin:'+(-h2/2).toFixed(1)+'px 0 0 '+(-w2/2).toFixed(1)+'px;transform:rotate('+a+'deg) translateY('+(-R2).toFixed(1)+'px);background:rgba(8,8,8,.92);border:1px solid '+(sel?'#fff':'rgba(236,236,232,'+(v?'.45':'.16')+')');
-    e.innerHTML='<span class="vt" style="color:'+(v?'var(--gold-hi)':'var(--mut)')+'">'+(v?esc2(String(v.t||'').replace(/\s+/g,'').slice(0,8)):'VACVVM')+'</span>';
-    ring.appendChild(e);
+    function mk(cw,cl,R,txt,col,bc){
+      var d=document.createElement('div');d.className='svChip';d.setAttribute('data-n',n+1);
+      d.style.cssText='width:'+cw.toFixed(2)+'px;height:'+cl.toFixed(2)+'px;'
+        +'margin:'+(-cl/2).toFixed(2)+'px 0 0 '+(-cw/2).toFixed(2)+'px;'
+        +'transform:rotate('+a+'deg) translateY('+(-R).toFixed(1)+'px);'
+        +'background:#080808;border:1px solid '+bc+';border-radius:2px'
+        +(sel?';box-shadow:0 0 10px rgba(255,255,255,.45)':(v?';box-shadow:0 0 7px rgba(236,236,232,.16)':''));
+      d.innerHTML='<span class="vt" style="color:'+col+'">'+txt+'</span>';
+      ring.appendChild(d);
+    }
+    mk(cw1,cl1,R1,(v?'●&nbsp;':'')+'#'+SV_ROMAN[n],v?'#ececec':'rgba(150,150,145,.85)',
+       sel?'#fff':'rgba(236,236,232,'+(v?'.62':'.26')+')');
+    mk(cw2,cl2,R2,v?esc2(String(v.t||'').replace(/\s+/g,'').slice(0,7)):'VACVVM',
+       v?'var(--gold-hi)':'rgba(150,150,145,.7)',
+       sel?'#fff':'rgba(236,236,232,'+(v?'.48':'.2')+')');
   })(i);
+  /* 時碼與紅圈 × 依環半徑就位（參考稿：時碼在環內近底，紅圈在環外右上） */
+  var ck=$('#svClock');if(ck)ck.style.top=(innerHeight/2+m*.255)+'px';
+  var rx=$('#svRedX');
+  if(rx){rx.style.left=(innerWidth/2+m*.455)+'px';rx.style.top=(innerHeight/2-m*.235)+'px';rx.style.right='auto';}
 }
 function svCoreUpd(){
   var tt=$('#svCoreT'),sb=$('#svCoreSub'),bt=$('#svCoreBtns');
