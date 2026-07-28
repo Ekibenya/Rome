@@ -439,6 +439,10 @@ canvas{display:block}
 .mNpc .nName{font-size:12px;letter-spacing:.22em;color:var(--txt)}
 .mNpc .nRole{font-size:10px;letter-spacing:.14em;color:var(--mut)}
 .mNpc .nLine{font-size:10.5px;letter-spacing:.1em;line-height:1.8;color:#c9c9c3;margin-top:5px}
+.mMind{font-size:9px;letter-spacing:.1em;line-height:1.8;color:var(--gold-hi);font-style:italic;
+  border-left:1px solid rgba(201,155,63,.55);padding:3px 0 3px 9px;margin:3px 0 2px}
+.mMind.mute{color:var(--mut);font-style:normal;border-left-color:rgba(236,236,232,.18)}
+.mMind.mute b{color:var(--gold);font-weight:400}
 .mNpc .nMind{font-size:10.5px;letter-spacing:.1em;line-height:1.7;color:var(--gold);margin-top:3px;font-style:italic}
 .mCap{font-size:10px;letter-spacing:.2em;color:var(--gold-hi);margin-top:4px}
 .mGlyph{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--mut);letter-spacing:.12em;margin-top:8px}
@@ -3364,6 +3368,7 @@ function askOracle(){
     TURNS.push({role:'user',content:'【'+tag+'】'+v,t:idx});
     narrAdd('me','▌'+esc2(tag)+'&nbsp;&nbsp;'+esc2(v),idx);
     gIn.value='';
+    if(/^[~～]/.test(v)){try{if(GAME.lastPanel)renderMvu(GAME.lastPanel);}catch(_){}}  /* 內心獨白：情報台心聲即時回放 */
     if(apiReady())askOracle();
     else narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;指令已記錄（頂欄&nbsp;ORACVLVM&nbsp;可配置&nbsp;AI）…',idx);
   }
@@ -4905,6 +4910,17 @@ function parseMvu(text){
   return p;
 }
 function esc2(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+/* 主角心聲：取玩家最近一次「~」開頭的內心獨白。
+   卡之鐵則一——她的言語行動決定與內心皆屬玩家，故此欄不由 AI 代筆，只回放你自己寫下的那一句。 */
+function heroMind(){
+  if(typeof TURNS==='undefined')return '';
+  for(var i=TURNS.length-1;i>=0;i--){
+    var tn=TURNS[i];if(!tn||tn.role!=='user')continue;
+    var c=String(tn.content||'').replace(/^【[^】]*】\s*/,'').trim();
+    if(c.charAt(0)==='~'||c.charAt(0)==='～')return c.slice(1).trim();
+  }
+  return '';
+}
 function capFor(caps,v){var lab='';if(!caps)return lab;
   for(var i=0;i<caps.length;i++)if(v>=caps[i][0])lab=caps[i][1];return lab;}
 function renderMvu(panel){
@@ -4916,8 +4932,11 @@ function renderMvu(panel){
     if(w.type==='bar')bars.push(w);
     if(w.type==='moodglyph'){glyphSrc=w.src;glyphMap=w.map;}
   });
+  var aiMind='';
+  panel.ch.forEach(function(kv){if(/^心聲|^心声/.test(kv[0]||''))aiMind=kv.slice(1).join('|');});
   panel.ch.forEach(function(kv){
     var k=kv[0],v=kv.slice(1).join('|');
+    if(/^心聲|^心声/.test(k))return;              /* 心聲另起引言塊，不混在資料列裡 */
     var isNum=/^\d{1,3}$/.test(v.trim());
     var bw=null;if(isNum&&bars.length)bars.forEach(function(b){if(b.k===k)bw=b;});
     if(bw){
@@ -4932,6 +4951,11 @@ function renderMvu(panel){
       h+='<div class="mRow"><span>'+esc2(k)+'</span></div><div class="mLead">'+esc2(v)+'</div>';
     }
   });
+  /* 心聲：她自己的那一句（優先用 AI 給的，否則回放玩家最近一次內心獨白） */
+  var mind=aiMind||heroMind();
+  h+='<div class="mRow"><span>'+(ACTIVE==='roma'?'MENS&nbsp;·&nbsp;心聲':'心 聲')+'</span></div>'
+    +(mind?('<div class="mMind">『'+esc2(mind)+'』</div>')
+          :('<div class="mMind mute">以&nbsp;<b>~</b>&nbsp;開頭發言，即記於此</div>'));
   h+='</div>';
   if(panel.npc.length){
     h+='<div class="mSec"><div class="mHead"><i>◆</i>&nbsp;'+(ACTIVE==='roma'?'PERSONAE&nbsp;·&nbsp;在場':'在場諸人')+'</div>';
