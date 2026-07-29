@@ -759,7 +759,13 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   #game.txOpen #arrTx{top:calc(46px + min(23vh,205px))}
   #game.txOpen.tx2 #arrTx{top:calc(46px + min(52vh,460px))}
   #game.txOpen.txBig #arrTx{top:calc(46px + min(70vh,560px))}
-  #game .gTop{overflow-x:auto;scrollbar-width:none}
+  /* 顶栏那条「时地」原来被挤到只剩 28px（八颗工具钮 flex:none 一个不让，
+     padding 与间距又按桌面来）——连「前48年 · 罗马」都只露得出两个字。
+     先把钮和间距收一档腾出地方，再让时地占住剩下的全部宽度。 */
+  #game .gTop{overflow-x:hidden;scrollbar-width:none;padding:0 12px;gap:10px}
+  #game .gTools{gap:4px}
+  #game .gTools .gt{width:28px;height:24px}
+  #game .gLoc{flex:1 1 auto;min-width:0;letter-spacing:.18em}
   #game .gNarr{padding-bottom:158px}
   /* 底部导航现在是浮层，输入区必须让开它占的那一段，否则胶囊会压在输入框上 */
   #game .gInput{padding-bottom:34px}
@@ -3366,8 +3372,8 @@ function iterGo(){
   ERA.sel=s;
   var y=(ERA.year==null?117:ERA.year);
   GAME.place={n:s.n,cn:s.cn};
-  $('#gLoc').innerHTML=(y<0?(-y)+'&nbsp;A.C.N.':'A.D.&nbsp;'+y)+
-    '&nbsp;<i>·</i>&nbsp;'+s.n+'&nbsp;<i>·</i>&nbsp;'+s.cn;
+  gLocSet((y<0?(-y)+'&nbsp;A.C.N.':'A.D.&nbsp;'+y)
+    +'&nbsp;<i>·</i>&nbsp;'+s.n+'&nbsp;<i>·</i>&nbsp;'+s.cn);
   GAME.dest=s.n;GAME.destT=performance.now();      /* 地图不收起：目的地亮环 */
   GAME.dest3d=s.cn||s.n;                            /* 三维即刻随行：不必等神谕回话 */
   try{zj3dTick();}catch(_){}
@@ -7781,7 +7787,7 @@ function loadOpening(side,op,locOverride){
   var eot=document.createElement('div');eot.className='gEot';eot.textContent='·  ·  EOT  ·  ·';
   nr.appendChild(eot);nr.scrollTop=0;
   if(panel)renderMvu(panel);
-  $('#gLoc').innerHTML=esc2(locOverride||op.era)+'&nbsp;<i>·</i>&nbsp;'+esc2(op.scene);
+  gLocSet(esc2(locOverride||op.era)+'&nbsp;<i>·</i>&nbsp;'+esc2(op.scene));
   GAME.place={n:'',cn:op.scene||''};
   /* 开局这一幕不走 renderReply，得单独叫一次参谋——
      否则玩家一进来面对空白输入框，正是「不知道能干什么」的时候。 */
@@ -7852,9 +7858,46 @@ function svPut(n,v){
     return false;
   }
 }
+/* 顶栏「时地」：放得下就静止，放不下就循环横滚——手机上这一条常常还是超宽
+   （「前332年一月 · 推罗，海墙下的栈道尽头」轻松三百多像素），
+   原来是 text-overflow:ellipsis 直接截断，后半截永远看不到。
+   真正的内容始终留在 data-raw 上，滚动轨道只是表现层：存档、读档、量宽度
+   一律以 data-raw 为准，免得把复制出来的那一份也存进存档里。 */
+function gLocSet(html){
+  var el=$('#gLoc');if(!el)return;
+  el.setAttribute('data-raw',(html==null?'':String(html)));
+  gLocFit();
+}
+function gLocRaw(){var el=$('#gLoc');return el?(el.getAttribute('data-raw')||el.innerHTML||''):'';}
+function gLocFit(){
+  var el=$('#gLoc');if(!el)return;
+  var raw=el.getAttribute('data-raw');
+  if(raw==null){raw=el.innerHTML;el.setAttribute('data-raw',raw);}   /* 老存档／首次调用 */
+  el.innerHTML=raw;                                   /* 先按静止态量一次真实宽度 */
+  var room=el.clientWidth,need=el.scrollWidth;
+  if(!room||need<=room+1)return;                      /* 放得下：不滚 */
+  var GAP=36;
+  var track=document.createElement('span');
+  track.className='zj3dMarq';
+  track.style.cssText='display:inline-flex;white-space:nowrap;will-change:transform';
+  /* 两份内容各自带同样的右间距，整条轨道正好是「一份＋间距」的两倍——
+     translateX(-50%) 走完刚好接回起点，接缝处不会跳一下。 */
+  for(var i=0;i<2;i++){
+    var c=document.createElement('span');
+    c.innerHTML=raw;c.style.paddingRight=GAP+'px';
+    if(i)c.setAttribute('aria-hidden','true');
+    track.appendChild(c);
+  }
+  el.innerHTML='';el.appendChild(track);
+  track.style.animationDuration=Math.max(9,(need+GAP)/20)+'s';
+}
+addEventListener('resize',function(){try{gLocFit();}catch(_){}});
 function svSnap(){
-  return {t:$('#gLoc').textContent.trim(),when:new Date().toLocaleString(),
-    active:ACTIVE,year:ERA.year,loc:$('#gLoc').innerHTML,
+  /* 存的是 data-raw 那一份原文，不是滚动轨道里复制出来的两份 */
+  var _lr=gLocRaw();
+  var _lt=document.createElement('span');_lt.innerHTML=_lr;
+  return {t:(_lt.textContent||'').trim(),when:new Date().toLocaleString(),
+    active:ACTIVE,year:ERA.year,loc:_lr,
     /* 存档时正文可能正在流式输出：直接抓 innerHTML 会把进度条和 .liveWrap 半截正文
        一起写进去，读档后正文里永久卡着一条走不完的进度条（序列化丢事件，✕ 中断
        变成死按钮）外加一段半截文。先克隆一份、摘掉这两类临时节点再序列化。 */
@@ -7894,7 +7937,7 @@ function svLoad(v){
   try{GENIVS.reset();}catch(_){}      /* 换局＝换底：先把上一局的 carry-forward 清干净 */
   ACTIVE=v.active||'roma';ERA.year=(v.year==null?117:v.year);
   ERA.act=buildActs(ERA.year);ERA.sel=null;
-  $('#gLoc').innerHTML=v.loc||'';
+  gLocSet(v.loc||'');
   $('#gNarr').innerHTML=v.html||'';
   document.querySelector('#game .gMfd').innerHTML=v.mfd||'';
   TURNS=v.turns||[];TURNI=TURNS.length?(Math.max.apply(null,TURNS.map(function(t){return t.t||0;}))+1):0;
