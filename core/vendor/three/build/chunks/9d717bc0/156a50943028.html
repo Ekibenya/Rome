@@ -3507,7 +3507,9 @@ $('#gNarr').addEventListener('click',function(e){
 });
 function renderReply(text,tIdx,instant){
   var panel=GENIVS.completeMvu(mvuMerge(GAME.lastPanel,parseMvu(text)),text);
-  var body=stripMvu(text);
+  /* 思维链绝不能当正文：不剥的话它会被渲染出来、被 TTS 念出来、进配图提示词，
+     还原样存进 TURNS，此后每一轮回喂给模型，既烧 token 又教会它继续写元评论。 */
+  var body=stripMvu(stripCoT(text));
   if(typeof rxApply==='function')body=rxApply(body,false);   /* 正则·仅显示 */
   var after=function(finalText){
     typeParas(finalText.split(/\n{2,}/),tIdx,function(){
@@ -3805,7 +3807,11 @@ var GENIVS=(function(){
     var seen={},gone={};
     intents(txt).forEach(function(i){if(i.op==='go')gone[i.name]=1;});
     p.npc.forEach(function(r){seen[String(r[0]||'').trim()]=r;});
-    (prev.npc||[]).forEach(function(r){
+    /* 上一轮的在场名单只在「这一轮模型压根没写 <sec_npc>」时才继承。
+       原来是无条件回填，于是任何出现过一次的人永远赖在「在场诸人」里——除非正文正好
+       被 /离去|退下|告退|出城/ 命中。玩家看到的就是「已经走掉的人还站在那儿」，
+       而模型下一轮又把这份名单当既定事实，分不清谁还在场。 */
+    if(!p.npc.length)(prev.npc||[]).forEach(function(r){
       var n=String(r[0]||'').trim();
       if(!n||seen[n]||gone[n])return;
       seen[n]=r.slice();p.npc.push(seen[n]);
@@ -3894,7 +3900,7 @@ var GENIVS=(function(){
   function setPrev(p){PREV=p||null;}
 
   return {brief:brief,absorb:absorb,completeMvu:completeMvu,offlineTurn:offlineTurn,
-          intents:intents,reset:reset,setPrev:setPrev,_snap:snap};
+          intents:intents,reset:reset,setPrev:setPrev,panelText:panelText,_snap:snap};
 })();
 /* 状态栏硬清单：模型唯一的格式锚。
    卡里的 mes_example 全文没有任何一处被读取，开局正文也不进 TURNS，
@@ -3906,8 +3912,14 @@ function mvuSpec(){
   var chN=roma?8:7;
   var op='';
   try{op=(GAME.opText&&(String(GAME.opText).match(/<mvu_panel>[\s\S]*?<\/mvu_panel>/)||[''])[0])||'';}catch(_){}
+  /* 「上一幕原值」必须用合并补全之后的那一份，而不是模型上一轮写出来的原文。
+     模型漏写一栏，原文里那一栏就是缺的；把这份残缺原文当范本发回去，它照着
+     「没变动的照抄上一幕原值」抄，抄到的只有残缺内容 + 开局范例——数值回退到开局值、
+     离场的人重新出现、纪年倒退。而且一旦发生就自我强化：下一轮它以更残缺的那份为范本。
+     玩家侧情报台看的本来就是补全后的面板，两边理应是同一份。 */
   var last='';
-  try{
+  try{if(GAME.lastPanel)last=GENIVS.panelText(GAME.lastPanel)||'';}catch(_){}
+  if(!last)try{
     for(var i=TURNS.length-1;i>=0;i--){
       if(TURNS[i].role!=='assistant')continue;
       var mm=String(TURNS[i].content).match(/<mvu_panel>[\s\S]*?<\/mvu_panel>/);
@@ -3989,6 +4001,11 @@ function oracleCall(messages,cb,err,opt){
   var noStream=opt.noStream;delete opt.noStream;
   var maxCont=(opt.maxCont==null?2:opt.maxCont);delete opt.maxCont;   /* 截断后最多自动续写几轮 */
   var wantTag=opt.wantTag||'';delete opt.wantTag;                    /* 正常收尾必然出现的标记 */
+  /* 辅助调用（NPC 档案抽取、参谋四策、配图提示词、字幕）不许碰 GENAC。
+     GENAC 是「✕ 中断」和 gameExit 唯一能掐的那个把手；被辅助请求覆盖之后，
+     点中断只掐掉那次资料抽取，正文照写不误，玩家的体感是「点了停止没反应」，
+     退出后主请求还会跑完并往已经离开的这一局里补一条幽灵回合。 */
+  var aux=!!opt.aux;delete opt.aux;
   var sawDone=false;                                                 /* 收到过 SSE 的 [DONE] */
   var url=API.base.replace(/\/+$/,'')+'/chat/completions';
   var hdr={'Content-Type':'application/json','Authorization':'Bearer '+API.key};
@@ -3999,8 +4016,8 @@ function oracleCall(messages,cb,err,opt){
      got 为真又调一次 cb —— 同一段神谕被 push 进 TURNS 两遍，正文重复渲染，下一轮模型
      看见自己刚写的东西出现两次，判定「要接着复读」。gBack 的 drop 计数也会跟着错位。 */
   var _fired=false,_cb0=cb,_err0=err;
-  cb=function(t){if(_fired)return;_fired=true;
-    try{_cb0(t);}catch(e){setTimeout(function(){throw e;},0);}};
+  cb=function(t,meta){if(_fired)return;_fired=true;
+    try{_cb0(t,meta);}catch(e){setTimeout(function(){throw e;},0);}};
   err=function(m){if(_fired)return;_fired=true;try{_err0(m);}catch(_){}};
   function mkBody(msgs,stream){
     var body={model:API.model,messages:msgs,
@@ -4038,11 +4055,13 @@ function oracleCall(messages,cb,err,opt){
          模型看到重复内容就开始复读或跑题。 */
       run(contMsgs(messages,full));return;
     }
-    cb(full);
+    /* 续写额度用完了还是 length，或者被复读掐断——正文与状态栏都可能停在半句上。
+       原来一声不吭地收工，玩家只会认为「AI 又断了 / 不更新」。 */
+    cb(full,{trunc:(fr==='length'||fr==='repeat'),reason:fr||''});
   }
   function whole(msgs){
-    var ac=window.AbortController?new AbortController():null;GENAC=ac;
-    var to=ac?setTimeout(function(){ac.abort();},120000):null;
+    var ac=window.AbortController?new AbortController():null;if(!aux)GENAC=ac;
+    var to=ac?setTimeout(function(){ac.abort();},aux?60000:300000):null;
     fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(mkBody(msgs,false)),
       signal:ac?ac.signal:undefined})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
@@ -4054,13 +4073,20 @@ function oracleCall(messages,cb,err,opt){
       sawDone=true;                                    /* 整包 JSON 到手＝正常收尾 */
       bump(c||'');finish(msgs,c||'',ch&&ch.finish_reason);
     }).catch(function(e){if(to)clearTimeout(to);
-      if(acc){cb(acc);return;}
+      if(acc){cb(acc,{trunc:true,reason:'net'});return;}
       err(e&&e.name==='AbortError'?'已中断':(e&&e.message||'未知错误'));});
   }
   function run(msgs){
     if(!streamOn){whole(msgs);return;}
-    var ac2=window.AbortController?new AbortController():null;GENAC=ac2;
-    var to2=ac2?setTimeout(function(){ac2.abort();},180000):null;
+    var ac2=window.AbortController?new AbortController():null;if(!aux)GENAC=ac2;
+    /* 原来是「从发起算起 180 秒」的硬性总超时，收到 token 也不重置：默认 4096 tokens、
+       系统提示又要求正文不少于 500 字外加整份状态栏，接慢速中转或开了高推理强度时
+       很容易写到一半被 abort，而 abort 分支又把残文当成功回调交出去——
+       玩家看到的就是「文章写到一半停了，还没有任何报错」。
+       改成空闲看门狗：只要还在出字就一直等，真正卡死 90 秒才掐。 */
+    var to2=null,IDLE=aux?60000:90000;
+    function kick(){if(to2)clearTimeout(to2);to2=ac2?setTimeout(function(){ac2.abort();},IDLE):null;}
+    kick();
     var got=false,text='',fr=null;
     fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(mkBody(msgs,true)),
       signal:ac2?ac2.signal:undefined})
@@ -4091,6 +4117,7 @@ function oracleCall(messages,cb,err,opt){
             buf='';
             return text;
           }
+          kick();                                   /* 还在出字：看门狗续命 */
           buf+=dec.decode(x.value,{stream:true});
           var parts=buf.split('\n');buf=parts.pop();
           parts.forEach(feed);
@@ -4121,18 +4148,34 @@ function oracleCall(messages,cb,err,opt){
     .catch(function(e){
       if(to2)clearTimeout(to2);
       var aborted=e&&e.name==='AbortError';
-      if(aborted&&(got||acc)){cb(acc+text);return;}
+      if(aborted&&(got||acc)){cb(acc+text,{trunc:true,reason:'abort'});return;}
       if(aborted){err('已中断');return;}
       if(!got&&!acc){whole(msgs);return;}
-      cb(acc+text);
+      cb(acc+text,{trunc:true,reason:'net'});   /* 收流中途出错：这是残文，不是写完了 */
     });
   }
   run(messages);
 }
 function askOracle(){
   BUSY=true;genOpen('gen');
+  /* 组装阶段（sysPrompt 一路串了 loreFor / GENIVS.brief / memChronicle / npcFavorDigest /
+     mvuSpec，全都没有保护）一旦抛错，BUSY 就永久停在 true：send 遇到 BUSY 是光秃秃的
+     return，玩家点「发送」什么都不发生、输入框里的字也不清，剧情彻底不再前进，
+     而且没有任何复位途径——只能退回主菜单。所以整段包起来，失败就地复位并说明原因。 */
+  var msgs;
+  try{ msgs=buildOracleMsgs(); }
+  catch(e){
+    BUSY=false;try{genClose();}catch(_){}
+    narrAdd('sys','⚠&nbsp;组装神谕请求失败：'+esc2((e&&e.message)||e)+'&nbsp;——&nbsp;本回未发出',null);
+    return;
+  }
+  askOracleSend(msgs);
+}
+function buildOracleMsgs(){
   var hist=TURNS.slice(-16).map(function(t){
     var c=t.content;
+    /* 思维链不能回喂：它会教模型继续写元评论，还白白吃掉上下文。 */
+    if(t.role==='assistant')c=stripCoT(c);
     if(t.role==='assistant'&&typeof rxApply==='function')c=rxApply(c,true);  /* 正则·显示并发送 */
     return{role:t.role,content:c};
   });
@@ -4159,6 +4202,9 @@ function askOracle(){
   msgs.push({role:'system',content:'【本回合落笔前·最后自查】'+_phi
     +'\n【铁则一·压倒一切，高于任何文体规范】'+(ACTIVE==='roma'?'贝罗娜':'姬瑶')
     +'的台词、动作、决定、内心，一个字都不许你写。需要她表态时，把场面推到她面前，停笔，交还玩家。'});
+  return msgs;
+}
+function askOracleSend(msgs){
   var live=null,gen0=TYPE_GEN;
   function onDelta(full){
     if(gen0!==TYPE_GEN)return;                     /* 换局/读档/重演：旧流作废 */
@@ -4185,17 +4231,24 @@ function askOracle(){
       });
     }
   }
-  oracleCall(msgs,function(reply){
+  oracleCall(msgs,function(reply,meta){
     genClose();BUSY=false;
     var streamed=!!live;
     if(live){try{live.remove();}catch(_){}live=null;}
+    /* 这一局已经换掉了（读档／回主菜单／重演）：这条回复属于上一局，不许往新局里塞。
+       没有这道守卫的话，退出后跑完的那个请求会凭空补进一条幽灵回合。 */
+    if(gen0!==TYPE_GEN)return;
     var idx=TURNI++;
     TURNS.push({role:'assistant',content:reply,t:idx});
     try{GENIVS.absorb(reply,idx);}catch(_){}       /* 正文里的建／拆／来／去落到三维场景上 */
     renderReply(reply,idx,streamed);               /* 已流式出过字：跳过打字机，直接落定 */
+    if(meta&&meta.trunc)narrAdd('sys',
+      '⚠&nbsp;本回未正常收尾（'+esc2(meta.reason||'截断')+'），正文与状态栏可能不完整'
+      +'&nbsp;——&nbsp;可在&nbsp;设置·链&nbsp;调大「单轮上限&nbsp;tokens」，或按&nbsp;↻&nbsp;重演',null);
   },function(msg){
     genClose();BUSY=false;
     if(live){try{live.remove();}catch(_){}live=null;}
+    if(gen0!==TYPE_GEN)return;
     narrAdd('sys','⚠&nbsp;神谕断连：'+esc2(msg)+'&nbsp;——&nbsp;检查&nbsp;ORACVLVM&nbsp;配置',null);
   },{onDelta:onDelta,wantTag:'</mvu_panel>'});
 }
@@ -5935,7 +5988,28 @@ function stripMvu(text){
   t=t.replace(/(^|\n)[ \t]*```[a-z]*[ \t]*$/i,'$1');
   return t.trim();
 }
-function stripMvuLive(text){return stripMvu(text);}
+/* 流式期间还要多吃一条「打到一半、尚未闭合的 <think>」，否则推理模型的思维链
+   会先被逐字打在叙事栏里再消失，玩家看到的是模型的内部草稿。 */
+function stripMvuLive(text){
+  var t=stripCoT(String(text==null?'':text));      /* 先吃掉已经闭合的思维链 */
+  t=t.replace(/<\s*think[^>]*>[\s\S]*$/i,'');     /* 再吃掉打到一半、还没闭合的那一个 */
+  return stripMvu(t);
+}
+/* 状态栏字段名的繁体/异体归一表。模型（尤其被要求繁中输出、或前文出现繁体时）
+   某一回把字段写成 ◆戎裝/◆血興/◆心聲/◆史筆/◇天氣/◇紀年/◇安穩，mvuMerge 按字符串
+   精确比对就认成全新的键：角色段从 8 行变 14 行，而且并集永不淘汰，此后每一回合都在，
+   即使模型改回简体也去不掉。顺带 血興 匹配不上 widgets（进度条没有位阶文案）、
+   天氣 匹配不上 glyphSrc（心象图不亮）——「mvu 某些项目不作用」的一大来源。 */
+var _MVUK={'戎裝':'戎装','血興':'血兴','心聲':'心声','史筆':'史笔','神軀':'神躯','觀瞻':'观瞻',
+  '禦體':'御体','御體':'御体','衣冠':'衣冠','持物':'持物','神格':'神格',
+  '天氣':'天气','紀年':'纪年','安穩':'安稳','時地':'时地','大勢':'大势','將臨':'将临',
+  '氣候':'天气','時間':'时地','紀元':'纪年'};
+function mvuKey(k){
+  k=String(k==null?'':k).replace(/\s+/g,'');
+  if(_MVUK[k])return _MVUK[k];
+  var v=k;try{v=t2s(k);}catch(_){}
+  return _MVUK[v]||v;
+}
 function parseMvu(text){
   var src=String(text==null?'':text);
   var mo=MVU_RX.exec(src),body=null;
@@ -5955,7 +6029,13 @@ function parseMvu(text){
     if(/<\s*sec_char\s*>/i.test(ln)){sec='ch';return;}
     if(/<\s*sec_npc\s*>/i.test(ln)){sec='npc';return;}
     if(/<\s*sec_world\s*>/i.test(ln)){sec='wd';return;}
+    /* 段落收尾、以及模型自造的段落（<sec_deed> 写错位置写进了面板里、<sec_omen> 之类），
+       都必须把当前段清掉。原来只是 return，sec 还留在上一段上，于是
+       「▣兴作|神庙×1」「吉兆|白鹿现于苑中」这些行统统落进「天下大势」，
+       而 mvuMerge 只并集不淘汰——这些垃圾行此后每一回合都在，再也去不掉。 */
+    if(/^<\s*\/?\s*sec_/i.test(ln)){sec=null;return;}
     if(ln.charAt(0)==='<')return;
+    if('▣▷▶●○★☆'.indexOf(ln.charAt(0))>=0)return;      /* 回执／自造符号，不是面板的行 */
     var c0=ln.charAt(0),rs=(c0==='◆')?'ch':(c0==='◈')?'npc':(c0==='◇')?'wd':null;
     var raw=rs?ln.slice(1):ln;
     /* 行首符号漏写时，按它所在的段归类，而不是整行丢掉 */
@@ -5972,6 +6052,11 @@ function parseMvu(text){
     }
     if(parts.length<2)return;
     parts[0]=parts[0].replace(/\s+/g,'');                    /* 键名去空格，否则进度条匹配不上 */
+    /* 键名繁简归一。模型偶尔写成 ◆戎裝/◆血興/◆心聲/◇天氣/◇安穩，mvuMerge 按字符串
+       精确比对，认成全新的键：角色段从 8 行变 14 行，而且并集永不淘汰，此后每回合都在。
+       同时 血興 匹配不上 widgets（没有进度条位阶）、天氣 匹配不上 glyphSrc（心象图不亮）。
+       只归一键名，值一律保留原样——玩家想看繁体正文是玩家的事。 */
+    if(rs!=='npc')parts[0]=mvuKey(parts[0]);
     p[rs].push(parts);any=true;
   });
   return any?p:null;                                         /* 空壳面板不再把情报台清空 */
@@ -6139,7 +6224,9 @@ function callAuxAI(sys,msgs){
   return new Promise(function(res,rej){
     var m=[{role:'system',content:sys}].concat(msgs);
     if(typeof subReady==='function'&&subReady())subCall(m,res,rej);
-    else if(apiReady())oracleCall(m,res,rej);
+    /* aux:1 —— 绝不碰 GENAC，「✕ 中断」永远只掐正文那一路；
+       noStream + maxCont:0 —— 辅助调用要的是一小段结构化结果，不需要流式也不需要续写。 */
+    else if(apiReady())oracleCall(m,res,rej,{aux:1,noStream:true,maxCont:0});
     else rej('未配置接口');
   });
 }
