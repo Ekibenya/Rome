@@ -168,13 +168,30 @@ canvas{display:block}
 #menu.era #eraHud{display:block}
 #eraHud b{display:block;font-weight:400;font-size:19px;letter-spacing:.5em;color:var(--txt)}
 #eraHud span{display:inline-block;margin-top:12px;font-size:9px;letter-spacing:.32em;color:var(--mut)}
-#eraBox,#persona{position:fixed;inset:0;z-index:82;display:none;align-items:center;
+#eraBox,#persona,#psRes{position:fixed;inset:0;z-index:82;display:none;align-items:center;
       justify-content:center;background:rgba(4,4,4,.86)}
-#eraBox .box,#persona .box{border:1px solid rgba(236,236,232,.4);padding:38px 46px;
+#eraBox .box,#persona .box,#psRes .box{border:1px solid rgba(236,236,232,.4);padding:38px 46px;
       min-width:340px;max-width:540px;background:var(--ink)}
+/* 场面窗压在人物面板之上：返回时人物面板原样还在后头，填好的名字不必重打 */
+#psRes{z-index:84;background:rgba(4,4,4,.92)}
+#psRes .box{width:min(calc(94vw/var(--ui)),540px);max-height:calc(92vh/var(--ui));overflow-y:auto}
+#psRes .prNote{font-size:10.5px;letter-spacing:.06em;line-height:2.05;color:var(--mut);margin-top:16px}
+#psRes textarea{display:block;width:100%;margin-top:16px;min-height:168px;
+      background:rgba(236,236,232,.03);border:1px solid rgba(236,236,232,.18);color:var(--gold-hi);
+      font-size:12px;letter-spacing:.06em;line-height:2;padding:12px 14px;
+      outline:none;font-family:inherit;resize:vertical}
+#psRes textarea:focus{border-color:var(--gold)}
+#psRes textarea::placeholder{color:var(--mut);letter-spacing:.04em;line-height:1.9}
+#psRes .prBtns{display:flex;gap:14px;margin-top:24px}
+#psRes .prBtns .eBtn{margin-top:0}
+#psRes .prBtns #prGo{flex:1;text-align:center}
+@media (max-width:760px){
+  #psRes .box{padding:26px 20px;min-width:0;width:min(calc(96vw/var(--ui)),540px)}
+  #psRes textarea{font-size:16px;line-height:1.85;min-height:150px}
+}
 #eraBox .box{text-align:center}
-#eraBox h2,#persona h2{font-size:14px;letter-spacing:.3em;font-weight:400;color:var(--txt);margin:22px 0 8px}
-#eraBox .sub,#persona .sub{font-size:9px;letter-spacing:.22em;color:var(--mut);line-height:2}
+#eraBox h2,#persona h2,#psRes h2{font-size:14px;letter-spacing:.3em;font-weight:400;color:var(--txt);margin:22px 0 8px}
+#eraBox .sub,#persona .sub,#psRes .sub{font-size:9px;letter-spacing:.22em;color:var(--mut);line-height:2}
 #eraBox input{display:block;margin:26px auto 4px;width:230px;background:transparent;border:0;
       border-bottom:1px solid rgba(236,236,232,.4);color:var(--gold-hi);font-size:26px;
       letter-spacing:.18em;text-align:center;padding:6px 0;outline:none;font-family:inherit}
@@ -212,9 +229,6 @@ canvas{display:block}
   #persona .box{padding:24px 18px;max-height:calc(94vh/var(--ui));
         min-width:0;width:min(calc(96vw/var(--ui)),540px)}
   #persona .box>.eBtn{align-self:stretch;text-align:center}
-  /* 手机上地点志与场面各自再收一点，免得两层滚动条抢同一块地方 */
-  .psDoc{max-height:min(26vh,200px)}
-  #persona .pScene textarea{min-height:158px}
 }
 #persona .pField{display:flex;justify-content:space-between;align-items:baseline;gap:34px;
       border-bottom:1px solid rgba(236,236,232,.14);padding:11px 0}
@@ -222,15 +236,6 @@ canvas{display:block}
 #persona .pField input{flex:1;background:transparent;border:0;color:var(--gold-hi);
       font-size:12px;letter-spacing:.2em;text-align:right;outline:none;font-family:inherit}
 /* 此刻的场面：一段自由文字，玩家写多少神谕就照多少来铸 */
-#persona .pScene{margin-top:14px}
-#persona .pScene>span{display:block;font-size:9px;letter-spacing:.24em;color:var(--mut);margin-bottom:8px}
-#persona .pScene textarea{width:100%;background:rgba(236,236,232,.03);
-      border:1px solid rgba(236,236,232,.18);color:var(--gold-hi);
-      font-size:11.5px;letter-spacing:.06em;line-height:1.95;padding:10px 12px;
-      outline:none;font-family:inherit;resize:vertical}
-#persona .pScene textarea:focus{border-color:var(--gold)}
-#persona .pScene textarea::placeholder{color:var(--mut);letter-spacing:.04em}
-@media (max-width:760px){#persona .pScene textarea{font-size:16px;line-height:1.85}}
 #persona .psFixed{display:flex;gap:10px;margin-top:18px}
 #persona .psCard{flex:1;border:1px solid rgba(201,155,63,.4);padding:12px 14px 10px;cursor:pointer;
       transition:border-color .2s,background .2s}
@@ -274,7 +279,7 @@ canvas{display:block}
    与被缩放容器尺寸耦合的偏移（顶栏高度 46、情报台宽度 322）同步按倍率换算。 */
 :root{--ui:1}
 #game .gTop,#game .gNarr,#game .gModes,#game .gLine,#game .gMfd,
-.gDlg .box,#eraBox .box,#persona .box{zoom:var(--ui)}
+.gDlg .box,#eraBox .box,#persona .box,#psRes .box{zoom:var(--ui)}
 #game .gTop{position:absolute;left:0;top:0;right:0;height:46px;display:flex;align-items:center;
       justify-content:space-between;padding:0 18px;gap:14px;z-index:30;
       border-bottom:1px solid rgba(236,236,232,.14);background:rgba(6,6,6,.23);
@@ -876,7 +881,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 /* #intro / #menu 不在此列：它们靠 opacity 控显隐（#menu{opacity:0}+.show{opacity:1}），
    而动画的填充态优先级高于类规则，会把 opacity 永久钉在 1，菜单再也淡不出去，
    直接盖死后面的开局环。这两个本来就自带 .8s 过渡，不需要再加。 */
-#persona,#eraBox{animation:mvScreen var(--t-view) var(--e-out) backwards}
+#persona,#eraBox,#psRes{animation:mvScreen var(--t-view) var(--e-out) backwards}
 #game.show{animation:mvScreen var(--t-view) var(--e-out) backwards}
 
 /* —— 正文：每段落地时轻轻浮上来。流式那一段排除在外，
@@ -1487,6 +1492,24 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
     <div class="esc2">ESC&nbsp;//&nbsp;RETVRN</div>
   </div>
 </div>
+<!-- 铸局第二步：单开一窗写「此刻的场面」。原本这一栏塞在人物面板里，
+     面板本就有地点志、两张主角卡、八张人物卡与四行身份，再加一块文本域就越过一屏，
+     确认键被挤出画面。写场面本来也不该跟填名字挤在一处——它是另一件事。 -->
+<div id="psRes">
+  <div class="box">
+    <span class="tag">RES</span>
+    <h2>此刻的场面</h2>
+    <div class="sub" id="prSub"></div>
+    <div class="prNote">开局那一幕从哪儿起？谁在场、正在发生什么、你刚做了什么、或刚被卷进什么。<br>
+      留空亦可——神谕会按你选的年代与地点自拟一幕。</div>
+    <textarea id="pfScene" placeholder="例：城门刚闭，我押着一车军粮被守门的百人队长拦下，他要看通行木牍——而我没有。"></textarea>
+    <div class="prBtns">
+      <span class="eBtn" id="prGo">INCIPERE&nbsp;·&nbsp;铸局</span>
+      <span class="eBtn" id="prBack">返回</span>
+    </div>
+    <div class="esc2">ESC&nbsp;//&nbsp;RETVRN&nbsp;&nbsp;·&nbsp;&nbsp;CTRL&nbsp;+&nbsp;⏎&nbsp;铸局</div>
+  </div>
+</div>
 <div id="persona">
   <div class="box">
     <span class="tag">PERSONA</span>
@@ -1508,13 +1531,9 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="pField"><span>AETAS&nbsp;·&nbsp;年龄</span><input id="pfAetas" inputmode="numeric" placeholder="XXI"></div>
       <div class="pField"><span>ORTVS&nbsp;·&nbsp;出身</span><input id="pfOrtus" placeholder="PLEBS"></div>
     </div>
-    <div class="pScene">
-      <span>RES&nbsp;·&nbsp;此刻的场面（可留空，留空则由神谕按年代与地点自拟）</span>
-      <textarea id="pfScene" rows="4" placeholder="谁在场、正在发生什么、你刚做了什么或刚被卷进什么。&#10;例：城门刚闭，我押着一车军粮被守门的百人队长拦下，他要看通行木牍——而我没有。"></textarea>
-    </div>
     <div class="note"><i>ENGINE&nbsp;STANDBY</i>&nbsp;—&nbsp;角色编辑壳已就位，属性系统待接入引擎。</div>
     </div>
-    <div class="eBtn" id="psGo">INCIPERE&nbsp;⏎</div>
+    <div class="eBtn" id="psGo">PERGERE&nbsp;·&nbsp;下一步&nbsp;⏎</div>
     <div class="esc2">ESC&nbsp;//&nbsp;RETVRN</div>
   </div>
 </div>
@@ -2009,7 +2028,16 @@ addEventListener('keydown',function(e){
     return;
   }
   if(MENU.on&&!MENU.exiting){
-    if(psIsOpen()){if(e.key==='Escape')psClose();return;}
+    if(prIsOpen()){
+      if(e.key==='Escape')prClose();
+      else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))prConfirm();
+      return;                       /* Enter 留给文本域换行 */
+    }
+    if(psIsOpen()){
+      if(e.key==='Escape')psClose();
+      else if(e.key==='Enter')prOpen();     /* 回车＝下一步，与按钮同义 */
+      return;
+    }
     if(ebIsOpen()){if(e.key==='Enter')eraConfirm();else if(e.key==='Escape')ebClose();return;}
     if(ERA.on){if(e.key==='Escape')eraExit();return;}
     if(e.key==='Escape')disengage();
@@ -2910,7 +2938,7 @@ var MODSITES=[
  ['NAIROBI','内罗毕',-1.29,36.82],['CAPE TOWN','开普敦',-33.92,18.42]
 ];
 var ERA={on:false,year:117,lon:0,vel:0,drag:false,lx:0,moved:0,t0:0,act:[],hit:[],mx:-1e4,my:-1e4,sel:null};
-var ebEl=$('#eraBox'),eIn=$('#eraIn'),psEl=$('#persona');
+var ebEl=$('#eraBox'),eIn=$('#eraIn'),psEl=$('#persona'),prEl=$('#psRes');
 function ebIsOpen(){return ebEl.style.display==='flex';}
 var EBMODE='ops';
 function ebShow(mode){
@@ -2928,6 +2956,19 @@ function ebShow(mode){
 function ebClose(){ebEl.style.display='none';}
 function psIsOpen(){return psEl.style.display==='flex';}
 function psClose(){psEl.style.display='none';}
+/* 铸局第二步：写此刻的场面。人物面板不关，返回即原样。 */
+function prIsOpen(){return prEl.style.display==='flex';}
+function prClose(){prEl.style.display='none';}
+function prOpen(){
+  var y=(ERA.year==null?117:ERA.year);
+  var ln=RING_LINE||'roma';
+  var nm=ERA.sel?(ERA.sel.n+'　'+ERA.sel.cn):((ln==='zhou')?'SERICA　洛阳':'ROMA　罗马');
+  var who='';try{who=String($('#pfNomen').value||'').trim();}catch(_){}
+  $('#prSub').textContent=fmtYear(y)+'　·　'+nm+(who?('　·　'+who):'');
+  prEl.style.display='flex';
+  var ta=$('#pfScene');if(ta)setTimeout(function(){try{ta.focus();}catch(_){}},60);
+}
+function prConfirm(){prClose();gameEnter();}
 function fmtYear(y){return y<0?('前 '+(-y)+' 年 · '+(-y)+' A.C.N.'):('A.D. '+y+' · '+y+' 年');}
 var EBERA='bc';                                  /* 纪元：bc=公元前 / ad=公元后 */
 function ebEraSet(e){
@@ -3277,9 +3318,12 @@ addEventListener('pointerup',function(e){
   }
 });
 $('#eraGo').addEventListener('pointerup',function(e){e.stopPropagation();eraConfirm();});
-$('#psGo').addEventListener('pointerup',function(e){e.stopPropagation();gameEnter();});
+$('#psGo').addEventListener('pointerup',function(e){e.stopPropagation();prOpen();});
+$('#prGo').addEventListener('pointerup',function(e){e.stopPropagation();prConfirm();});
+$('#prBack').addEventListener('pointerup',function(e){e.stopPropagation();prClose();});
 ebEl.addEventListener('pointerup',function(e){if(e.target===ebEl)ebClose();});
 psEl.addEventListener('pointerup',function(e){if(e.target===psEl)psClose();});
+prEl.addEventListener('pointerup',function(e){if(e.target===prEl)prClose();});
 
 $('#miMiss').addEventListener('pointerup',function(e){e.stopPropagation();menuExit();});
 $('#miCont').addEventListener('pointerup',function(e){e.stopPropagation();if(GAME.op)gameShow();});
@@ -3311,7 +3355,7 @@ function buildActs(y){
   return out;
 }
 function gameShow(){
-  psClose();ebClose();
+  psClose();prClose();ebClose();
   ERA.on=false;mOv.classList.remove('era');
   MENU.on=false;MENU.exiting=false;
   mOv.classList.add('show','gbg');          /* 画布留下：地球在毛玻璃后面转 */
@@ -8678,7 +8722,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.7';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.8';}catch(_){}
 })();
 </script>
 </body>
