@@ -266,14 +266,20 @@ canvas{display:block}
 /* 三维面板是 z-index:25 的绝对定位层；放到最大档时它会压住下面这一组控件。
    把输入这一组抬到面板之上——画面可以被盖一点，控件不能点不着。 */
 #game .gModes,#game .gLine,#game .gSugRow{pointer-events:auto}
-#game .gModes{display:flex;gap:2px;padding:10px 14px 0;flex-wrap:wrap}
+/* 单行横滑：七个钮换行要占三行、手机上整个输入层吃掉四分之一屏。
+   改成不换行 + 横向滚动，高度回到一行；桌面装得下就不会出现滚动。 */
+#game .gModes{display:flex;gap:2px;padding:10px 14px 0;flex-wrap:nowrap;
+      overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+      touch-action:pan-x;scrollbar-width:none;cursor:grab}
+#game .gModes::-webkit-scrollbar{display:none}
+#game .gm,#game .gsug{flex:none}
 #game .gm{font-size:9px;letter-spacing:.2em;color:var(--mut);padding:6px 12px 5px;cursor:pointer;
       border:1px solid transparent;white-space:nowrap;background:rgba(6,6,6,.6)} /* 页签自带底色：浮层下正文透字不糊眼 */
 #game .gm.on{color:#0a0a0a;background:var(--gold);font-weight:600}
 #game .gm:not(.on):hover{color:var(--gold-hi)}
 /* 参谋是开关不是输入模式：它不占模式位，只管「每一幕后要不要给四条可点的下一步」 */
 #game .gsug{font-size:9px;letter-spacing:.2em;padding:6px 12px 5px;cursor:pointer;white-space:nowrap;
-      margin-left:auto;border:1px solid rgba(201,155,63,.28);color:var(--mut);background:rgba(6,6,6,.6)}
+      margin-left:10px;border:1px solid rgba(201,155,63,.28);color:var(--mut);background:rgba(6,6,6,.6)}
 #game .gsug.on{color:var(--gold-hi);border-color:var(--gold)}
 #game .gsug:hover{color:var(--gold-hi)}
 #game .gsug::before{content:'○\00a0';font-size:8px}
@@ -1273,7 +1279,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.9.1';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
+  var ZJ3D_VER='1.9.2';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -4421,8 +4427,41 @@ function suggGen(){
     suggPaint();
   },function(e){if(seq===SUGG.seq)suggNote('参谋失联：'+String(e&&e.message||e||'').slice(0,24)+' · 点此重拟',1);});
 }
+/* 横向拖动滚动（鼠标）。触摸端交给浏览器原生 pan-x，带惯性、不跟它抢。
+   拖过 4px 才算滚动并吃掉这一次 click，否则一拖就误切了模式。 */
+function hDrag(el){
+  if(!el||el._hdrag)return;el._hdrag=1;
+  var down=false,moved=false,sx=0,sl=0,pid=null;
+  el.addEventListener('pointerdown',function(e){
+    if(e.pointerType&&e.pointerType!=='mouse')return;
+    if(e.button!=null&&e.button!==0)return;
+    if(el.scrollWidth<=el.clientWidth+1)return;
+    el._eat=0;down=true;moved=false;sx=e.clientX;sl=el.scrollLeft;pid=e.pointerId;
+    try{el.setPointerCapture(pid);}catch(_){}
+  });
+  el.addEventListener('pointermove',function(e){
+    if(!down)return;
+    var dx=e.clientX-sx;
+    if(!moved&&Math.abs(dx)<4)return;
+    moved=true;el.scrollLeft=sl-dx;el.style.cursor='grabbing';e.preventDefault();
+  });
+  function up(){
+    if(!down)return;down=false;el.style.cursor='grab';
+    try{el.releasePointerCapture(pid);}catch(_){}
+    if(moved)el._eat=1;
+  }
+  el.addEventListener('pointerup',up);
+  el.addEventListener('pointercancel',up);
+  el.addEventListener('click',function(e){if(el._eat){e.stopPropagation();e.preventDefault();}},true);
+  el.addEventListener('wheel',function(e){
+    if(el.scrollWidth<=el.clientWidth+1)return;
+    var d=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;
+    if(!d)return;el.scrollLeft+=d;e.preventDefault();
+  },{passive:false});
+}
 (function(){
   var gms=gEl.querySelectorAll('.gm'),gIn=$('#gIn');
+  hDrag(gEl.querySelector('.gModes'));
   for(var i=0;i<gms.length;i++)(function(m){
     m.addEventListener('click',function(){
       for(var j=0;j<gms.length;j++)gms[j].classList.remove('on');
@@ -7953,7 +7992,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.9.1';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.9.2';}catch(_){}
 })();
 </script>
 </body>
