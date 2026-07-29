@@ -10284,6 +10284,37 @@
       "year": -44
      }
     ]
+   },
+   "tavern_helper": {
+    "scripts": [
+     {
+      "type": "script",
+      "enabled": true,
+      "name": "罗马纪 · 前端",
+      "id": "fccbacca-7877-5421-bb93-408c05bdbc90",
+      "content": "/* ============================================================================\n   罗马纪 · 酒馆助手角色脚本\n   ----------------------------------------------------------------------------\n   这段是塞进角色卡 data.extensions.tavern_helper.scripts[].content 的那一份。\n   酒馆助手把它注入一个常驻隐藏 iframe（不绑楼层，所以不随重渲染重建）。\n\n   它只干一件事：在酒馆主窗里造一个全屏容器，把游戏整份文档以 srcdoc 挂进去。\n   srcdoc 继承酒馆的源，于是游戏里的 boot.js 能直接沿父链够到 TavernHelper，\n   localStorage 也照常可用（存档不用改写）。\n\n   游戏本体一个字节都不改，从 CDN 取。\n   ============================================================================ */\n(function () {\n  'use strict';\n\n  var CDN = 'https://cdn.jsdelivr.net/gh/ekibenya/rome@main/';\n  var ENTRY = CDN + 'st/front/index.html';\n  var ID = 'roma-stage';\n\n  var top = window;\n  for (var i = 0; i < 6 && top.parent !== top; i++) top = top.parent;\n  var doc = top.document;\n\n  function $(id) { return doc.getElementById(id); }\n  function log() { try { console.log.apply(console, ['[roma·loader]'].concat([].slice.call(arguments))); } catch (_) { } }\n\n  function close() {\n    var el = $(ID);\n    if (el) el.remove();\n    doc.documentElement.style.overflow = '';\n  }\n\n  function open() {\n    if ($(ID)) return;\n    var wrap = doc.createElement('div');\n    wrap.id = ID;\n    wrap.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#060606;'\n      + 'display:block;margin:0;padding:0;border:0';\n\n    var bar = doc.createElement('div');\n    bar.style.cssText = 'position:absolute;right:10px;top:10px;z-index:2;'\n      + 'font:11px/1 ui-monospace,monospace;letter-spacing:.2em;color:#8b8b93;'\n      + 'border:1px solid rgba(236,236,232,.3);padding:7px 12px;cursor:pointer;'\n      + 'background:rgba(6,6,6,.8);user-select:none';\n    bar.textContent = 'EXIRE ✕';\n    bar.onclick = close;\n\n    var fr = doc.createElement('iframe');\n    fr.id = ID + '-frame';\n    fr.setAttribute('allow', 'autoplay; fullscreen; xr-spatial-tracking');\n    fr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:block';\n\n    wrap.appendChild(fr);\n    wrap.appendChild(bar);\n    doc.body.appendChild(wrap);\n    doc.documentElement.style.overflow = 'hidden';\n\n    /* 取整份文档再以 srcdoc 挂进去——直接 src= 会变成跨域，够不到 TavernHelper。\n       文档里 <base href> 指向 CDN，所以里面所有相对路径照常解析。 */\n    fetch(ENTRY).then(function (r) {\n      if (!r.ok) throw new Error('入口 HTTP ' + r.status);\n      return r.text();\n    }).then(function (html) {\n      fr.srcdoc = html;\n      log('已挂载', ENTRY);\n    }).catch(function (e) {\n      bar.textContent = '载入失败：' + (e && e.message || e);\n      log('失败', e);\n    });\n  }\n\n  /* 酒馆助手的脚本按钮；同时给一个斜杠命令兜底 */\n  try {\n    if (typeof eventOnButton === 'function') {\n      eventOnButton('进入罗马', open);\n      eventOnButton('退出罗马', close);\n    }\n  } catch (_) { }\n  try {\n    var TH = top.TavernHelper;\n    if (TH && TH.registerSlashCommand) {\n      TH.registerSlashCommand('roma', function () { open(); return ''; }, [], '打开罗马纪', true, true);\n    }\n  } catch (_) { }\n\n  window.__romaOpen = open;\n  window.__romaClose = close;\n  try { top.__romaOpen = open; top.__romaClose = close; } catch (_) { }\n\n  log('就位。点脚本按钮「进入罗马」，或在输入框敲 /roma');\n})();\n",
+      "info": "进入后接管整屏；点右上角 EXIRE ✕ 退出。",
+      "button": {
+       "enabled": true,
+       "buttons": [
+        {
+         "name": "进入罗马",
+         "visible": true
+        },
+        {
+         "name": "退出罗马",
+         "visible": true
+        }
+       ]
+      },
+      "data": {},
+      "export_with": {
+       "data": true,
+       "button": true
+      }
+     }
+    ],
+    "variables": {}
    }
   }
  }

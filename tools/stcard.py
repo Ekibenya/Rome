@@ -26,7 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOC  = os.path.join(ROOT, 'core/vendor/three/build/chunks/9d717bc0/156a50943028.html')
 OUT  = os.path.join(ROOT, 'st')
 
-LINES = [('roma', 'cardRoma'), ('zhou', 'cardZhou')]
+LINES = [('roma', 'cardRoma')]          # 只出罗马
 
 
 def grab(html, script_id):
