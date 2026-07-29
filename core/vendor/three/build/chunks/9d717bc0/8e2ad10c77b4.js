@@ -4814,6 +4814,7 @@
     list.style.cssText = 'display:flex;gap:' + (mob ? '4px' : '6px') + ';overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;contain:paint;will-change:scroll-position;padding:' + (mob ? '4px' : '6px') + ';height:' + (mob ? '66px' : '96px') + ';scrollbar-width:thin';
     tray.appendChild(list); bHud.listEl = list;
     dragScroll(tabs); dragScroll(list);   /* 光有 overflow-x 是拖不动的，见下 */
+    tray.className = 'zjTray';   /* 交给宿主动效层：弹出时自下滑入 */
     w.appendChild(tray); bHud.tray = tray;
     // 幽灵操作条
     var gb = document.createElement('div');
@@ -4861,6 +4862,7 @@
       /* 卡片一律不要 backdrop-filter：一屏 45 张，每张都是一个独立的毛玻璃层，
          底下还是实时渲染的三维画布——每滚一帧合成器要把 45 块背景重新模糊一遍，
          拖起来就黏。托盘本身已经有一层毛玻璃了，卡片用不透明底色即可，观感几乎没差别。 */
+      card.className = 'zjCard';
       card.style.cssText = 'flex:none;width:' + cw + 'px;height:' + chh + 'px;background:rgba(10,10,10,.82);border:1px solid rgba(236,236,232,.18);border-radius:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:2px;gap:1px';
       var im = document.createElement('div');
       im.style.cssText = 'width:' + tw + 'px;height:' + th + 'px;background:#101010 center/cover;border-radius:0';
