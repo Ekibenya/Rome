@@ -1,0 +1,79 @@
+{
+ "source": "cdcf9bb63a.dat",
+ "xor": true,
+ "gzip": true,
+ "chunks": {
+  "core": {
+   "file": "core.dat",
+   "raw": 1919788,
+   "size": 614357,
+   "entries": [
+    "nature.glb",
+    "tex/Ancient_Tex_Wei.png",
+    "tex/Ancient_Tex_Zhao.png",
+    "tex/LowpolyChineseBuilding_Texture_01.png",
+    "tex/LowpolyChineseBuilding_Texture_02.png",
+    "tex/LowpolyChineseBuilding_Texture_03.png",
+    "tex/LowpolyChineseBuilding_Texture_04.png",
+    "tex/LowpolyChineseBuilding_Texture_05.png",
+    "tex/LowpolyHistoricInterior_Texture_01.png",
+    "tex/LowpolyHistoricInterior_Texture_02.png",
+    "tex/LowpolyHistoricInterior_Texture_03.png",
+    "tex/LowpolyHistoricInterior_Texture_04.png",
+    "tex/LowpolyHistoricInterior_Texture_05.png",
+    "tex/LowpolyHistoric_Sculpture_01.png",
+    "tex/LowpolyHistoric_Sculpture_02.png",
+    "tex/LowpolyHistoric_Sculpture_03.png",
+    "tex/LowpolyHistoric_Sculpture_04.png",
+    "tex/LowpolyHistoric_Sculpture_05.png",
+    "tex/LowpolyHistoric_Texture_01.png",
+    "tex/LowpolyHistoric_Texture_02.png",
+    "tex/LowpolyHistoric_Texture_03.png",
+    "tex/LowpolyHistoric_Texture_04.png",
+    "tex/LowpolyHistoric_Texture_05.png",
+    "tex/T_Mountains_temperate_climate_32.png",
+    "tex/T_Tree_tropical.png",
+    "tex/T_Trees_temp_climate.png"
+   ],
+   "sha": "a4fb0c257b7f65cf"
+  },
+  "ancient": {
+   "file": "ancient.dat",
+   "raw": 12634433,
+   "size": 1775117,
+   "entries": [
+    "ancient.glb"
+   ],
+   "sha": "1fc93ec2465324b3"
+  },
+  "historic": {
+   "file": "historic.dat",
+   "raw": 11502570,
+   "size": 1810985,
+   "entries": [
+    "historic.glb"
+   ],
+   "sha": "65c56c1c849386ad"
+  },
+  "interior": {
+   "file": "interior.dat",
+   "raw": 4636670,
+   "size": 721385,
+   "entries": [
+    "interior.glb"
+   ],
+   "sha": "5707cead348f8f62"
+  },
+  "pawn": {
+   "file": "pawn.dat",
+   "raw": 3285979,
+   "size": 494349,
+   "entries": [
+    "pawn.glb",
+    "pawn.json",
+    "tex/pawnpal.png"
+   ],
+   "sha": "65415a7a07a52267"
+  }
+ }
+}
