@@ -3132,10 +3132,14 @@ function iterGo(){
   /* 前往直接视作推进一轮 */
   if(BUSY){narrAdd('sys','神谕尚在沉吟，稍候再启程',null);return;}
   var idx=TURNI++;
-  TURNS.push({role:'user',content:'【ITER】启程前往'+s.cn+'（'+s.n+'）。',t:idx});
+  /* 这一句是本回合真正的玩家输入，离线推演也得拿到它。
+     原来这里传的是 v —— 那是 send() 里的输入框变量，本函数根本没有，
+     必然抛 ReferenceError 被 catch 吞掉：未接 API 时从地球仪移驾永远不推进回合。 */
+  var _uv='【ITER】启程前往'+s.cn+'（'+s.n+'）。';
+  TURNS.push({role:'user',content:_uv,t:idx});
   narrAdd('me','▌ITER&nbsp;&nbsp;启程前往&nbsp;'+esc2(s.cn)+'&nbsp;·&nbsp;'+esc2(s.n),idx);
   if(apiReady())askOracle();
-  else {try{GENIVS.offlineTurn(v,idx);}catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',idx);}}
+  else {try{GENIVS.offlineTurn(_uv,idx);}catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',idx);}}
 }
 $('#itGo').addEventListener('pointerup',function(e){e.stopPropagation();iterGo();});
 $('#itNo').addEventListener('pointerup',function(e){e.stopPropagation();$('#dlgIter').style.display='none';PENDSITE=null;});
@@ -6500,7 +6504,9 @@ function sendText(text){ /* 宿主发送管线：ROME 神谕（三维敕令/移�
   TURNS.push({role:'user',content:text,t:idx});
   narrAdd('me','▌'+esc2(text),idx);
   if(apiReady())askOracle();
-  else {try{GENIVS.offlineTurn(v,idx);}catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',idx);}}
+  /* 同上：原来传的 v 是 send() 的局部变量，这里没有。未接 API 时
+     三维里的一切操作（造屋、颁令、移驾）都只留下一行灰字，永远等不到下文。 */
+  else {try{GENIVS.offlineTurn(text,idx);}catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',idx);}}
 }
 function movePlayerTo(name){
   var L=locByName(name);if(!L)return;
