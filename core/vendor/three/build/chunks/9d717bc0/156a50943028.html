@@ -782,19 +782,30 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   --t-tap:110ms;                          /* 按下反馈 */
   --t-ui:190ms;                           /* 小控件状态 */
   --t-view:340ms;                         /* 视图级切换 */
+  /* 位移量单独抽成变量：减弱动效时归零即可，淡入照旧保留，
+     不必覆盖 keyframes，也让设置里的 MOTVS 开关能压过系统偏好。 */
+  --mv-y:14px; --mv-ys:7px; --mv-s:.985; --mv-scr:1.012; --mv-tap:.94;
 }
 @media (prefers-reduced-motion:reduce){
-  :root{--t-tap:1ms;--t-ui:1ms;--t-view:1ms}
-  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;
-    transition-duration:1ms!important}
+  /* 「减少动态效果」要减的是位移与缩放——那才是引起前庭不适的部分；淡入淡出本身无害，
+     规范也建议保留。此前这里一刀切成 1ms，等于把整层动效抹平。
+     而 iOS 一进低电量模式就会自动打开这个开关，于是好好一台手机看起来像根本没做动画。
+     现在只把位移／缩放归零，淡入保留、时长收到约七成；设置里的 MOTVS 可以压过它。 */
+  :root{--t-tap:90ms;--t-ui:150ms;--t-view:230ms;
+        --mv-y:0px;--mv-ys:0px;--mv-s:1;--mv-scr:1;--mv-tap:1}
 }
+/* 游戏内 MOTVS·动效：显式选择优先于系统偏好 */
+:root[data-motion=full]{--t-tap:110ms;--t-ui:190ms;--t-view:340ms;
+        --mv-y:14px;--mv-ys:7px;--mv-s:.985;--mv-scr:1.012;--mv-tap:.94}
+:root[data-motion=soft]{--t-tap:90ms;--t-ui:150ms;--t-view:230ms;
+        --mv-y:0px;--mv-ys:0px;--mv-s:1;--mv-scr:1;--mv-tap:1}
 
 @keyframes mvFade{from{opacity:0}to{opacity:1}}
-@keyframes mvRise{from{opacity:0;transform:translateY(14px) scale(.985)}
+@keyframes mvRise{from{opacity:0;transform:translateY(var(--mv-y)) scale(var(--mv-s))}
                   to{opacity:1;transform:none}}
-@keyframes mvRiseSm{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes mvRiseSm{from{opacity:0;transform:translateY(var(--mv-ys))}to{opacity:1;transform:none}}
 @keyframes mvSlideUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}
-@keyframes mvScreen{from{opacity:0;transform:scale(1.012)}to{opacity:1;transform:none}}
+@keyframes mvScreen{from{opacity:0;transform:scale(var(--mv-scr))}to{opacity:1;transform:none}}
 
 /* —— 弹窗：遮罩淡入，内容托起 —— */
 .gDlg{animation:mvFade var(--t-view) var(--e-out) backwards}
@@ -836,7 +847,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
              transform var(--t-tap) var(--e-io)}
 #game .gm:active,#game .gsug:active,#game .gAux:active,#game .gSend:active,
 #game .gt:active,.gDlg .sSeg span:active,.gDlg .cfgTabs span:active,
-#arrTx .ax:active,.cxTab:active,.op:active{transform:scale(.94)}
+#arrTx .ax:active,.cxTab:active,.op:active{transform:scale(var(--mv-tap))}
 #arrTx .ax.off:active{transform:none}      /* 灰掉的钮不该有按下反馈 */
 
 /* —— 顶栏图标：悬停微亮 —— */
@@ -861,7 +872,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 .zjTray .zjCard:nth-child(n+5){animation-delay:120ms}
 .zjTray .zjCard{transition:border-color var(--t-ui) var(--e-io),
                            transform var(--t-tap) var(--e-io)}
-.zjTray .zjCard:active{transform:scale(.94)}
+.zjTray .zjCard:active{transform:scale(var(--mv-tap))}
 
 /* —— 设置窗换页 / 世界书换条目：内容淡入，不要硬切 —— */
 #dlgCfg .cfgPane,.cxBody,#zjGraphBox,.zjMemPane{animation:mvFade 220ms var(--e-out) backwards}
@@ -1460,7 +1471,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='2.2.1';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
+  var ZJ3D_VER='2.2.3';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -3647,6 +3658,11 @@ function applyCfg(){
   $('#gNarr').style.fontSize=FONTMAP[CFGS.font]||'13px';
   setSeg('#sgVelo',CFGS.velo);
   uiScaleApply(uiScaleGet());
+  if(CFGS.motus){                       /* 动效档位随设置恢复；没设过就跟随系统 */
+    document.documentElement.setAttribute('data-motion',CFGS.motus);
+    REDUCED=(CFGS.motus==='soft');
+    try{setSeg('#sgMotus',REDUCED?1:0);}catch(_){}
+  }
 }
 applyCfg();
 function narrAdd(cls,html,tIdx){
@@ -6329,7 +6345,14 @@ $('#cxFile').addEventListener('change',function(){
       c.addEventListener('click',function(){
         for(var k=0;k<ch.length;k++)ch[k].classList.remove('on');
         c.classList.add('on');
-        if(sg.id==='sgMotus')REDUCED=c.textContent.indexOf('减弱')>=0;
+        if(sg.id==='sgMotus'){
+          REDUCED=c.textContent.indexOf('减弱')>=0;
+          /* 同时驱动 CSS 动效层；显式选择压过系统的「减少动态效果」，
+             否则手机一进低电量模式，玩家会觉得动画整个没了。 */
+          CFGS.motus=REDUCED?'soft':'full';
+          document.documentElement.setAttribute('data-motion',CFGS.motus);
+          try{cfgStore();}catch(_){}
+        }
         if(sg.id==='sgVelo'){CFGS.velo=idx;cfgStore();}
 
         if(typeof SET!=='undefined'){
@@ -8262,7 +8285,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.1';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.3';}catch(_){}
 })();
 </script>
 </body>
