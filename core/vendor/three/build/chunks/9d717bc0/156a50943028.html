@@ -628,6 +628,25 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   /* 上面这条把设置页里那批 9～11px 的窄输入框一起放大了，
      原来按桌面字号定死的宽度会装不下，改成跟着容器走。 */
   #dlgCfg input.aIn,#dlgApi input.aIn{width:100% !important;min-width:0}
+  /* 世界书原来是桌面式的三栏：类目 118px ＋ 条目 194px 都是定死的宽度，加起来 312px。
+     手机上整个弹窗内容区才三百出头，正文栏分到的宽度接近零——于是「前332年一月到七月」
+     被压成一列，一个字一行。手机上改成上下三段：类目、条目各成一条可横滑的小胶囊行，
+     正文吃掉剩下的全部高度与全部宽度。 */
+  #dlgBook .cxWrap{flex-direction:column;height:calc(64vh/var(--ui))}
+  #dlgBook .cxCats,#dlgBook .cxEnts{
+    width:auto;flex:none;display:flex;flex-direction:row;gap:6px;
+    overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;touch-action:pan-x;
+    border-right:0;border-bottom:1px solid rgba(236,236,232,.14);padding:0 0 6px}
+  #dlgBook .cxCats::-webkit-scrollbar,#dlgBook .cxEnts::-webkit-scrollbar{display:none}
+  #dlgBook .cxEnts{margin-top:6px}
+  #dlgBook .cxCat,#dlgBook .cxEnt{
+    flex:none;white-space:nowrap;border:1px solid rgba(236,236,232,.16);
+    padding:7px 12px;letter-spacing:.12em;line-height:1.4}
+  #dlgBook .cxEnt{font-size:11.5px}
+  #dlgBook .cxCat{font-size:11.5px}
+  #dlgBook .cxBody{flex:1 1 auto;min-height:0;padding:12px 0 2px}
+  #dlgBook .cxBody p{font-size:13px;line-height:1.95}
   #dlgCfg .sRow{flex-wrap:wrap;row-gap:6px}
   #dlgCfg .sRow>span:first-child{flex:none}
   /* 手机端这一排：输入框 16px（iOS 不再自动放大），字距收紧、钮之间的空隙压小，
@@ -6368,6 +6387,18 @@ function bookRender(){
   var cur=lb[ids[BOOK.ent]];
   $('#cxTtl').textContent=cur.title;
   $('#cxTxt').textContent=cur.content;
+  /* 手机上这两栏是横滑的胶囊行：选中项若落在可视范围外（换类目后条目重排、
+     或读回上次的选择），玩家只看得见开头几颗，不知道自己停在哪一条。滚到眼前来。
+     正文也要回到顶部，否则换条目后还停在上一条读到的位置。 */
+  try{
+    ['#cxCats','#cxEnts'].forEach(function(sel){
+      var host=$(sel);if(!host)return;
+      if(host.scrollWidth<=host.clientWidth+1)return;      /* 桌面是竖排，不用管 */
+      var on=host.querySelector('.on');if(!on)return;
+      host.scrollLeft=Math.max(0,on.offsetLeft-(host.clientWidth-on.offsetWidth)/2);
+    });
+    var bd=document.querySelector('#dlgBook .cxBody');if(bd)bd.scrollTop=0;
+  }catch(_){}
 }
 (function(){
   var tabs=document.querySelectorAll('#dlgBook .cxTab');
