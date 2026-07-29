@@ -4765,10 +4765,8 @@
     (Z._topRow || w).appendChild(vb); bHud.viewBtn = vb;
     // 托盘开关
     var tb = document.createElement('div');
-    /* 位置铁则：DICTVM 输入栏的「执行」钮占住右下角 right:10..70px。此钮必须让开——
-       两者原先像素级完全重叠，结果是清单点不着、执行也点不着（还盖在上面，
-       玩家以为那个金框钮就是执行钮，压根不知道有建造清单这回事）。 */
-    tb.style.cssText = 'position:absolute;right:' + (isTouch() ? '78px' : '80px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(201,155,63,.6);color:#ecc878;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
+    /* DICTVM 指令栏已移除，右下角空出来了，挪回去 */
+    tb.style.cssText = 'position:absolute;right:8px;bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(201,155,63,.6);color:#ecc878;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
     tb.textContent = isTouch() ? '清单' : 'OPERA·建造清单';
     /* 首次进营造把钮点成金底黑字，让人一眼看见「这里能开清单」；点过一次即恢复常态。
        比自动弹托盘温和——不遮画面，但也不至于像以前那样完全没人发现得了。 */
@@ -4797,8 +4795,7 @@
     w.appendChild(tb); bHud.trayBtn = tb;
     // 奏报（集中通报本轮兴作/拆除）
     var rb = document.createElement('div');
-    /* 跟着清单钮一起右移，别撞上它的新位置 */
-    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '132px' : '212px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
+    rb.style.cssText = 'position:absolute;right:' + (isTouch() ? '62px' : '142px') + ';bottom:8px;padding:' + (isTouch() ? '4px 10px' : '6px 14px') + ';background:rgba(6,6,6,.7);border:1px solid rgba(236,236,232,.22);color:#d9d9d4;font-size:' + (isTouch() ? '9px' : '9.5px') + ';letter-spacing:.22em;cursor:pointer;pointer-events:auto;border-radius:0;display:none';
     rb.onclick = function () { submitLedger(); };
     w.appendChild(rb); bHud.reportBtn = rb;
     // 托盘

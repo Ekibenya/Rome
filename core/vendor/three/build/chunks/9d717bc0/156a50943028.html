@@ -721,9 +721,6 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 #game.txOpen.tx2 #arrTx{top:calc(46px + min(58vh,540px))}
 #game.txOpen.txBig #arrTx{top:calc(46px + min(84vh,760px))}
 /* 箭头恒朝下：此钮语义=向下逐级展开游戏画面 */
-#txBar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:8px;padding:8px 10px;background:linear-gradient(0deg,rgba(6,6,6,.92),rgba(6,6,6,.55) 70%,transparent);align-items:center}
-#txIn{flex:1;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.22);color:#e8d9b0;font-size:10.5px;padding:7px 10px;font-family:inherit;outline:none}
-#txGo{flex:none;border:1px solid rgba(201,155,63,.5);color:#ecc878;background:transparent;font-size:9.5px;letter-spacing:.2em;padding:7px 14px;cursor:pointer;font-family:inherit}
 #txHint{position:absolute;left:12px;bottom:44px;z-index:3;font-size:11.5px;color:#d9a06a;text-shadow:0 1px 3px #000}
 @keyframes zj3dMarq{to{transform:translateX(-50%)}}
 .zj3dMarq{animation:zj3dMarq linear infinite}
@@ -866,7 +863,6 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 
   <div id="pnTx"><div id="zjScene3D" style="position:absolute;inset:0"></div><div id="mdScene3D" style="position:absolute;inset:0;display:none;outline:none"></div>
     <div id="txHint"></div>
-    <div id="txBar"><input id="txIn" placeholder="EDICTVM 指令：建造／拆除／传送……（如：修一座望楼 · 前往罗马）" autocomplete="off"><button id="txGo">执 行</button></div>
   </div>
   <div id="arrTx"><span class="ax" id="arrUp" title="收起：逐级缩小三维画面，最小后再点即关闭"><span class="a">▴</span><span class="t">收&nbsp;起</span></span><span class="ax" id="arrDn" title="展开：逐级放大三维画面"><span class="t">展&nbsp;开</span><span class="a">▾</span></span></div>
   <div class="gPanel" id="pnMap">
@@ -1316,7 +1312,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.9.5';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
+  var ZJ3D_VER='2.0.0';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -7483,28 +7479,10 @@ function medEdictSync(){ /* 环海侧 sec_deed 敕令：同 edictSync，落到 M
     paint();
     window.__arrPaint=paint;   /* 别处改了档位（如营造清单自抬层级）后可让钮态跟上 */
   }
-  var ti=document.getElementById('txIn'),tg=document.getElementById('txGo');
-  function zjTxGo(){
-    if(!ti)return;var raw=ti.value.trim();if(!raw)return;
-    S.input=raw;S.cmdHint=null;
-    if(ACTIVE==='roma'){
-      var _zhHost=document.getElementById('zjScene3D');
-      var _useZh=_zhHost&&_zhHost.style.display==='block'; /* 身处中原：敕令落给中原引擎 */
-      var CE=_useZh?window.ZJ3D:window.MED3D;
-      if(!(CE&&CE.owns()&&CE.command)){S.cmdHint='三维尚未加载，请先展开上方画面';}
-      else{
-        var r=CE.command(raw);
-        if(!r||!r.ok){S.cmdHint=(r&&r.report)||'未能辨识敕令';}
-        else{S.input='';sendText('（神谕指令行于此城：「'+raw+'」。其果如下——'+r.report+'。此为既成事实：请顺此结果叙事见闻与众人反应，不得更改、推翻或另行虚构执行细节。）');}
-      }
-    }else{
-      worldCommand(raw);
-    }
-    if(S.input==='')ti.value='';
-    var h=document.getElementById('txHint');if(h)h.textContent=S.cmdHint?('未执行：'+S.cmdHint):'';
-  }
-  if(tg)tg.addEventListener('click',zjTxGo);
-  if(ti)ti.addEventListener('keydown',function(e){if(e.isComposing||e.keyCode===229)return;if(e.key==='Enter')zjTxGo();});
+  /* 面板内的 DICTVM 指令栏已移除：它和主输入栏的 EDICTVM·敕令 同名却做两件事，
+     玩家分不清；而三维该跟着剧情走——换城由 ◇时地 经 medLoc→onRender 驱动，
+     兴废由 AI 的 <sec_deed>、GENIVS 的意图抽取、以及建造清单三条路承担。
+     参照 RitusZhou：同一套引擎，它压根没有面板内输入栏。 */
   addEventListener('resize',function(){if(GAME.txOpen)zj3dTick();});
 })();
 
@@ -8051,7 +8029,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.9.5';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.0.0';}catch(_){}
 })();
 </script>
 </body>
