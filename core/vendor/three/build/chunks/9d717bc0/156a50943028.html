@@ -1316,7 +1316,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.9.4';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
+  var ZJ3D_VER='1.9.5';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -4507,13 +4507,24 @@ function hDrag(el){
     if(!d)return;el.scrollLeft+=d;e.preventDefault();
   },{passive:false});
 }
+function touchy(){
+  try{
+    return matchMedia('(pointer:coarse)').matches
+        || (navigator.maxTouchPoints||0)>0
+        || ('ontouchstart' in window);
+  }catch(_){return false;}
+}
 (function(){
   var gms=gEl.querySelectorAll('.gm'),gIn=$('#gIn');
   hDrag(gEl.querySelector('.gModes'));
   for(var i=0;i<gms.length;i++)(function(m){
     m.addEventListener('click',function(){
       for(var j=0;j<gms.length;j++)gms[j].classList.remove('on');
-      m.classList.add('on');gIn.placeholder=m.getAttribute('data-ph');gIn.focus();
+      m.classList.add('on');gIn.placeholder=m.getAttribute('data-ph');
+      /* 只有鼠标设备才顺手把光标放进输入框。触摸屏上 focus() 会把软键盘顶起来——
+         玩家只是想换个模式看看，屏幕却被键盘吃掉半块，还得再点一次收回去。
+         三个条件任一成立即当触摸设备：光靠 pointer:coarse 在某些安卓浏览器上会漏。 */
+      if(!touchy())gIn.focus();
     });
   })(gms[i]);
   function send(){
@@ -8040,7 +8051,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.9.4';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.9.5';}catch(_){}
 })();
 </script>
 </body>
