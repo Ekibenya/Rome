@@ -70,15 +70,40 @@
     doc.body.appendChild(wrap);
     try { doc.documentElement.style.overflow = 'hidden'; } catch (_) { }
 
-    /* 取整份文档再以 srcdoc 挂：直接 src= 会跨域，够不到 TavernHelper。
-       文档 <head> 里已有 <base href> 指向 CDN，里面所有相对路径照常解析。 */
+    /* 出错要看得见。原来只把错误塞进右上角那颗小按钮，玩家看到的还是一片黑。 */
+    var msg = doc.createElement('div');
+    msg.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);'
+      + 'max-width:min(86vw,520px);color:#c9b07f;font:12px/2 ui-monospace,SFMono-Regular,Menlo,monospace;'
+      + 'letter-spacing:.08em;text-align:center;white-space:pre-wrap';
+    msg.textContent = 'ROMA · 正在取回本体…';
+    wrap.appendChild(msg);
+    function fail(what, e) {
+      msg.textContent = 'ROMA · 载入失败\n\n' + what + '\n' + (e && e.message || e)
+        + '\n\n取的地址：\n' + ENTRY
+        + '\n\n若是网络或跨域问题，点右上角 EXIRE ✕ 退出重试。';
+    }
+
+    /* 取整份文档再以 srcdoc 挂：srcdoc 与酒馆同源，游戏里的垫片才够得到
+       TavernHelper。文档 <head> 里已有 <base href> 指向 CDN，相对路径照常解析。 */
     (top.fetch || window.fetch)(ENTRY).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.text();
     }).then(function (html) {
+      fr.onload = function () { try { msg.remove(); } catch (_) { } };
       fr.srcdoc = html;
+      /* 兜底：srcdoc 若因故没起来，8 秒后报出来，别停在「正在取回」 */
+      setTimeout(function () {
+        try {
+          var d2 = fr.contentDocument;
+          if (!d2 || !d2.getElementById('intro')) fail('本体已取回，但页面没能引导起来。', { message: '（可能是三维资源或引擎脚本被拦）' });
+          else msg.remove();
+        } catch (_) { }
+      }, 8000);
     }).catch(function (e) {
-      bar.textContent = '载入失败：' + (e && e.message || e);
+      /* fetch 失败最常见的原因是跨域没放行。退一步用 src= 直挂：
+         界面能出来，但那样是跨域文档，神谕桥会失效——所以只当兜底，并如实说明。 */
+      fail('取本体失败（多半是跨域/网络）。已退回直挂模式，界面可看，但接神谕会失效。', e);
+      try { fr.src = ENTRY; } catch (_) { }
     });
   }
 
