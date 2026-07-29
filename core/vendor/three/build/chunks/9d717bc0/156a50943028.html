@@ -3063,6 +3063,43 @@ function genNPCs(year,la,lo,n,place){
   }
   return out;
 }
+/* 本局主角。自定义开局（CONDERE）里填了身份、或从名册里点了一个人，
+   那一位就是本局的主角——原来这只被当成「贝罗娜的化名」：
+   提示词写的是「她隐去贝罗娜之名，以「X」行走此世」，
+   而系统提示、文体铁则、状态栏协议、模式说明里的主角名又一律硬编码成贝罗娜，
+   于是无论选谁，AI 收到的仍是「主角是贝罗娜」——玩家看到的当然还是贝罗娜视角。 */
+function heroName(){
+  try{if(GAME.hero&&GAME.hero.n)return GAME.hero.n;}catch(_){}
+  return cardHeroName();
+}
+function heroIsCard(){try{return !(GAME.hero&&GAME.hero.n);}catch(_){return true;}}
+/* 卡里本尊的名字：文体铁则那类固定文案要靠它把「贝罗娜」替换成本局主角 */
+function cardHeroName(){return (ACTIVE==='roma')?'贝罗娜':'姬瑶';}
+/* 卡的 system_prompt 与 post_history_instructions 通篇在讲「你扮演贝罗娜、绝不代演贝罗娜」，
+   这是全篇关于「主角是谁」说得最重的两处。换了人来演时它们必须跟着改名，
+   否则模型一边读着「本局主角是尤利娅」、一边读着「铁则一：绝不代演贝罗娜」，
+   最后听的还是卡里那一句。世界观段落（场景、叙事者、世界书）不动——
+   那位战神在那个世界里本来就存在，罗马城里还有她的庙。 */
+function heroRebind(t){
+  if(heroIsCard())return t||'';
+  var C=cardHeroName(),H=heroName();
+  if(!C||C===H)return t||'';
+  return String(t==null?'':t).split(C).join(H);
+}
+function heroSheet(){
+  var h=null;try{h=GAME.hero;}catch(_){}
+  if(!h||!h.n)return '';
+  var C=cardHeroName();
+  return '【本局主角·以此为准，压过卡中原有的主角设定】'
+    +'玩家这一局扮演的不是'+C+'，而是「'+h.n+'」'
+    +(h.g?('，出身'+h.g):'')+(h.a?('，'+h.a+'岁'):'')+(h.o?('，'+h.o):'')
+    +(h.f?'，女子':'')+'。\n'
+    +'· '+C+'不在本局中登场，也不许被提起、被暗示、被当作她的前身或真身——'
+    +'这是一个普通人的故事，没有神格、没有隐藏身份，除非玩家自己写出来。\n'
+    +'· 卡中【玩家角色档案】所述的容貌、性情、称谓、口头禅一概不适用于'+h.n
+    +'；她的性格由玩家在正文里一句一句写出来，你不得预设。\n'
+    +'· 铁则一照旧：'+h.n+'的台词、动作、决定，一个字都不许你写。\n';
+}
 var PSNPC={list:[],sel:-1};
 function psRenderNpcs(){
   var la=ERA.sel?ERA.sel.la:41.9, lo=ERA.sel?ERA.sel.lo0:12.5;
@@ -3254,7 +3291,9 @@ function condereOp(line,y,nm,cn){
   var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
   var who=line==='zhou'?'姬瑶':'贝罗娜';
   var npcs=[];(PSNPC.list||[]).forEach(function(p,i){if(i!==PSNPC.sel&&npcs.length<3)npcs.push(p);});
-  var idLine=nomen?('你隐去'+who+'之名，以「'+nomen+'」行走此世'+(gens?('，称出身'+gens):'')+(aetas?('，年貌作'+aetas+'岁'):'')+(ortus?('，身份是'+ortus):'')+'。'):('你以'+who+'之身悄然临于此地。');
+  /* 填了身份就是换了个人来演，不是本尊改名换姓——原来这句写的是「隐去贝罗娜之名」，
+     模型照着写，自然还是贝罗娜的戏。 */
+  var idLine=nomen?('你是「'+nomen+'」'+(gens?('，出身'+gens):'')+(aetas?('，'+aetas+'岁'):'')+(ortus?('，'+ortus):'')+'。'):('你以'+who+'之身悄然临于此地。');
   var body='【自定义开局】'+yl+'，'+cn+(nm?('（'+nm+'）'):'')+'。\n'+idLine+'\n这一幕自你落脚之刻写起——开口、动身，或先看看四周。';
   /* 底稿的面板必须三段俱全：未接 AI 时它就是终稿，铸局失败时也回退到它。
      原来连整个 <sec_char> 都没有，世界段也只写了两行——玩家一进自定义开局，
@@ -3276,12 +3315,14 @@ function condereSys(line,q){
   if(typeof SET!=='undefined')(SET.presets||[]).forEach(function(pp){
     if(pp.on===false)return;(pp.pos===1?preEnd:preFront).push(pp.text);});
   return [preFront.join('\n'),
-    G.system_prompt||'',
-    '【玩家角色档案】'+(G.description||''),
+    heroRebind(G.system_prompt||''),
+    heroSheet(),                       /* 换了人来演：先把「你演的是谁」摆在最前面 */
+    (heroIsCard()?('【玩家角色档案】'+(G.description||''))
+                 :('【卡中原主角档案·仅供了解此世的笔调与背景，本局不适用于主角】'+(G.description||''))),
     '【叙事者】'+(G.personality||''),
     '【场景】'+(G.scenario||''),
     '【世界书·激活条目】\n'+loreFor(q),
-    '【每回自查】'+(G.post_history_instructions||''),
+    '【每回自查】'+heroRebind(G.post_history_instructions||''),
     preEnd.join('\n')
   ].filter(Boolean).map(macroFill).join('\n\n');
 }
@@ -3291,11 +3332,13 @@ function condereAsk(line,y,nm,cn){
   var nomen=v('#pfNomen'),gens=v('#pfGens'),aetas=v('#pfAetas'),ortus=v('#pfOrtus');
   var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
   var who=line==='zhou'?'姬瑶':'贝罗娜';
+  var her=nomen||who;            /* 后文一律称本局主角，不再一口一个贝罗娜 */
   var ref=nearestOpening(line,y);
   var refPanel=ref?((String(ref.text).match(/<mvu_panel>[\s\S]*?<\/mvu_panel>/)||[''])[0]):'';
   var npcs=[];(PSNPC.list||[]).forEach(function(pp,i){if(i!==PSNPC.sel&&npcs.length<4)npcs.push(pp);});
   var idLine=nomen
-    ?('她隐去'+who+'之名，以「'+nomen+'」行走此世'+(gens?('，称出身'+gens):'')+(aetas?('，年貌作'+aetas+'岁'):'')+(ortus?('，身份是'+ortus):'')+'。')
+    ?('本局主角是「'+nomen+'」'+(gens?('，出身'+gens):'')+(aetas?('，'+aetas+'岁'):'')+(ortus?('，'+ortus):'')
+      +'——一个普通人，不是'+who+'，与'+who+'无涉。'+who+'不在本局登场，也不得被提起或暗示为她的真身。')
     :('她以'+who+'之身悄然临于此地，未用化名。');
   return '【任务】为玩家现场铸一个全新开局。不是续写、不是简介，是从零写一幕完整的开场，'
     +'规格与本卡既有开局看齐。\n'
@@ -3305,8 +3348,8 @@ function condereAsk(line,y,nm,cn){
     +'【写法】\n'
     +'1. 严格遵守系统提示里的全部铁则与文风，考据须属于该年代。\n'
     +'2. 正文 700—1200 字，分小节（可用「**壹 · 小标题**」的形式），依次交代：这一年的时代局势、'
-    +'此地此刻正在发生什么、在场的人各自站在哪里揣着什么心思；最后把场面推到需要'+who+'表态之处停笔。\n'
-    +'3. 绝不代替'+who+'说话、行动、下决定、写内心——她的一切属于玩家。\n'
+    +'此地此刻正在发生什么、在场的人各自站在哪里揣着什么心思；最后把场面推到需要'+her+'表态之处停笔。\n'
+    +'3. 绝不代替'+her+'说话、行动、下决定、写内心——她的一切属于玩家。\n'
     +'4. 正文之后必须输出一个完整的 <mvu_panel>，字段名、行首符号、竖线分隔与下面的范例一字不差，'
     +'内容按你新写的这一幕据实填写。◆行只记她的客观外在（戎装／持物／身躯／旁人眼中的观感）'
     +'与史笔；◆心声那一行请照格式保留，内容写「——」占位即可，不要替她想那一句'
@@ -3320,8 +3363,14 @@ function gameEnter(lineOverride){
   var nm=ERA.sel?ERA.sel.n:(line==='zhou'?'SERICA':'ROMA'),cn=ERA.sel?ERA.sel.cn:(line==='zhou'?'洛阳':'罗马');
   var loc=(y<0?(-y)+' A.C.N.':'A.D. '+y)+' · '+nm;
   var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
+  /* 先把玩家填的／点的身份定下来，再 loadOpening——顺序反了会被 loadOpening 清掉 */
+  var _pv=function(id){var el=$(id);return el?String(el.value||'').trim():'';};
+  var _hn=_pv('#pfNomen');
+  var _hero=_hn?{n:_hn,g:_pv('#pfGens'),a:_pv('#pfAetas'),o:_pv('#pfOrtus'),
+                 f:(PSNPC.sel>=0&&PSNPC.list[PSNPC.sel])?(PSNPC.list[PSNPC.sel].female?1:0):0}:null;
   var draft=condereOp(line,y,nm,cn);
   loadOpening(line,draft,loc);
+  GAME.hero=_hero;
   gameShow();
   if(!apiReady()){                       /* 未接神谕：程序化开局即为终稿 */
     narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;此为程序化开局；接入&nbsp;AI&nbsp;后自定义开局将由神谕现场铸写&nbsp;…',null);
@@ -4465,7 +4514,7 @@ function mvuSpec(){
    模型不知道【CONSILIVM】是要它列可选方案，只能当普通对话处理，
    于是「给出的选项和情境对不上」。 */
 function modeSpec(){
-  var her=(ACTIVE==='roma')?'贝罗娜':'姬瑶';
+  var her=heroName();
   return '【玩家输入的模式标签·必读】玩家每句话前的方括号标签，标明她这一回合在做什么，你必须据此选择回应方式：\n'
     +'·【SERMO】她在出声说话。以 ~ 开头的是她的内心独白——你只可让世界回应她外在的表现，'
     +'绝不可复述、引用或续写这段心声。\n'
@@ -4480,7 +4529,7 @@ function modeSpec(){
    模型收到的是「{{user}}第一人称扮演贝罗娜……{{char}}扮演的是她之外的整个地中海世界」，
    较弱的模型会把它当字面文本，偶尔在正文里回吐 {{user}}，或者搞错「谁不许代演」。 */
 function macroFill(t){
-  var her=(ACTIVE==='roma')?'贝罗娜':'姬瑶';
+  var her=heroName();
   return String(t==null?'':t)
     .replace(/\{\{\s*user\s*\}\}/gi,her)
     .replace(/\{\{\s*char\s*\}\}/gi,'你（叙事者）')
@@ -4503,12 +4552,16 @@ function sysPrompt(){
   var _minc=(typeof SET!=='undefined'&&SET.samp.minc)?SET.samp.minc:500;
   var minc='【篇幅】本回正文不少于'+_minc+'字（状态栏不计入字数）。'
   return [preFront.join('\n'),
-    G.system_prompt||'',
+    heroRebind(G.system_prompt||''),
     /* 只给罗马卡注入：这是罗马线的文体规范，里面写着贝罗娜的名字。
        原来无条件注入，玩周线时 system 里塞着「贝罗娜……自称本座」，
        是「AI 分不清谁是谁」的直接来源。 */
-    (ACTIVE==='roma'?ROMA_STYLE:''),
-    '【玩家角色档案】'+(G.description||''),
+    /* 这段文体铁则是给罗马线写的，里头点名「主角贝罗娜」。自定义开局换了人来演时，
+       这一句会和状态栏协议、模式说明打架——模型两边都听，最后还是往贝罗娜身上写。 */
+    (ACTIVE==='roma'?(heroIsCard()?ROMA_STYLE:ROMA_STYLE.replace(/主角贝罗娜/g,'主角'+heroName())):''),
+    heroSheet(),                       /* 换了人来演：先把「你演的是谁」摆在最前面 */
+    (heroIsCard()?('【玩家角色档案】'+(G.description||''))
+                 :('【卡中原主角档案·仅供了解此世的笔调与背景，本局不适用于主角】'+(G.description||''))),
     '【叙事者】'+(G.personality||''),
     '【场景】'+(G.scenario||''),
     gearLine(),
@@ -4519,7 +4572,7 @@ function sysPrompt(){
     '【世界书·激活条目】\n'+loreFor(recent),
     mvuSpec(),
     modeSpec(),
-    '【每回自查】'+(G.post_history_instructions||''),
+    '【每回自查】'+heroRebind(G.post_history_instructions||''),
     minc,
     CFGS.preset?('【玩家自定义常驻指令】'+CFGS.preset):'',
     preEnd.join('\n')
@@ -4740,9 +4793,9 @@ function buildOracleMsgs(){
   msgs=msgs.concat(hist);
   /* post_history_instructions 顾名思义该落在历史之后。埋在 system 里会被前面
      几万字稀释，铁则一和面板自查都守不住；在队尾再钉一次。 */
-  var _G2=CARDS[ACTIVE]||{},_phi=macroFill(_G2.post_history_instructions||'');
+  var _G2=CARDS[ACTIVE]||{},_phi=macroFill(heroRebind(_G2.post_history_instructions||''));
   msgs.push({role:'system',content:'【本回合落笔前·最后自查】'+_phi
-    +'\n【铁则一·压倒一切，高于任何文体规范】'+(ACTIVE==='roma'?'贝罗娜':'姬瑶')
+    +'\n【铁则一·压倒一切，高于任何文体规范】'+(heroName())
     +'的台词、动作、决定，一个字都不许你写。需要她表态时，把场面推到她面前，停笔，交还玩家。'
     +'\n唯一例外：状态栏 <mvu_panel> 里的 ◆心声 那一行——玩家这回写了 ~ 独白就照抄，'
     +'没写就据本幕处境写一句新的（每幕不同，不许照抄上一幕）。'
@@ -4860,7 +4913,7 @@ function suggGen(){
      否则刚进游戏、最需要「能干什么」提示的那一刻，反而一条策都没有。 */
   if(!last&&GAME.opText)last=stripMvu(GAME.opText);
   if(!last)return;
-  var her=(ACTIVE==='roma')?'贝罗娜':'姬瑶';
+  var her=heroName();
   suggWait();
   var sys='你是这局历史角色扮演游戏的参谋。根据刚落定的这一幕，替玩家（'+her+'）拟四条可以直接递出去的下一步。\n'
     +'格式铁则：只输出一个 JSON 字符串数组，恰好四条，别的一个字都不要。\n'
@@ -6968,7 +7021,7 @@ function esc(s){return esc2(s);}
 function stripCoT(t){return String(t||'').replace(/<think>[\s\S]*?<\/think>/gi,'');}
 function reducedMotion(){try{return matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}}
 function currentOpening(){return GAME.op||null;}
-function zjSelf(){return ACTIVE==='roma'?'贝罗娜':'姬瑶';}
+function zjSelf(){return heroName();}
 function zjL(){return ACTIVE==='roma'
  ?{fdT:'TABVLA&nbsp;PERSONAE',rel:'NEXVS',trust:'FIDES',stat:'STATVS',voice:'VOX',file:'TABVLA',last:'VLTIMA',prev:'◀ PRIOR',next:'PROXIMA ▶',nd:'NVLLA DATA',fr:'AMICVS · 亲',ne:'NEVTER · 平',ho:'HOSTIS · 疏',tag:'DEA'}
  :{fdT:'人物列传',rel:'关系',trust:'信任',stat:'近况',voice:'心声',file:'档案',last:'末见',prev:'◀ 前一人',next:'后一人 ▶',nd:'无　载',fr:'亲厚',ne:'平淡',ho:'疏敌',tag:'神'};}
@@ -7985,6 +8038,7 @@ function loadOpening(side,op,locOverride){
      若本回 AI 漏写，也会从上一局继承过来。 */
   try{GENIVS.reset();}catch(_){}
   GAME.op=op;GAME.opText=op.text;
+  GAME.hero=null;                       /* 正史开局一律是卡里的本尊；自定义开局随后再写回 */
   /* 开局可指定三维落点：像「东方尽头」这种在中原一侧的场景，时地里没有任何中原城名，
      medLoc 只能按字面派生出一座地中海式的城，画面就仍旧是罗马。这里直接把落点交给中原引擎。 */
   GAME.dest3d=op.zh3d||null;_zjOpC={};try{fdClose();}catch(_){}zjLoadPref();
@@ -8148,6 +8202,7 @@ function svSnap(){
     inv:JSON.parse(JSON.stringify(INV)),place:GAME.place,
     ts:Date.now(),                                     /* when 是本地化字符串排不了序，另存真时间戳 */
     op:GAME.op,opText:GAME.opText,dest3d:GAME.dest3d,   /* 开局锚点：不存则读档后 AI 与三维都不知本局年代场景 */
+    hero:GAME.hero||null,               /* 自定义开局的本局主角；不存则读档后又变回卡里的本尊 */
     /* 面板本体也要存。只存 mfd 那段 HTML 的话，读档后 80ms 的重绘会拿「从原文重新
        parse 出来的」降级面板把它盖掉——AI 那一轮偷懒少写几栏，读档后就永久少几栏。 */
     lastPanel:(function(){try{return JSON.parse(JSON.stringify(GAME.lastPanel||null));}catch(_){return null;}})(),
@@ -8198,6 +8253,7 @@ function svLoad(v){
      槽位里若存了本局的开局锚点与记忆，一律以槽位为准。老存档没有这些字段，
      走 if 兜底、行为同旧版，向后兼容。 */
   if(v.op){GAME.op=v.op;GAME.opText=v.opText||(v.op&&v.op.text)||'';_zjOpC={};}
+  GAME.hero=(v.hero&&v.hero.n)?v.hero:null;
   if(v.dest3d!==undefined)GAME.dest3d=v.dest3d||null;
   if(v.zj){
     S.mem=v.zj.mem||[];S.memN=(v.zj.memN==null?S.mem.length:v.zj.memN);
