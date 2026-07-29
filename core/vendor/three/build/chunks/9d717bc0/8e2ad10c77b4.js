@@ -5238,6 +5238,59 @@
     Z.pawns.push(meta);
     return meta;
   }
+  /* ── 剧情人物落地 ────────────────────────────────────────────────
+     在此之前，场上站着的全是程序生成的路人：AI 笔下写谁、写了什么，画面一概不知情。
+     这里把状态栏 ◈ 行里的在场者真的放进场景——站在她面前，按行当挑形貌，名字即剧情里那个名字。
+     只在名单变动时重排，逐帧调用也不费事。 */
+  function castType(role) {
+    var r = String(role || '');
+    var k = /王|帝|天子|君|执政|元老/.test(r) ? 'guan'
+      : /将|尉|骑|兵|卫|统帅|司令|军/.test(r) ? 'jiang'
+      : /商|贾|市/.test(r) ? 'shang'
+      : /医/.test(r) ? 'yizhe'
+      : /祭|巫|占|卜|星|神/.test(r) ? 'wuzhu'
+      : /匠|工|铁/.test(r) ? 'gong'
+      : /乐|琴|歌/.test(r) ? 'yueshi'
+      : /史|书|记|录/.test(r) ? 'shiguan'
+      : /农|牧|渔|樵/.test(r) ? 'nong'
+      : 'shi';
+    return NPC_TYPES[k] || NPC_TYPES.shi;
+  }
+  Z.cast = [];
+  Z.setCast = function (list) {
+    if (!Z.ready || !Z.scene || Z.mode !== 'city') return;
+    /* 换城会整个换 scene，旧的 meta 还挂在数组里但已无父节点，先自愈 */
+    Z.cast = Z.cast.filter(function (m) { return m.root && m.root.parent; });
+    list = (list || []).filter(function (c) { return c && c.name; }).slice(0, 6);
+    var sig = list.map(function (c) { return c.name; }).join('|');
+    if (sig === Z._castSig && Z.cast.length === list.length) return;
+    Z._castSig = sig;
+    var want = {}; list.forEach(function (c) { want[String(c.name)] = c; });
+    Z.cast = Z.cast.filter(function (m) {
+      if (want[m.castName]) return true;
+      if (m.root && m.root.parent) m.root.parent.remove(m.root);
+      Z.pawns = Z.pawns.filter(function (p) { return p !== m; });
+      return false;
+    });
+    var have = {}; Z.cast.forEach(function (m) { have[m.castName] = m; });
+    var px = Z.player ? Z.player.position.x : 0, pz = Z.player ? Z.player.position.z : 0;
+    var yaw = Z.player ? Z.player.rotation.y : 0;
+    list.forEach(function (c, i) {
+      var nm = String(c.name);
+      if (have[nm]) return;
+      var t = castType(c.role);
+      var g = null; try { g = makePawn(t.cfg); } catch (e) { return; }
+      if (!g) return;
+      var a = yaw + Math.PI + (i - (list.length - 1) / 2) * 0.44;
+      var r = 3.8 + (i % 2) * 1.1;
+      g.position.set(px + Math.sin(a) * r, 0, pz + Math.cos(a) * r);
+      g.rotation.y = a + Math.PI;                       /* 面朝她 */
+      Z.scene.add(g);
+      var meta = regPawn(g, { name: nm, cat: c.role || t.cat, desc: c.state || t.desc || '', tag: 'cast', wander: 1.2 });
+      meta.castName = nm;
+      Z.cast.push(meta);
+    });
+  };
   function spawnNpcPawn(rec) { // player-placed npc
     var t = NPC_TYPES[rec.npc] || HIST[rec.npc];
     if (!t) return null;
