@@ -196,6 +196,26 @@ canvas{display:block}
       padding:10px 34px 8px;font-size:11px;letter-spacing:.4em;color:var(--txt);cursor:pointer;
       transition:border-color .2s,color .2s}
 .eBtn:hover{border-color:var(--gold);color:var(--gold-hi)}
+/* 人物面板定高。原本外框跟着内容一路长下去：地点志、两张主角卡、八张随机人物卡、
+   四行身份、再加一块场面文本域，加起来早就超过一屏——而外层是 fixed+居中，
+   超出的部分上下两头一起被切掉，INCIPERE 按钮就落在屏幕外，点都点不到。
+   照设置窗的老办法：外框定高不滚，中间那块自己滚，标签与确认键钉住。 */
+#persona .box{max-height:calc(92vh/var(--ui));overflow:hidden;display:flex;flex-direction:column}
+#persona .box>.tag{flex:none;align-self:flex-start}
+#persona .box>.eBtn{flex:none;align-self:flex-start}
+#persona .box>.esc2{flex:none}
+#persona .psBody{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+      scrollbar-gutter:stable;padding-right:10px;
+      scrollbar-width:thin;scrollbar-color:rgba(201,155,63,.55) rgba(236,236,232,.07)}
+@media (max-width:760px){
+  /* min-width:340px 在 320 宽的机子上会把面板顶出左缘 */
+  #persona .box{padding:24px 18px;max-height:calc(94vh/var(--ui));
+        min-width:0;width:min(calc(96vw/var(--ui)),540px)}
+  #persona .box>.eBtn{align-self:stretch;text-align:center}
+  /* 手机上地点志与场面各自再收一点，免得两层滚动条抢同一块地方 */
+  .psDoc{max-height:min(26vh,200px)}
+  #persona .pScene textarea{min-height:158px}
+}
 #persona .pField{display:flex;justify-content:space-between;align-items:baseline;gap:34px;
       border-bottom:1px solid rgba(236,236,232,.14);padding:11px 0}
 #persona .pField span{font-size:9px;letter-spacing:.3em;color:var(--mut);white-space:nowrap}
@@ -235,6 +255,7 @@ canvas{display:block}
 .psDoc .pdT{font-size:11.5px;letter-spacing:.04em;line-height:2.05;color:#cfcfc9;white-space:pre-wrap}
 .psDoc .pdW{color:var(--mut);font-style:normal}
 @media (max-width:760px){.psDoc .pdG{font-size:12px}.psDoc .pdT{font-size:13px;line-height:1.95}}
+#persona .box>.eBtn{margin-top:20px}
 #persona .note{margin-top:18px;font-size:9px;letter-spacing:.2em;color:var(--mut)}
 #persona .note i{font-style:normal;color:var(--gold)}
 .esc2{margin-top:24px;font-size:9px;letter-spacing:.3em;color:var(--mut)}
@@ -1469,6 +1490,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 <div id="persona">
   <div class="box">
     <span class="tag">PERSONA</span>
+    <div class="psBody" id="psBody">
     <h2 id="psTitle"></h2>
     <div class="sub" id="psSub"></div>
     <div class="psDoc" id="psDoc"></div>
@@ -1491,6 +1513,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <textarea id="pfScene" rows="4" placeholder="谁在场、正在发生什么、你刚做了什么或刚被卷进什么。&#10;例：城门刚闭，我押着一车军粮被守门的百人队长拦下，他要看通行木牍——而我没有。"></textarea>
     </div>
     <div class="note"><i>ENGINE&nbsp;STANDBY</i>&nbsp;—&nbsp;角色编辑壳已就位，属性系统待接入引擎。</div>
+    </div>
     <div class="eBtn" id="psGo">INCIPERE&nbsp;⏎</div>
     <div class="esc2">ESC&nbsp;//&nbsp;RETVRN</div>
   </div>
@@ -3147,6 +3170,14 @@ $('#pcZhou').addEventListener('pointerup',function(e){e.stopPropagation();
 });
 /* 把地点志写进面板。经纬度谁都看得出来，真正想知道的是「这是什么地方、
    我选的这一年这里正在发生什么」——原来这一栏只有座标与一串随机路人。 */
+/* 开面板：滚动区一律拨回顶上，否则上一次翻到底的位置会留着，
+   一进来看见的是半截随机人物卡。 */
+function psShow(){
+  psEl.style.display='flex';
+  /* 先显示再归零：元素还是 display:none 时没有布局盒，scrollTop 写不进去，
+     再开面板会停在上回翻到的位置。 */
+  var b=$('#psBody');if(b)b.scrollTop=0;
+}
 function psDocFill(cn,y){
   var el=$('#psDoc');if(!el)return;
   var d=null;try{d=siteDoc(cn,(y==null?117:y));}catch(_){}
@@ -3165,7 +3196,7 @@ function psOpenSite(s){
   $('#psSub').textContent=fmtYear(ERA.year)+'　·　LAT '+s.la.toFixed(1)+'°　LON '+s.lo0.toFixed(1)+'°';
   psDocFill(s.cn,ERA.year);
   psRenderNpcs();
-  psEl.style.display='flex';
+  psShow();
 }
 function psOpenFree(la,lo){
   var r=regionAt(la,lo);
@@ -3174,14 +3205,14 @@ function psOpenFree(la,lo){
   $('#psSub').textContent=fmtYear(ERA.year)+'　·　自由座标　LAT '+la.toFixed(1)+'°　LON '+lo.toFixed(1)+'°';
   psDocFill(r.cn,ERA.year);          /* 自由座标：若正好落在某座有志的城上也照样给 */
   psRenderNpcs();
-  psEl.style.display='flex';
+  psShow();
 }
 function psOpenCustom(){
   ERA.sel=null;
   $('#psTitle').textContent='CONDERE — 自定义开局';
   $('#psSub').textContent='LIBERVM　·　年代、出身、地点皆自由设定';
   var _pd=$('#psDoc');if(_pd){_pd.innerHTML='';_pd.style.display='none';}
-  psEl.style.display='flex';
+  psShow();
 }
 /* globe drag + site tap + zoom (wheel / two-finger pinch) — only live in era mode */
 function eraPinchDist(){
@@ -8647,7 +8678,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.6';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.7';}catch(_){}
 })();
 </script>
 </body>
