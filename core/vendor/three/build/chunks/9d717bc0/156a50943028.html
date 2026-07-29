@@ -297,6 +297,9 @@ canvas{display:block}
 #game .gSugRow .sg.risk i{color:#c8503c}
 .zjNoBar::-webkit-scrollbar{display:none}   /* 三维营造页签行：能滑但不显滚动条 */
 #game .gSugRow .sg.wait{color:var(--mut);border-style:dashed;cursor:default;grid-column:1/-1;text-align:center}
+/* 朗读／重演／回退已挪到每段正文底下那排，输入区只留 麦克风｜输入框｜发送。
+   这三个钮仍留在 DOM 里当逻辑载体——每段那排的重演/回退是转发给它们的。 */
+#game #gTts,#game #gRedo,#game #gBack{display:none}
 #game .gLine{display:flex;align-items:center;gap:12px;padding:10px 14px 14px}
 /* min-width:0 —— flex 子项默认 min-width:auto，输入框的 min-content 是按 size 属性
    算出来的一大截固定宽度，字号一大就把后面几颗钮整排顶出屏幕外。 */
@@ -1309,7 +1312,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.9.2';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
+  var ZJ3D_VER='1.9.4';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -3526,7 +3529,8 @@ function turnOps(tIdx,rawText){
   d.style.cssText='display:flex;gap:16px;font-size:9px;letter-spacing:.22em;margin:-6px 0 14px';
   d.innerHTML='<span class="op" data-op="tts" style="cursor:pointer;color:var(--gold)">诵此回</span>'
     +'<span class="op" data-op="draw" style="cursor:pointer;color:var(--gold)">✦ 绘此回</span>'
-    +'<span class="op" data-op="redo" style="cursor:pointer;color:var(--gold)">↻ 重演</span>';
+    +'<span class="op" data-op="redo" style="cursor:pointer;color:var(--gold)">↻ 重演</span>'
+    +'<span class="op" data-op="back" style="cursor:pointer;color:var(--gold)">⤺ 回退</span>';
   nr.insertBefore(d,nr.querySelector('.gEot'));
 }
 /* 委托绑定：存档经 innerHTML 序列化后按钮依然可用 */
@@ -3543,7 +3547,17 @@ $('#gNarr').addEventListener('click',function(e){
     if(_rl&&_rl.role==='assistant'&&_rl.t===_rt)$('#gRedo').click();
     else narrAdd('sys','只能重演最后一回',null);
   }
+  else if(a==='back'){
+    /* 与 redo 同理：回退只动最后一回，点老段落上的回退会让人误以为能删中间那一段 */
+    var _bh=op.closest('[data-t]'),_bt=_bh?+_bh.getAttribute('data-t'):-1;
+    var _bl=TURNS[TURNS.length-1];
+    if(_bl&&_bl.role==='assistant'&&_bl.t===_bt)$('#gBack').click();
+    else narrAdd('sys','只能回退最后一回',null);
+  }
   else if(a==='tts'){
+    /* 正在念就当停止钮用——原先输入区那个喇叭兼着这个职责，钮挪走后由它接手 */
+    if(ttsAudio&&!ttsAudio.paused){ttsAudio.pause();return;}
+    if(window.speechSynthesis&&speechSynthesis.speaking){speechSynthesis.cancel();return;}
     var host=op.closest('[data-t]'),tI=host?host.getAttribute('data-t'):null,txt='';
     if(tI!=null)document.querySelectorAll('#gNarr p[data-t="'+tI+'"]').forEach(function(n){txt+=n.textContent+'\n';});
     speakText(txt||$('#gNarr').textContent.slice(0,1200));
@@ -4421,8 +4435,8 @@ function suggGen(){
      两次都会走到这里——底稿那次纯属白烧一次接口调用。铸局期间 BUSY 为真，跳过即可，
      正式开局落定后自然会再叫一次。 */
   if(BUSY)return;
-  if(typeof zjAuxReady!=='function'||!zjAuxReady()){
-    suggNote('参谋四策需接入 AI（顶栏 ORACVLVM）');return;}
+  /* 没接口就整行不出现——玩到这儿的人当然知道没 AI 就没四策，不必再提醒一遍。 */
+  if(typeof zjAuxReady!=='function'||!zjAuxReady())return;
   var seq=++SUGG.seq;
   var last='';
   for(var i=TURNS.length-1;i>=0;i--){if(TURNS[i].role==='assistant'){last=stripMvu(TURNS[i].content);break;}}
@@ -8022,7 +8036,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.9.2';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.9.4';}catch(_){}
 })();
 </script>
 </body>
