@@ -4646,6 +4646,19 @@
     };
     tb.onclick = function () {
       bHud._openedSession = true; tb._hi(false);
+      /* 面板每次打开都被宿主强制回到 tier 0（=未展开），此时 inBuild() 恒假、
+         营造 UI 整套不渲染——玩家点开三维就再也找不到建造栏。所以这个钮自己负责
+         把层级抬到营造档：一次点击到位，不必先去面板里找那个「OPVS·建造」。 */
+      if (!inBuild()) {
+        Z.view = 'build';
+        try { localStorage.setItem('med3d_view2', Z.view); } catch (e) { }
+        if (!Z.tier || Z.tier < 1) {
+          Z.tier = 1; Z.expanded = true;
+          try { localStorage.setItem('med3d_tier', '1'); localStorage.setItem('med3d_expand', '1'); } catch (e) { }
+          if (window.ZJ3D_onExpand) window.ZJ3D_onExpand();   /* 宿主据此把面板放大 */
+        }
+        updateHud(); updateBuildHud();
+      }
       bHud.tray.style.display = bHud.tray.style.display === 'none' ? 'block' : 'none';
       fillTray();
     };
@@ -4807,7 +4820,14 @@
     var on = inBuild();
     bHud.goldChip.style.display = on ? 'block' : 'none';
     if (on) { econTick(); bHud.goldChip.textContent = isTouch() ? ('金 ' + ECON.gold.toLocaleString()) : ('AERARIVM·金 ' + ECON.gold.toLocaleString() + ' · +' + ECON.RATE + '/分'); }
-    bHud.trayBtn.style.display = on ? 'block' : 'none';
+    /* 常驻：只要三维就绪、人在城里，这个钮就一直在。
+       原来绑死 inBuild()，而面板每次打开都被打回 tier 0（未展开），
+       于是建造栏在玩家眼里就是「彻底出不来」。抬层级的活交给它自己的 onclick。 */
+    var trayReachable = Z.ready && (Z.mode === 'city' || (Z.mode === 'interior' && Z.intPlan));
+    bHud.trayBtn.style.display = trayReachable ? 'block' : 'none';
+    bHud.trayBtn.textContent = isTouch()
+      ? (on ? '清单' : '建造')
+      : (on ? 'OPERA·建造清单' : 'OPERA·建造');
     if (bHud.reportBtn) {
       var lc = ledgerCount();
       bHud.reportBtn.style.display = (on && lc > 0) ? 'block' : 'none';
@@ -4817,7 +4837,8 @@
        （旧行为是首次进营造即自动弹出，整幅画面被物品格挡住，看不到城。）
        离开营造(on=false)一律收起并复位。 */
     if (!on) { bHud._openedSession = false; bHud.tray.style.display = 'none'; }
-    if (bHud.trayBtn && bHud.trayBtn._hi) bHud.trayBtn._hi(on && !bHud._openedSession);
+    if (bHud.trayBtn && bHud.trayBtn._hi)
+      bHud.trayBtn._hi(trayReachable && !bHud._openedSession);
     /* 室内即便没开陈设规划，也要留这个出口钮；否则进屋后营造 UI 全灭、无路可退 */
     bHud.viewBtn.style.display = Z.expanded ? 'block' : 'none';
     bHud.viewBtn.textContent = (Z.intPlan || Z.mode === 'interior') ? 'EXI·回城' : (Z.view === 'build' ? 'ITER·漫游' : 'OPVS·建造');
