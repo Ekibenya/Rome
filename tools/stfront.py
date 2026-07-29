@@ -79,8 +79,21 @@ def main():
     anchor = '<meta charset="utf-8">\n'
     if doc.count(anchor) != 1:
         raise SystemExit('找不到唯一的 charset 锚点')
+    # 界面上切掉周纪：只藏入口，不动代码。
+    # #lineTg 是转盘上那颗「LINEA·ROMA ⇄ 周」切线按钮，
+    # #pcZhou 是人物面板里那张「姬瑶」卡。两处一藏，周纪就没有任何入口了。
+    # 不去删 __GAME_ZHOU__ 与周纪引擎——删了要牵动 CARDS.zhou 的一串引用，
+    # 而罗马这边要求逐字节不变，宁可多背 218KB 也不冒这个险。
+    nozhou = ('<style id="roma-only">'
+              '#lineTg{display:none!important}'
+              '#pcZhou{display:none!important}'
+              '#persona .psFixed{display:block}'
+              '#persona .psCard#pcRoma{width:100%}'
+              '</style>\n')
+
     inject = (anchor
               + '<base href="' + CDN + '">\n'
+              + nozhou
               + '<script>window.__ROMA_ST__=' + json.dumps(cfg, ensure_ascii=False) + ';</script>\n'
               + '<script>\n' + boot + '\n</script>\n')
     out = doc.replace(anchor, inject, 1)
