@@ -6887,8 +6887,16 @@ function svLoad(v){
   TURNS=v.turns||[];TURNI=TURNS.length?(Math.max.apply(null,TURNS.map(function(t){return t.t||0;}))+1):0;
   if(v.inv&&v.inv.eq&&v.inv.bag){INV=v.inv;invStore();}
   GAME.place=v.place||null;INVSEL=null;invRender();
+  /* 读档时的面板要按实时路径同样的方式重建：从开局起逐幕合并，而不是只取
+     「最后一个写了面板的回合」。只取最后一幕的话，那一幕漏写的栏位读档后就永久消失，
+     玩家会看到存档一读进来状态栏当场缩水。 */
   GAME.lastPanel=null;
-  for(var li=TURNS.length-1;li>=0;li--){if(TURNS[li].role==='assistant'){GAME.lastPanel=parseMvu(TURNS[li].content)||null;if(GAME.lastPanel)break;}}
+  try{if(v.opText){var _op=parseMvu(v.opText);if(_op)GAME.lastPanel=_op;}}catch(_){}
+  for(var li=0;li<TURNS.length;li++){
+    if(TURNS[li].role!=='assistant')continue;
+    var _tp=null;try{_tp=parseMvu(TURNS[li].content);}catch(_){}
+    if(_tp)GAME.lastPanel=mvuMerge(GAME.lastPanel,_tp);
+  }
   try{zjLoadPref();}catch(_){}
   /* zjLoadPref 读的是「按卡」的全局偏好，会把最新一局的长卷盖上来。
      槽位里若存了本局的开局锚点与记忆，一律以槽位为准。老存档没有这些字段，
