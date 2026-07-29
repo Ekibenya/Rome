@@ -6105,9 +6105,12 @@
        （建筑/草木/道路/军旅 + 职业类目名）里找。人名当然找不到，score 恒 <0，
        整条被丢弃：剧情里出现的任何具名角色都不会出现在三维里。
        改成先按身份词猜个外形，再把 sec_deed 里写的那个人名原样挂上去。 */
+    /* 正文里抓出来的「来者」有相当一部分是泛指（有人／众人／使者／几个人），
+       把它们当具名角色摆进城里只会平添一堆叫「有人」的路人。 */
+    var VAGUE = /^(有人|某人|众人|人们|大家|一行人|几个人|数人|数十人|一群人|他|她|它|他们|她们|我|你|来人|此人|那人|这人|无|不详)$/;
     (spec.come || []).slice(0, 3).forEach(function (c, ci) {
       var nm = String((c && c.name) || '').trim();
-      if (!nm) return;
+      if (!nm || nm.length < 2 || nm.length > 8 || VAGUE.test(nm)) return;
       var item = edictResolve(nm) || edictResolve(String(c.role || '')) || null;
       var store = buildsOf(Z.cityKey);
       var spot = edictSpot(item || { kind: 'npc' }, key + '@who#' + ci);
