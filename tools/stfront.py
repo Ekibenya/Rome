@@ -117,8 +117,24 @@ def main():
     HEAD = MARK + '\n' + HINT + '\n'
 
     loader = io.open(os.path.join(OUT, 'loader.js'), encoding='utf-8').read().replace('__CDN__', CDN)
-    # isFrontend 判定看文本是否含 <body>：用一句 HTML 注释满足它，不产生嵌套 body
-    block = '```html\n<!--<body>-->\n<script>\n' + loader + '\n</script>\n```'
+    # 代码块里先放一块「可见的」面板，再放脚本。
+    # 只要酒馆助手把 iframe 渲出来了，这块面板就一定看得见——万一脚本哪一步失败，
+    # 玩家看到的是写明原因的一行字，而不是一片空白。这是排障的关键。
+    # isFrontend 判定看文本是否含 <body>：用一句 HTML 注释满足它，不产生嵌套 body。
+    panel = (
+        '<!--<body>-->\n'
+        '<div id="romaBox" style="font:13px/1.7 -apple-system,\'PingFang SC\',system-ui,sans-serif;'
+        'color:#e6e6e2;background:#0b0b0c;border:1px solid #26262b;padding:16px 18px">'
+        '<div style="font-size:11px;letter-spacing:.28em;color:#c99b3f;margin-bottom:10px">'
+        'SPQR&nbsp;·&nbsp;罗马纪</div>'
+        '<div id="romaGo" style="display:inline-block;border:1px solid #c99b3f;color:#e0bd6e;'
+        'padding:9px 22px;letter-spacing:.2em;cursor:pointer;user-select:none;font-size:12px">'
+        'INTRARE&nbsp;·&nbsp;进入罗马</div>'
+        '<div id="romaMsg" style="font-size:11px;color:#8b8b93;margin-top:11px">'
+        '脚本未执行——若一直是这行字，说明酒馆助手没有把本块渲染成 iframe。</div>'
+        '</div>\n'
+    )
+    block = '```html\n' + panel + '<script>\n' + loader + '\n</script>\n```'
 
     card_fn = os.path.join(ROOT, 'st/roma.card.json')
     card = json.load(io.open(card_fn, encoding='utf-8'))

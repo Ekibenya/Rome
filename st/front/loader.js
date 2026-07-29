@@ -1,36 +1,43 @@
 /* ============================================================================
-   罗马纪 · 酒馆前端加载器（正则驱动版）
+   罗马纪 · 酒馆前端加载器
    ----------------------------------------------------------------------------
-   这段脚本由角色卡里的一条显示层正则注入：正则把开场白里的舞台标记替换成一个
-   含 body 标签的代码块，酒馆助手（JS-Slash-Runner）据 isFrontend 判定
-   （文本含 html/head/body 标签即渲染成 iframe），把本段跑进一个消息 iframe。
+   本段由角色卡里的显示层正则注入：正则把开场白里的舞台标记换成一个代码块，
+   酒馆助手（JS-Slash-Runner）据 isFrontend 判定把它渲染成消息 iframe，本段在
+   那个 iframe 里执行，然后往酒馆主窗上盖一个全屏容器承载游戏。
 
-   本段在那个消息 iframe 里执行，往酒馆主窗上盖一个全屏容器，把游戏整份文档
-   （index.html，从 CDN 取）以 srcdoc 挂进去。srcdoc 与酒馆同源，游戏里的
-   boot.js 能沿父链够到 TavernHelper，localStorage 也照常可用。
-
-   全屏容器只挂一次：后续每条 AI 消息也会触发这段脚本，但见 flag 即退，
-   并把自己那个消息 iframe 藏掉，免得聊天里留一格空白。
+   设计上刻意做成「先给一个可见的面板，再由玩家点进去」：
+   · 面板是纯 HTML，只要 iframe 渲出来了就一定看得见——万一后面哪一步失败，
+     玩家看到的是一句写明原因的话，而不是一片空白。
+   · 不自动全屏。每条 AI 消息都会重新触发本段，自动全屏会一直往玩家脸上糊。
    ============================================================================ */
 (function () {
   'use strict';
+
   var CDN = '__CDN__';
   var ENTRY = CDN + 'st/front/index.html';
   var STAGE = 'roma-stage';
 
-  /* 走到最顶层的酒馆主窗 */
-  var top = window;
-  try { for (var i = 0; i < 8 && top.parent && top.parent !== top; i++) top = top.parent; } catch (_) { top = window; }
-  var doc = top.document;
+  var box = document.getElementById('romaBox');
+  var msg = document.getElementById('romaMsg');
+  var btn = document.getElementById('romaGo');
+  function say(t, bad) {
+    if (!msg) return;
+    msg.textContent = t;
+    msg.style.color = bad ? '#c0553c' : '#8b8b93';
+  }
 
-  /* 藏掉自己这一格消息 iframe，别在聊天流里留空白 */
-  function hideSelf() {
-    try {
-      var fe = window.frameElement;
-      if (fe) { fe.style.height = '0'; fe.style.minHeight = '0'; fe.style.border = '0'; fe.style.display = 'none'; }
-      var host = fe && fe.closest ? fe.closest('.TH-render, pre') : null;
-      if (host) host.style.display = 'none';
-    } catch (_) { }
+  /* 走到最顶层的酒馆主窗。层级是 游戏iframe → 消息iframe → 酒馆主窗 */
+  var top = window, hops = 0;
+  try {
+    for (; hops < 8 && top.parent && top.parent !== top; hops++) top = top.parent;
+  } catch (_) { top = window; }
+
+  var doc = null, sameOrigin = false;
+  try { doc = top.document; sameOrigin = !!(doc && doc.body !== undefined); } catch (_) { sameOrigin = false; }
+
+  if (!sameOrigin) {
+    say('够不到酒馆主窗（跨域）。请确认酒馆助手的「渲染」是开着的。', true);
+    return;
   }
 
   function close() {
@@ -38,11 +45,13 @@
     if (el) el.remove();
     try { doc.documentElement.style.overflow = ''; } catch (_) { }
     top.__ROMA_STAGE_MOUNTED__ = false;
+    say('已退出。可再次点「进入罗马」。');
   }
 
-  function open() {
-    if (top.__ROMA_STAGE_MOUNTED__ || doc.getElementById(STAGE)) return;
+  function mount() {
+    if (top.__ROMA_STAGE_MOUNTED__ || doc.getElementById(STAGE)) { say('已经在运行了。'); return; }
     top.__ROMA_STAGE_MOUNTED__ = true;
+    say('正在取游戏本体…');
 
     var wrap = doc.createElement('div');
     wrap.id = STAGE;
@@ -55,14 +64,10 @@
 
     var bar = doc.createElement('div');
     bar.textContent = 'EXIRE ✕';
-    bar.style.cssText = 'position:absolute;right:12px;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:2;'
-      + 'font:11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.2em;color:#c9b';
-    bar.style.color = '#8b8b93';
-    bar.style.border = '1px solid rgba(236,236,232,.3)';
-    bar.style.padding = '8px 13px';
-    bar.style.cursor = 'pointer';
-    bar.style.background = 'rgba(6,6,6,.82)';
-    bar.style.userSelect = 'none';
+    bar.style.cssText = 'position:absolute;right:12px;top:12px;z-index:2;'
+      + 'font:11px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;color:#8b8b93;'
+      + 'border:1px solid rgba(236,236,232,.3);padding:8px 13px;cursor:pointer;'
+      + 'background:rgba(6,6,6,.85);user-select:none';
     bar.onclick = close;
 
     wrap.appendChild(fr);
@@ -70,48 +75,26 @@
     doc.body.appendChild(wrap);
     try { doc.documentElement.style.overflow = 'hidden'; } catch (_) { }
 
-    /* 出错要看得见。原来只把错误塞进右上角那颗小按钮，玩家看到的还是一片黑。 */
-    var msg = doc.createElement('div');
-    msg.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);'
-      + 'max-width:min(86vw,520px);color:#c9b07f;font:12px/2 ui-monospace,SFMono-Regular,Menlo,monospace;'
-      + 'letter-spacing:.08em;text-align:center;white-space:pre-wrap';
-    msg.textContent = 'ROMA · 正在取回本体…';
-    wrap.appendChild(msg);
-    function fail(what, e) {
-      msg.textContent = 'ROMA · 载入失败\n\n' + what + '\n' + (e && e.message || e)
-        + '\n\n取的地址：\n' + ENTRY
-        + '\n\n若是网络或跨域问题，点右上角 EXIRE ✕ 退出重试。';
-    }
-
-    /* 取整份文档再以 srcdoc 挂：srcdoc 与酒馆同源，游戏里的垫片才够得到
-       TavernHelper。文档 <head> 里已有 <base href> 指向 CDN，相对路径照常解析。 */
-    (top.fetch || window.fetch)(ENTRY).then(function (r) {
+    /* 取整份文档再以 srcdoc 挂：直接 src= 会跨域，游戏里的垫片就够不到 TavernHelper。
+       文档 <head> 里已有 <base href> 指向 CDN，里面所有相对路径照常解析。
+       用主窗的 fetch（.call 绑定，否则 Illegal invocation），它不受本 iframe 的
+       文档状态影响。 */
+    var F = (top.fetch ? top.fetch.bind(top) : window.fetch.bind(window));
+    F(ENTRY).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.text();
     }).then(function (html) {
-      fr.onload = function () { try { msg.remove(); } catch (_) { } };
       fr.srcdoc = html;
-      /* 兜底：srcdoc 若因故没起来，8 秒后报出来，别停在「正在取回」 */
-      setTimeout(function () {
-        try {
-          var d2 = fr.contentDocument;
-          if (!d2 || !d2.getElementById('intro')) fail('本体已取回，但页面没能引导起来。', { message: '（可能是三维资源或引擎脚本被拦）' });
-          else msg.remove();
-        } catch (_) { }
-      }, 8000);
+      say('已进入。右上角 EXIRE ✕ 退出。');
     }).catch(function (e) {
-      /* fetch 失败最常见的原因是跨域没放行。退一步用 src= 直挂：
-         界面能出来，但那样是跨域文档，神谕桥会失效——所以只当兜底，并如实说明。 */
-      fail('取本体失败（多半是跨域/网络）。已退回直挂模式，界面可看，但接神谕会失效。', e);
-      try { fr.src = ENTRY; } catch (_) { }
+      close();
+      say('取不到游戏本体：' + (e && e.message || e) + '（地址：' + ENTRY + '）', true);
     });
   }
 
-  hideSelf();
-  /* 稍等一拍：确保酒馆主窗的 body 已就绪 */
-  if (doc && doc.body) open();
-  else setTimeout(open, 60);
+  if (btn) btn.onclick = mount;
+  say('就绪。点上面的按钮进入。');
 
-  /* 也挂到主窗，方便手动 /roma 或调试 */
-  try { top.__romaOpen = open; top.__romaClose = close; } catch (_) { }
+  /* 也挂到主窗，方便控制台手动调用 */
+  try { top.__romaOpen = mount; top.__romaClose = close; } catch (_) { }
 })();
