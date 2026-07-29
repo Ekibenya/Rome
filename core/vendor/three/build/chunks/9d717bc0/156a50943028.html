@@ -244,7 +244,12 @@ canvas{display:block}
          模糊+提饱和才能既压住底纹又保住金色图标的通透。 */
       -webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%)}
 #game .gBrand{font-size:10px;letter-spacing:.34em;color:var(--mut);white-space:nowrap}
-#game .gLoc{font-size:10px;letter-spacing:.3em;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 这一条是跑马灯的「窗口」：宽度必须由布局定死，不能跟着内容走——
+   轨道里塞的是两份内容，元素若按内容自适应就会撑大，把工具钮往屏幕外顶。
+   桌面再宽也封到 200px：窗口越宽，同一时刻越容易并排看见两遍同样的字，
+   那看着像渲染坏了而不是跑马灯。 */
+#game .gLoc{font-size:10px;letter-spacing:.3em;color:var(--txt);white-space:nowrap;
+      overflow:hidden;flex:1 1 auto;min-width:0;max-width:min(46vw,200px)}
 #game .gLoc i{font-style:normal;color:var(--gold)}
 #game .gTools{display:flex;gap:8px;flex:none}
 #game .gt{font-size:9px;letter-spacing:.24em;color:var(--mut);border:1px solid rgba(236,236,232,.22);
@@ -7884,10 +7889,20 @@ function gLocFit(){
   var el=$('#gLoc');if(!el)return;
   var raw=el.getAttribute('data-raw');
   if(raw==null){raw=el.innerHTML;el.setAttribute('data-raw',raw);}   /* 老存档／首次调用 */
-  el.innerHTML=raw;                                   /* 先按静止态量一次真实宽度 */
-  var room=el.clientWidth,need=el.scrollWidth;
-  if(!room||need<=room+1)return;                      /* 放得下：不滚 */
-  var GAP=36;
+  el.innerHTML=raw;
+  var room=el.clientWidth;
+  /* 文字真实宽度不能用 scrollWidth——它至少等于 clientWidth，文字比窗口窄时
+     量到的永远是窗口宽，间距就补不出来，宽屏上照旧并排看见两遍。
+     拿一个脱离布局的探针量：挂在 gLoc 里才继承得到同一套字体与字距。 */
+  var probe=document.createElement('span');
+  probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:0';
+  probe.innerHTML=raw;el.appendChild(probe);
+  var need=Math.ceil(probe.getBoundingClientRect().width);
+  el.removeChild(probe);
+  if(!room||!need)return;
+  /* 放得下也照样转。间距至少要补满「窗口比文字宽出来」的那一截，
+     这样同一时刻画面里永远只有一份，不会并排看见两遍同样的字。 */
+  var GAP=Math.max(36,room-need+24);
   var track=document.createElement('span');
   track.className='zj3dMarq';
   track.style.cssText='display:inline-flex;white-space:nowrap;will-change:transform';
@@ -7900,7 +7915,9 @@ function gLocFit(){
     track.appendChild(c);
   }
   el.innerHTML='';el.appendChild(track);
-  track.style.animationDuration=Math.max(9,(need+GAP)/20)+'s';
+  /* 速度恒定 ~22px/s，但一圈最长封到 20 秒——宽屏上间距被撑得很大时，
+     否则一圈要转半分钟，看着像卡住了。 */
+  track.style.animationDuration=Math.min(26,Math.max(9,(need+GAP)/22))+'s';
 }
 addEventListener('resize',function(){try{gLocFit();}catch(_){}});
 function svSnap(){
