@@ -239,7 +239,10 @@ canvas{display:block}
 .gDlg .box,#eraBox .box,#persona .box{zoom:var(--ui)}
 #game .gTop{position:absolute;left:0;top:0;right:0;height:46px;display:flex;align-items:center;
       justify-content:space-between;padding:0 18px;gap:14px;z-index:30;
-      border-bottom:1px solid rgba(236,236,232,.14);background:rgba(6,6,6,.23)}
+      border-bottom:1px solid rgba(236,236,232,.14);background:rgba(6,6,6,.23);
+      /* 毛玻璃：底下是三维画面与正文，直接压半透明黑会糊成一团脏色；
+         模糊+提饱和才能既压住底纹又保住金色图标的通透。 */
+      -webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%)}
 #game .gBrand{font-size:10px;letter-spacing:.34em;color:var(--mut);white-space:nowrap}
 #game .gLoc{font-size:10px;letter-spacing:.3em;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #game .gLoc i{font-style:normal;color:var(--gold)}
@@ -250,8 +253,10 @@ canvas{display:block}
 #game .gTools .gt{width:32px;height:26px;padding:0;display:flex;align-items:center;justify-content:center}
 #game .gTools .gt.on{color:var(--gold-hi);border-color:var(--gold)}
 #game .gTools .gt svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}
-#game .gMain{position:absolute;left:64px;right:calc(322px*var(--ui));top:calc(46px*var(--ui));bottom:0;display:flex;flex-direction:column}
-#game .gNarr{flex:1;overflow-y:auto;padding:36px 7% 118px;font-size:13px;line-height:2.2;
+/* 正文区顶到 0：让文字从毛玻璃顶栏底下滚过去。若仍从 46px 开始，顶栏后面永远是空的，
+   毛玻璃就没有任何东西可以模糊，等于白做。首行由 .gNarr 自己的 padding-top 推开。 */
+#game .gMain{position:absolute;left:64px;right:calc(322px*var(--ui));top:0;bottom:0;display:flex;flex-direction:column}
+#game .gNarr{flex:1;overflow-y:auto;padding:calc(46px*var(--ui) + 36px) 7% 118px;font-size:13px;line-height:2.2;
       letter-spacing:.06em;color:#c8c8c2;background:transparent}
 #game .gNarr p{margin-bottom:1.5em}
 #game .gNarr .q{color:var(--gold-hi)}
@@ -574,18 +579,21 @@ canvas{display:block}
 .gNav{display:none}
 @media (max-width:760px){
   #game .gTop .gBrand{display:none}
-  #game .gMain{left:0;right:0;bottom:34px}
-  #game .gMfd{display:none;left:0;right:0;width:auto;bottom:34px;border-left:0}
+  /* 底部导航改成浮在内容之上（跟输入区渐变同一套路），不再横向预留一条 34px 空带——
+     那条带里其实只有一个居中的小胶囊，电脑端根本没有这块，两端观感因此不一致。 */
+  #game .gMain{left:0;right:0;bottom:0}
+  #game .gMfd{display:none;left:0;right:0;width:auto;bottom:0;border-left:0;padding-bottom:40px}
   .gArr{display:none}
   .gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}
   /* 舆·备一页：地图上、装备下（Ghost 式上下布局省空间） */
   #game[data-pg=map] #pnMap{display:block;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52)}
-  #game[data-pg=map] #pnArm{display:block;top:calc(46px + (100dvh - 80px)*.52);bottom:34px;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}
+  #game[data-pg=map] #pnArm{display:block;top:calc(46px + (100dvh - 80px)*.52);bottom:0;padding-bottom:40px;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}
   #game[data-pg=mfd] .gMfd{display:block}
   #game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}
   /* Ghost 式小岛切换条：底部居中小胶囊，点选或左右滑切页 */
   .gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;
-      border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.92);touch-action:pan-x}
+      border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.72);touch-action:pan-x;
+      -webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%)}
   .gNav span{display:flex;align-items:center;padding:0 15px;color:var(--mut);cursor:pointer}
   .gNav span b{display:none}
   .gNav span svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}
@@ -753,6 +761,8 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   #game.txOpen.txBig #arrTx{top:calc(46px + min(70vh,560px))}
   #game .gTop{overflow-x:auto;scrollbar-width:none}
   #game .gNarr{padding-bottom:158px}
+  /* 底部导航现在是浮层，输入区必须让开它占的那一段，否则胶囊会压在输入框上 */
+  #game .gInput{padding-bottom:34px}
 }
 
 /* ============================================================================
@@ -1450,7 +1460,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='2.1.3';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
+  var ZJ3D_VER='2.2.1';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -5035,7 +5045,7 @@ $('#cfgGlass').addEventListener('input',function(){SET.glass=+this.value;
 var formaCss=document.createElement('style');document.head.appendChild(formaCss);
 function applyForma(){
   if(SET.forma===1)formaCss.textContent='@media(max-width:760px){#game .gMain{left:64px;right:322px;bottom:0}#game .gMfd{display:block}.gArr{display:flex}.gNav{display:none}}';
-  else if(SET.forma===2)formaCss.textContent='#game .gMain{left:0;right:0;bottom:34px}#game .gMfd{display:none;left:0;right:0;width:auto;bottom:34px;border-left:0}.gArr{display:none}.gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}.gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.92);touch-action:pan-x}.gNav span{display:flex;align-items:center;padding:0 15px;color:var(--mut);cursor:pointer}.gNav span b{display:none}.gNav span svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}.gNav span.on{color:#0a0a0a;background:var(--gold)}#game[data-pg=map] #pnMap{display:block;transform:none;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52);width:100%}#game[data-pg=map] #pnArm{display:block;transform:none;top:calc(46px + (100dvh - 80px)*.52);bottom:34px;width:100%;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}#game[data-pg=mfd] .gMfd{display:block;top:46px;bottom:34px}#game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}';
+  else if(SET.forma===2)formaCss.textContent='#game .gMain{left:0;right:0;bottom:0}#game .gMfd{display:none;left:0;right:0;width:auto;bottom:0;padding-bottom:40px;border-left:0}.gArr{display:none}.gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}.gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.72);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);touch-action:pan-x}.gNav span{display:flex;align-items:center;padding:0 15px;color:var(--mut);cursor:pointer}.gNav span b{display:none}.gNav span svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}.gNav span.on{color:#0a0a0a;background:var(--gold)}#game[data-pg=map] #pnMap{display:block;transform:none;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52);width:100%}#game[data-pg=map] #pnArm{display:block;transform:none;top:calc(46px + (100dvh - 80px)*.52);bottom:0;padding-bottom:40px;width:100%;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}#game[data-pg=mfd] .gMfd{display:block;top:46px;bottom:0;padding-bottom:40px}#game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}';
   else formaCss.textContent='';
 }
 applyForma();setSeg('#sgForma',SET.forma);
@@ -8220,7 +8230,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.1.3';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.1';}catch(_){}
 })();
 </script>
 </body>
