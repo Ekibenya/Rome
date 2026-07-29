@@ -267,6 +267,24 @@ canvas{display:block}
       border:1px solid transparent;white-space:nowrap;background:rgba(6,6,6,.6)} /* 页签自带底色：浮层下正文透字不糊眼 */
 #game .gm.on{color:#0a0a0a;background:var(--gold);font-weight:600}
 #game .gm:not(.on):hover{color:var(--gold-hi)}
+/* 参谋是开关不是输入模式：它不占模式位，只管「每一幕后要不要给四条可点的下一步」 */
+#game .gsug{font-size:9px;letter-spacing:.2em;padding:6px 12px 5px;cursor:pointer;white-space:nowrap;
+      margin-left:auto;border:1px solid rgba(201,155,63,.28);color:var(--mut);background:rgba(6,6,6,.6)}
+#game .gsug.on{color:var(--gold-hi);border-color:var(--gold)}
+#game .gsug:hover{color:var(--gold-hi)}
+#game .gsug::before{content:'○\00a0';font-size:8px}
+#game .gsug.on::before{content:'●\00a0'}
+/* 四策：两列两行，点一条即照它发出去 */
+#game .gSugRow{display:none;grid-template-columns:1fr 1fr;gap:5px;padding:8px 14px 0}
+#game .gSugRow.on{display:grid}
+#game .gSugRow .sg{font-size:10.5px;line-height:1.5;letter-spacing:.04em;padding:7px 11px;cursor:pointer;
+      color:var(--gold-hi);border:1px solid rgba(201,155,63,.3);background:rgba(6,6,6,.55);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .18s,border-color .18s}
+#game .gSugRow .sg:hover{background:rgba(201,155,63,.16);border-color:var(--gold)}
+#game .gSugRow .sg i{font-style:normal;color:var(--mut);font-size:8.5px;letter-spacing:.16em;margin-right:6px}
+#game .gSugRow .sg.risk{border-color:rgba(200,80,60,.55)}
+#game .gSugRow .sg.risk i{color:#c8503c}
+#game .gSugRow .sg.wait{color:var(--mut);border-style:dashed;cursor:default;grid-column:1/-1;text-align:center}
 #game .gLine{display:flex;align-items:center;gap:12px;padding:10px 14px 14px}
 #game .gLine input{flex:1;background:transparent;border:0;border-bottom:1px solid rgba(236,236,232,.25);
       padding:8px 2px;color:var(--txt);font-size:12px;letter-spacing:.08em;outline:none;font-family:inherit}
@@ -739,8 +757,10 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
         <span class="gm" data-ph="密谋暗线 · 只有你与同谋可见">INSIDIAE·密谋</span>
         <span class="gm" data-ph="修书一封 · 收件人 @名字">EPISTVLA·书信</span>
         <span class="gm" data-ph="以权威发布命令 · 消耗威望">EDICTVM·敕令</span>
-        <span class="gm" data-ph="向参谋求策 · 列出局势与选项">CONSILIVM·参谋</span>
+        <span class="gm" data-ph="想怎么写就怎么写 · 不加任何模式前缀">LIBERVM·自由</span>
+        <span class="gsug on" id="gSug" title="参谋四策：每一幕之后，参谋按当下局势拟四条可点选的下一步。点此开关。">CONSILIVM&nbsp;·&nbsp;参谋四策</span>
       </div>
+      <div class="gSugRow" id="gSugRow"></div>
       <div class="gLine">
         <span class="gAux" id="gMic" title="语音输入"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M8.5 21h7"/></svg></span>
         <input id="gIn" autocomplete="off" spellcheck="false" placeholder="出声「…」 · ~开头=内心独白 · @名字 指定对象">
@@ -821,7 +841,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="sRow"><span>MVSICA&nbsp;·&nbsp;配乐</span><input type="range" id="cfgBgm" min="0" max="100" value="55"></div>
       <div class="sRow"><span>MOTVS&nbsp;·&nbsp;动效</span><span class="sSeg" id="sgMotus"><span class="on">全开</span><span>减弱（低配）</span></span></div>
       <div class="sRow"><span>VELOCITAS&nbsp;·&nbsp;文字速度</span><span class="sSeg" id="sgVelo"><span>缓</span><span class="on">中</span><span>疾</span><span>瞬</span></span></div>
-      <div class="sRow"><span>LITTERAE&nbsp;·&nbsp;字号</span><span style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end"><input type="range" id="cfgUi" min="0" max="100" step="1" value="22" style="max-width:220px"><b id="cfgUiVal" style="font-weight:400;font-size:10px;letter-spacing:.1em;color:var(--gold-hi);min-width:3.2em;text-align:right">22%</b></span></div><div class="sub">字号拉杆整体缩放界面——正文、情报台状态栏、顶栏、输入区与全部弹窗（含本设置与世界书）一同放大缩小；三维场景不受影响。刻度 0＝最小、100＝最大，可 1% 一格微调；22% 是原始尺寸。</div>
+      <div class="sRow"><span>LITTERAE&nbsp;·&nbsp;字号</span><span style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end"><input type="range" id="cfgUi" min="0" max="100" step="1" value="22" style="max-width:220px"><b id="cfgUiVal" style="font-weight:400;font-size:10px;letter-spacing:.1em;color:var(--gold-hi);min-width:3.2em;text-align:right">22%</b></span></div><div class="sub">字号拉杆整体缩放界面——正文、情报台状态栏、顶栏、输入区与全部弹窗（含本设置与世界书）一同放大缩小；三维场景不受影响。刻度 0＝最小、100＝最大，可 1% 一格微调；22% 是原始尺寸。</div><div class="sRow"><span>CONSILIVM&nbsp;·&nbsp;参谋四策</span><span style="flex:1;text-align:right"><input type="checkbox" id="cfgSugg" checked style="accent-color:var(--gold);width:15px;height:15px;cursor:pointer"></span></div><div class="sub">开启后，每一幕落定就由参谋按当下局势拟四条可点选的下一步，点哪条便照哪条发出（并自动切到对应的输入模式）；第四条恒为冒险策。输入区上方那枚「参谋四策」也能随时开关，两处同步。未接 AI 时给的是本地拟的朴素四条。</div>
       <div class="sub">透明度：拖动即时生效——拉到最左＝完全透明（直接看穿到后面的动态背景）；拉到最右＝完全不透明（纯色纸底，彻底看不穿）。开低配模式时模糊被关闭。版式：自动依屏幕宽窄选择版式，也可强制使用电脑或手机布局。</div>
       <div class="sRow"><span>OBSCVRITAS&nbsp;·&nbsp;面板透明度</span><input type="range" id="cfgGlass" min="0" max="100" value="80"></div>
       <div class="sRow"><span>FORMA&nbsp;·&nbsp;版式</span><span class="sSeg" id="sgForma"><span class="on">自动</span><span>桌面</span><span>手机</span></span></div>
@@ -1238,7 +1258,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.8.2';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
+  var ZJ3D_VER='1.8.3';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -3479,6 +3499,8 @@ function renderReply(text,tIdx,instant){
       if(tIdx!=null)turnOps(tIdx,finalText);
       if(typeof SET!=='undefined'&&SET.tts.auto===1)speakText(finalText);
       if(typeof SET!=='undefined'&&SET.img.on===1&&SET.img.auto===1)drawScene();
+      /* 这一幕落定了，参谋就该把下一步的四条摆出来 */
+      try{suggGen();}catch(_){}
     },instant);
     /* 就算这轮 AI 整段没写面板，也照旧重绘一次：心声、编年史、人物图谱、长程记忆
        全靠 renderMvu 这一脚往前推，跳过它等于这一回合从记忆里整个蒸发。 */
@@ -3877,11 +3899,8 @@ function modeSpec(){
     +'·【INSIDIAE】密谋暗线，只有她与同谋知情；不在场的人这一回合不得表现出知道此事。\n'
     +'·【EPISTVLA】她在修书，@后为收件人；写信如何送出、经手何人、对方读到时的反应。\n'
     +'·【EDICTVM】她以权威发号施令；写命令如何被传达、被执行、被阳奉阴违或被抗拒，以及为此耗掉的威望。\n'
-    +'·【CONSILIVM】她在向参谋问策。本回合以幕僚／副将／谋士之口：先据实梳理当前局势'
-    +'（谁在哪、手上有什么、时限是什么），再给出三到四条具体到人、地、时的可行方案，'
-    +'每条附上代价与风险，方案之间要真正互斥。这些是供她挑选的建议，不是既成事实；'
-    +'列完即停笔，绝不替'+her+'选、绝不替她执行。\n'
-    +'·【ITER】她启程前往某地，写路途见闻与抵达时的场面。';
+    +'·【ITER】她启程前往某地，写路途见闻与抵达时的场面。\n'
+    +'·（没有方括号标签的那一句是她自由写下的，照字面理解即可，不要去猜她属于上面哪一类。）';
 }
 function sysPrompt(){
   var G=CARDS[ACTIVE]||{};
@@ -4101,6 +4120,89 @@ function askOracle(){
     narrAdd('sys','⚠&nbsp;神谕断连：'+esc2(msg)+'&nbsp;——&nbsp;检查&nbsp;ORACVLVM&nbsp;配置',null);
   },{onDelta:onDelta});
 }
+/* ── CONSILIVM · 参谋四策 ──────────────────────────────────────────────
+   参谋不是一种「输入模式」——你不该为了看看能怎么办而先切个页签、再打一行字。
+   它是一个常开的开关：每一幕落定之后，参谋按当下局势拟四条可直接点的下一步，
+   点哪条就照哪条发出去（顺带把输入模式切成那条对应的档）。第四条恒为冒险策。
+   走副脑通道（没配副脑就退回主接口），不碰主生成的中断控制器。 */
+var SUGG={list:null,seq:0,busy:false};
+function suggOn(){return CFGS.sugg!==false;}          /* 默认开 */
+var SUGG_CODE={'话':'SERMO','動':'ACTVS','动':'ACTVS','谋':'INSIDIAE','謀':'INSIDIAE',
+               '书':'EPISTVLA','書':'EPISTVLA','令':'EDICTVM','行':'ITER'};
+function suggClear(){
+  SUGG.list=null;SUGG.seq++;
+  var r=$('#gSugRow');if(r){r.innerHTML='';r.classList.remove('on');}
+}
+function suggPaint(){
+  var r=$('#gSugRow');if(!r)return;
+  if(!suggOn()||!SUGG.list||!SUGG.list.length){r.innerHTML='';r.classList.remove('on');return;}
+  r.innerHTML=SUGG.list.map(function(s,i){
+    return '<span class="sg'+(s.risk?' risk':'')+'" data-sg="'+i+'" title="'+esc2(s.text)+'">'
+      +'<i>'+esc2(s.label)+(s.risk?'!':'')+'</i>'+esc2(s.text)+'</span>';
+  }).join('');
+  r.classList.add('on');
+}
+function suggWait(){
+  var r=$('#gSugRow');if(!r||!suggOn())return;
+  r.innerHTML='<span class="sg wait">参谋正在拟策……</span>';r.classList.add('on');
+}
+/* 没接 AI 时也要有四条可点的——本地按局势拼，宁可朴素也不留空。
+   每档备几句轮着用，免得每一幕都是一模一样的四条，看着像坏了。 */
+var SUGG_LOCAL_N=0;
+function suggLocal(){
+  var s=null;try{s=GENIVS._snap();}catch(_){}
+  var pw=(s&&s.pawns)||[];
+  var who=(pw[0]&&pw[0].name)||'近旁的人';
+  var who2=(pw[1]&&pw[1].name)||who;
+  var city=(s&&s.city)||'此地';
+  var spot=(s&&s.playerPos)||'原地';
+  var bd=(s&&s.builds&&s.builds[0]&&s.builds[0].disp)||'';
+  var k=SUGG_LOCAL_N++;
+  function pick(a){return a[k%a.length];}
+  return [
+    {label:'话',risk:0,text:pick(['向'+who+'探一句口风','叫住'+who2+'，问个明白','当众说一句，看谁先接话'])},
+    {label:'动',risk:0,text:pick(['起身四下走看','往'+spot+'外头去一趟',(bd?('去'+bd+'那边看看'):'折回方才来的路')])},
+    {label:'谋',risk:0,text:pick(['避开众人，另作打算','私下会一会'+who2,'留一手，先不摊牌'])},
+    {label:'令',risk:1,text:pick(['当众下一道令，赌'+city+'的人心','不留退路，就在此地摊牌','把话说死，看谁敢应'])}
+  ];
+}
+function suggGen(){
+  suggClear();
+  if(!suggOn()||!GAME.on)return;
+  if(typeof zjAuxReady!=='function'||!zjAuxReady()){SUGG.list=suggLocal();suggPaint();return;}
+  var seq=++SUGG.seq;
+  var last='';
+  for(var i=TURNS.length-1;i>=0;i--){if(TURNS[i].role==='assistant'){last=stripMvu(TURNS[i].content);break;}}
+  /* 开局那一幕不进 TURNS（loadOpening 一上来就清空），此时得回落到开局正文本身——
+     否则刚进游戏、最需要「能干什么」提示的那一刻，反而一条策都没有。 */
+  if(!last&&GAME.opText)last=stripMvu(GAME.opText);
+  if(!last)return;
+  var her=(ACTIVE==='roma')?'贝罗娜':'姬瑶';
+  suggWait();
+  var sys='你是这局历史角色扮演游戏的参谋。根据刚落定的这一幕，替玩家（'+her+'）拟四条可以直接递出去的下一步。\n'
+    +'格式铁则：只输出一个 JSON 字符串数组，恰好四条，别的一个字都不要。\n'
+    +'每条写成「码|内容」。码只能取：话（出声说）、动（做动作）、谋（暗地里）、书（修书）、令（下令）。\n'
+    +'内容不超过 14 字、第一人称、具体可执行，落到人名地名物名上；'
+    +'不要空泛的「继续观察」「再想想」，也不要引号和序号。\n'
+    +'四条要真正互斥，覆盖不同方向（试探／果断／迂回／出人意料）。\n'
+    +'第四条恒为冒险策：码后加一个「!」，允许越界、赌一把。\n'
+    +'示例：["话|问布伦努斯要多少金子","动|绕到山丘背面看火势","谋|遣人夜里摸进城","令!|当众宣布不赎城"]';
+  callAuxAI(sys,[{role:'user',content:'【刚落定的这一幕】\n'+String(last).slice(-700)}])
+  .then(function(t){
+    if(seq!==SUGG.seq)return;
+    var arr=null;
+    try{var mm=/\[[\s\S]*\]/.exec(String(t));arr=mm?JSON.parse(mm[0]):null;}catch(_){}
+    if(!Array.isArray(arr)||!arr.length){SUGG.list=suggLocal();suggPaint();return;}
+    SUGG.list=arr.slice(0,4).map(function(x){
+      var raw=String(x).replace(/^["'「『]+|["'」』]+$/g,'').trim();
+      var m=/^([^\s|｜!！]{1,2})\s*(!|！)?\s*[|｜]\s*(.+)$/.exec(raw);
+      if(!m)return {label:'话',text:raw.slice(0,30),risk:0};
+      return {label:m[1],text:String(m[3]).trim().slice(0,30),risk:m[2]?1:0};
+    }).filter(function(o){return o.text;});
+    if(!SUGG.list.length)SUGG.list=suggLocal();
+    suggPaint();
+  },function(){if(seq===SUGG.seq){SUGG.list=suggLocal();suggPaint();}});
+}
 (function(){
   var gms=gEl.querySelectorAll('.gm'),gIn=$('#gIn');
   for(var i=0;i<gms.length;i++)(function(m){
@@ -4114,15 +4216,50 @@ function askOracle(){
     var v=gIn.value.trim();if(!v)return;
     var mode=gEl.querySelector('.gm.on'),tag=mode?mode.textContent.split('·')[0]:'SERMO';
     var idx=TURNI++;
-    TURNS.push({role:'user',content:'【'+tag+'】'+v,t:idx});
-    narrAdd('me','▌'+esc2(tag)+'&nbsp;&nbsp;'+esc2(v),idx);
+    /* 自由：不套任何模式前缀，你写什么就原样送出去。
+       其余模式的方括号标签是给模型分辨「这一回合她在做什么」用的，自由档不需要。 */
+    var free=(tag==='LIBERVM');
+    TURNS.push({role:'user',content:(free?v:('【'+tag+'】'+v)),t:idx});
+    narrAdd('me','▌'+esc2(free?'自由':tag)+'&nbsp;&nbsp;'+esc2(v),idx);
     gIn.value='';
+    suggClear();
     if(/^[~～]/.test(v)){try{if(GAME.lastPanel)renderMvu(GAME.lastPanel);}catch(_){}}  /* 内心独白：情报台心声即时回放 */
     if(apiReady())askOracle();
     else {try{GENIVS.offlineTurn(v,idx);}catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',idx);}}
   }
   $('#gSend').addEventListener('click',send);
   gIn.addEventListener('keydown',function(e){if(e.isComposing||e.keyCode===229)return;if(e.key==='Enter')send();});
+  /* 四策开关：跟设置面板里的勾选双向同步 */
+  var sgBtn=$('#gSug');
+  function sugSync(){
+    var on=suggOn();
+    if(sgBtn)sgBtn.classList.toggle('on',on);
+    var cb=$('#cfgSugg');if(cb)cb.checked=on;
+    if(!on)suggClear();
+  }
+  if(sgBtn)sgBtn.addEventListener('click',function(){
+    CFGS.sugg=!suggOn();try{cfgStore();}catch(_){}
+    sugSync();
+    if(suggOn())suggGen();
+  });
+  window.__sugSync=sugSync;sugSync();
+  /* 点一条策：切到它对应的模式，填进输入框，直接发 */
+  $('#gSugRow').addEventListener('click',function(e){
+    var el=e.target;while(el&&el!==this&&!el.getAttribute('data-sg'))el=el.parentNode;
+    if(!el||el===this)return;
+    if(BUSY)return;
+    var s=(SUGG.list||[])[parseInt(el.getAttribute('data-sg'),10)];
+    if(!s)return;
+    var want=SUGG_CODE[s.label]||'SERMO';
+    for(var j=0;j<gms.length;j++){
+      var nm=gms[j].textContent.split('·')[0];
+      gms[j].classList.toggle('on',nm===want);
+      if(nm===want)gIn.placeholder=gms[j].getAttribute('data-ph')||'';
+    }
+    gIn.value=s.text;
+    suggClear();
+    send();
+  });
   /* 重新演绎：丢掉最后一条神谕回复重取 */
   $('#gRedo').addEventListener('click',function(){
     if(BUSY)return;TYPE_GEN++;
@@ -4335,6 +4472,11 @@ $('#bgVol').addEventListener('input',function(){
 /* 开站即乐：开场动画与选单同步起乐（首曲开站即取即放，不等入局）；自动播放被拦则首次点按瞬间补放 */
 try{bgmPlay(0);}catch(_){}
 /* —— 全屏 —— */
+(function(){var cb=$('#cfgSugg');if(cb)cb.addEventListener('change',function(){
+  CFGS.sugg=!!this.checked;try{cfgStore();}catch(_){}
+  try{if(window.__sugSync)window.__sugSync();}catch(_){}
+  if(CFGS.sugg!==false){try{suggGen();}catch(_){}}
+});})();
 (function(){var sl=$('#cfgUi');if(!sl)return;
   sl.addEventListener('input',function(){uiScaleApply(this.value);});
 })();
@@ -6889,6 +7031,9 @@ function loadOpening(side,op,locOverride){
   if(panel)renderMvu(panel);
   $('#gLoc').innerHTML=esc2(locOverride||op.era)+'&nbsp;<i>·</i>&nbsp;'+esc2(op.scene);
   GAME.place={n:'',cn:op.scene||''};
+  /* 开局这一幕不走 renderReply，得单独叫一次参谋——
+     否则玩家一进来面对空白输入框，正是「不知道能干什么」的时候。 */
+  try{setTimeout(function(){suggGen();},300);}catch(_){}
 }
 function nearestOpening(side,year){
   var ops=CARDS[side].openings||[];if(!ops.length)return null;
@@ -7284,7 +7429,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.8.2';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.8.3';}catch(_){}
 })();
 </script>
 </body>
