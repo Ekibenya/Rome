@@ -201,6 +201,16 @@ canvas{display:block}
 #persona .pField span{font-size:9px;letter-spacing:.3em;color:var(--mut);white-space:nowrap}
 #persona .pField input{flex:1;background:transparent;border:0;color:var(--gold-hi);
       font-size:12px;letter-spacing:.2em;text-align:right;outline:none;font-family:inherit}
+/* 此刻的场面：一段自由文字，玩家写多少神谕就照多少来铸 */
+#persona .pScene{margin-top:14px}
+#persona .pScene>span{display:block;font-size:9px;letter-spacing:.24em;color:var(--mut);margin-bottom:8px}
+#persona .pScene textarea{width:100%;background:rgba(236,236,232,.03);
+      border:1px solid rgba(236,236,232,.18);color:var(--gold-hi);
+      font-size:11.5px;letter-spacing:.06em;line-height:1.95;padding:10px 12px;
+      outline:none;font-family:inherit;resize:vertical}
+#persona .pScene textarea:focus{border-color:var(--gold)}
+#persona .pScene textarea::placeholder{color:var(--mut);letter-spacing:.04em}
+@media (max-width:760px){#persona .pScene textarea{font-size:16px;line-height:1.85}}
 #persona .psFixed{display:flex;gap:10px;margin-top:18px}
 #persona .psCard{flex:1;border:1px solid rgba(201,155,63,.4);padding:12px 14px 10px;cursor:pointer;
       transition:border-color .2s,background .2s}
@@ -1475,6 +1485,10 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="pField"><span>GENS&nbsp;·&nbsp;氏族</span><input id="pfGens" placeholder="IVLIA"></div>
       <div class="pField"><span>AETAS&nbsp;·&nbsp;年龄</span><input id="pfAetas" inputmode="numeric" placeholder="XXI"></div>
       <div class="pField"><span>ORTVS&nbsp;·&nbsp;出身</span><input id="pfOrtus" placeholder="PLEBS"></div>
+    </div>
+    <div class="pScene">
+      <span>RES&nbsp;·&nbsp;此刻的场面（可留空，留空则由神谕按年代与地点自拟）</span>
+      <textarea id="pfScene" rows="4" placeholder="谁在场、正在发生什么、你刚做了什么或刚被卷进什么。&#10;例：城门刚闭，我押着一车军粮被守门的百人队长拦下，他要看通行木牍——而我没有。"></textarea>
     </div>
     <div class="note"><i>ENGINE&nbsp;STANDBY</i>&nbsp;—&nbsp;角色编辑壳已就位，属性系统待接入引擎。</div>
     <div class="eBtn" id="psGo">INCIPERE&nbsp;⏎</div>
@@ -3121,7 +3135,7 @@ $('#pcRe').addEventListener('pointerup',function(e){e.stopPropagation();psRender
 /* 固定角色卡：以本尊之身入局——同样走铸局，只是不取化名。
    （旧实现直接套「年代最接近的既有开局」，既绕过生成、也无视玩家选的年代与地点） */
 function psFieldsClear(){
-  ['#pfNomen','#pfGens','#pfAetas','#pfOrtus'].forEach(function(id){var el=$(id);if(el)el.value='';});
+  ['#pfNomen','#pfGens','#pfAetas','#pfOrtus','#pfScene'].forEach(function(id){var el=$(id);if(el)el.value='';});
   try{PSNPC.sel=-1;var cs=document.querySelectorAll('#psNpcs .npcCard');
     for(var i=0;i<cs.length;i++)cs[i].classList.remove('on');}catch(_){}
 }
@@ -3288,13 +3302,16 @@ function gameShow(){
 function condereOp(line,y,nm,cn){
   function v(id){var el=$(id);return el?String(el.value||'').trim():'';}
   var nomen=v('#pfNomen'),gens=v('#pfGens'),aetas=v('#pfAetas'),ortus=v('#pfOrtus');
+  var scene=v('#pfScene');
   var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
   var who=line==='zhou'?'姬瑶':'贝罗娜';
   var npcs=[];(PSNPC.list||[]).forEach(function(p,i){if(i!==PSNPC.sel&&npcs.length<3)npcs.push(p);});
   /* 填了身份就是换了个人来演，不是本尊改名换姓——原来这句写的是「隐去贝罗娜之名」，
      模型照着写，自然还是贝罗娜的戏。 */
   var idLine=nomen?('你是「'+nomen+'」'+(gens?('，出身'+gens):'')+(aetas?('，'+aetas+'岁'):'')+(ortus?('，'+ortus):'')+'。'):('你以'+who+'之身悄然临于此地。');
-  var body='【自定义开局】'+yl+'，'+cn+(nm?('（'+nm+'）'):'')+'。\n'+idLine+'\n这一幕自你落脚之刻写起——开口、动身，或先看看四周。';
+  var body='【自定义开局】'+yl+'，'+cn+(nm?('（'+nm+'）'):'')+'。\n'+idLine
+    +(scene?('\n'+scene):'')
+    +'\n这一幕自你落脚之刻写起——开口、动身，或先看看四周。';
   /* 底稿的面板必须三段俱全：未接 AI 时它就是终稿，铸局失败时也回退到它。
      原来连整个 <sec_char> 都没有，世界段也只写了两行——玩家一进自定义开局，
      情报台就只剩一条 MENS 行，看着像坏了。 */
@@ -3303,7 +3320,7 @@ function condereOp(line,y,nm,cn){
     +(_rm?'◆戎装|旅途风尘未洗\n◆持物|随身佩剑\n◆神躯|无伤，一切如常\n◆观瞻|无人认得这张脸\n◆神格|50\n◆血兴|40\n'
          :'◆衣冠|玄端深衣\n◆持物|白玉大圭\n◆御体|永生之躯，一切如常\n◆观瞻|无人识得天子微行\n◆神格|50\n')
     +'◆心声|以 ~ 开头发言，你写下的那一句就记在这里\n'
-    +'◆史笔|'+yl+'，'+cn+'。此幕自你落脚之刻写起。\n</sec_char>\n<sec_npc>\n'
+    +'◆史笔|'+yl+'，'+cn+'。'+(scene?scene.replace(/\s+/g,' ').slice(0,60):'此幕自你落脚之刻写起。')+'\n</sec_char>\n<sec_npc>\n'
     +npcs.map(function(p){return '◈'+p.name+'|初逢|50|（尚未开口）|'+(p.role||'不详')+'|'+cn+'|不详|不详';}).join('\n')
     +'\n<sec_world>\n◇纪年|'+yl+'\n◇时地|'+cn+'\n◇天气|晴\n◇安稳|60\n◇大势|尚未分明\n◇将临|尚未分明\n</sec_world>\n</mvu_panel>';
   return {id:'custom',year:y,era:yl,scene:cn,text:body+'\n\n'+mv};
@@ -3330,6 +3347,7 @@ function condereSys(line,q){
 function condereAsk(line,y,nm,cn){
   function v(id){var el=$(id);return el?String(el.value||'').trim():'';}
   var nomen=v('#pfNomen'),gens=v('#pfGens'),aetas=v('#pfAetas'),ortus=v('#pfOrtus');
+  var scene=v('#pfScene');       /* 玩家自己写的「此刻的场面」 */
   var yl=y<0?('前'+(-y)+'年'):('公元'+y+'年');
   var who=line==='zhou'?'姬瑶':'贝罗娜';
   var her=nomen||who;            /* 后文一律称本局主角，不再一口一个贝罗娜 */
@@ -3343,12 +3361,21 @@ function condereAsk(line,y,nm,cn){
   return '【任务】为玩家现场铸一个全新开局。不是续写、不是简介，是从零写一幕完整的开场，'
     +'规格与本卡既有开局看齐。\n'
     +'【年代】'+yl+'\n【地点】'+cn+(nm?('（'+nm+'）'):'')+'\n【玩家此局身份】'+idLine+'\n'
+    /* 玩家自己写的场面是硬约束：他既然指定了从哪儿写起，就不该另起一摊。 */
+    +(scene?('【此刻的场面·玩家指定·必须照此开场，不得另起一摊】\n'+scene+'\n'
+            +'· 这段话就是本幕的起点与既定事实：其中写到的人、物、地点、时辰、'
+            +'以及'+her+'刚做过或正卷入的事，一律当真，不许改写、不许推翻、不许说成是回忆或梦。\n'
+            +'· 它写得粗略之处由你补全（在场者的来历、周遭的声响气味、这件事在当时的分量），'
+            +'但补的必须与它相容，也必须属于'+yl+'的'+cn+'。\n'
+            +'· 若其中已写到'+her+'做了什么，那是既成事实，照此承接；'
+            +'但此后她的言行仍一个字都不许你代写。\n'):'')
     +(npcs.length?('【此时此地可用的人物（可自由取舍、改写、增补）】\n'
         +npcs.map(function(pp){return '· '+pp.name+'｜'+(pp.role||'')+'｜'+(pp.age||'')+'岁｜'+(pp.blurb||'');}).join('\n')+'\n'):'')
     +'【写法】\n'
     +'1. 严格遵守系统提示里的全部铁则与文风，考据须属于该年代。\n'
     +'2. 正文 700—1200 字，分小节（可用「**壹 · 小标题**」的形式），依次交代：这一年的时代局势、'
-    +'此地此刻正在发生什么、在场的人各自站在哪里揣着什么心思；最后把场面推到需要'+her+'表态之处停笔。\n'
+    +'此地此刻正在发生什么、在场的人各自站在哪里揣着什么心思；最后把场面推到需要'+her+'表态之处停笔。'
+    +(scene?'本幕必须从上面【此刻的场面】写起，那段话是玩家定下的，不是建议。\n':'\n')
     +'3. 绝不代替'+her+'说话、行动、下决定、写内心——她的一切属于玩家。\n'
     +'4. 正文之后必须输出一个完整的 <mvu_panel>，字段名、行首符号、竖线分隔与下面的范例一字不差，'
     +'内容按你新写的这一幕据实填写。◆行只记她的客观外在（戎装／持物／身躯／旁人眼中的观感）'
