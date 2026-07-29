@@ -4065,9 +4065,16 @@ function askOracle(){
     return{role:t.role,content:c};
   });
   /* 旧回合的状态栏只留最近一份。八份面板将近八千字，既烧 token 又把模型往
-     「这一回合的主要任务是填表」上带，正文越写越短。 */
-  for(var _i=0;_i<hist.length-1;_i++)
-    if(hist[_i].role==='assistant')hist[_i].content=stripMvu(hist[_i].content);
+     「这一回合的主要任务是填表」上带，正文越写越短。
+     注意要按「最后一条 assistant」定位，不能按数组末位：askOracle 永远是在
+     推入玩家这一句之后才调用的，末位恒为 user，于是 hist.length-1 保护的是那条 user，
+     真正最近的面板（落在 length-2）照样被剥光。后果是模型整局只看得见开局那一份面板，
+     协议里「无变动者照抄上一幕原值」根本无从执行——数值每轮被拉回开局值，
+     剧情跟着状态一起原地打转。 */
+  var _lastA=-1;
+  for(var _k=hist.length-1;_k>=0;_k--)if(hist[_k].role==='assistant'){_lastA=_k;break;}
+  for(var _i=0;_i<hist.length;_i++)
+    if(_i!==_lastA&&hist[_i].role==='assistant')hist[_i].content=stripMvu(hist[_i].content);
   var msgs=[{role:'system',content:sysPrompt()}];
   /* 开局那一幕从来没进过 TURNS（loadOpening 一上来就 TURNS=[]），
      模型此前完全不知道自己要接的是哪一场戏、哪一年、谁在场——只能按卡里那段
