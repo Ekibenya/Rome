@@ -101,32 +101,49 @@ def main():
     fn = os.path.join(OUT, 'index.html')
     io.open(fn, 'w', encoding='utf-8').write(out)
 
-    # ---- 把加载器写进卡的 tavern_helper 脚本位 ----
+    # ---- 把 UI 写进卡的正则（重前端卡的标准机制）----
+    # 重前端卡的 UI 不是靠脚本库，是靠「正则」：一条显示层正则把开场白里的
+    # <ROMASTAGE> 标记替换成一个含 <body> 的代码块，酒馆助手据此渲染成 iframe，
+    # 加载器在里面把全屏游戏挂起来。导入后在「正则」列表里就能看到这两条。
+    #   A 显示正则  markdownOnly + AI 输出位：只改显示，不动发给模型的提示词
+    #   B 提示词正则 promptOnly：把标记从模型看到的文本里抹掉
+    # markdownOnly/promptOnly 各管一边，模型看到的开场白与线上完全一致。
     import uuid
+    MARK = '<ROMASTAGE>'
     loader = io.open(os.path.join(OUT, 'loader.js'), encoding='utf-8').read().replace('__CDN__', CDN)
+    # isFrontend 判定看文本是否含 <body>：用一句 HTML 注释满足它，不产生嵌套 body
+    block = '```html\n<!--<body>-->\n<script>\n' + loader + '\n</script>\n```'
+
     card_fn = os.path.join(ROOT, 'st/roma.card.json')
     card = json.load(io.open(card_fn, encoding='utf-8'))
-    ext = card['data'].setdefault('extensions', {})
-    ext['tavern_helper'] = {
-        'scripts': [{
-            'type': 'script',
-            'enabled': True,
-            'name': '罗马纪 · 前端',
-            # id 固定：换一个就是另一个脚本，玩家已开的启用状态会丢
-            'id': str(uuid.uuid5(uuid.NAMESPACE_URL, 'roma.front.v1')),
-            'content': loader,
-            'info': '进入后接管整屏；点右上角 EXIRE ✕ 退出。',
-            'button': {'enabled': True, 'buttons': [
-                {'name': '进入罗马', 'visible': True},
-                {'name': '退出罗马', 'visible': True},
-            ]},
-            'data': {},
-            'export_with': {'data': True, 'button': True},
-        }],
-        'variables': {},
-    }
+    d = card['data']
+
+    # 每个开场白最前面插一个隐形标记。markdownOnly 让它在显示时变成游戏，
+    # promptOnly 把它从提示词里删掉——两头都看不见这个标记。
+    if not d['first_mes'].startswith(MARK):
+        d['first_mes'] = MARK + '\n' + d['first_mes']
+    d['alternate_greetings'] = [(MARK + '\n' + g if not g.startswith(MARK) else g)
+                                for g in d['alternate_greetings']]
+
+    def rx(name, find, repl, salt, **kw):
+        return {'id': str(uuid.uuid5(uuid.NAMESPACE_URL, 'roma.rx.' + salt)),
+                'scriptName': name, 'findRegex': find, 'replaceString': repl,
+                'trimStrings': [], 'placement': kw.get('placement', [2]),
+                'disabled': False, 'markdownOnly': kw.get('markdownOnly', False),
+                'promptOnly': kw.get('promptOnly', False), 'runOnEdit': True,
+                'substituteRegex': 0, 'minDepth': None, 'maxDepth': None}
+
+    ext = d.setdefault('extensions', {})
+    ext.pop('tavern_helper', None)          # 撤掉旧的脚本库那条路
+    ext['regex_scripts'] = [
+        rx('罗马纪 · 前端界面', '/<ROMASTAGE>/', block, 'ui.v2',
+           placement=[2], markdownOnly=True),
+        rx('罗马纪 · 清理标记', '/<ROMASTAGE>\\n?/', '', 'strip.v2',
+           placement=[1, 2], promptOnly=True),
+    ]
+
     io.open(card_fn, 'w', encoding='utf-8').write(json.dumps(card, ensure_ascii=False, indent=1))
-    print('卡内脚本      %.1f KB 已写入 data.extensions.tavern_helper' % (len(loader.encode('utf-8')) / 1024.0))
+    print('卡内正则      2 条已写入 data.extensions.regex_scripts（加载器 %.1f KB）' % (len(loader.encode('utf-8')) / 1024.0))
 
     # 自证：把插进去的那一段抠掉，必须与源文档逐字节相同
     back = out.replace(inject, anchor, 1)
