@@ -814,6 +814,8 @@
     var sz = 90; sun.shadow.camera.left = -sz; sun.shadow.camera.right = sz; sun.shadow.camera.top = sz; sun.shadow.camera.bottom = -sz;
     sun.shadow.camera.far = 220; sun.shadow.bias = -0.0008;
     sc.add(sun);
+    sc.userData._skyC = night ? 0x141b2e : skyC;
+    sc.userData._fogNear = fogNear; sc.userData._fogFar = fogFar;
     Z.scene = sc; Z.colliders = []; Z.doors = []; Z.exitDoor = null;
     Z.pawns = []; Z.orders = []; Z.actor = null; Z.selNpc = null;
     Z.cityRoots = []; Z.anims = []; Z.natureRoots = []; Z.chunkCtx = null; Z.escort = []; Z.mtnSpots = []; Z.tp = null;
@@ -821,10 +823,39 @@
   }
   function disposeScene() {
     if (!Z.scene) return;
+    /* 原来只 dispose 几何体，材质与贴图一个都不碰：每建一座城至少新造一张
+       1024×1024 的地面 CanvasTexture（含 mipmap 约 5.6MB）外加十几张 256×256，
+       换城即泄漏、单调增长永不回收——玩上半小时显存就吃满了。
+       共用资源（userData.shared，来自资材包）一律不动，那是全局复用的。 */
+    /* 全局复用的那两份材质缓存（贴图材质 Z.mats、纯色材质 NM）绝不能碰：
+       它们跨城复用，dispose 掉之后下一座城的模型会整片变黑。
+       要回收的只是这一座城现造的那些——地面的 1024×1024 CanvasTexture、
+       山根砾石裙的 256×256 之类。 */
+    var keep = [];
+    try { for (var mk in Z.mats) keep.push(Z.mats[mk]); } catch (e) { }
+    try { for (var nk in NM) keep.push(NM[nk]); } catch (e) { }
+    var seen = [];
+    function killMat(m) {
+      if (!m || keep.indexOf(m) >= 0) return;
+      if (m.userData && m.userData.shared) return;
+      ['map', 'normalMap', 'emissiveMap', 'alphaMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'bumpMap'].forEach(function (k) {
+        var t = m[k];
+        if (t && t.isTexture && t.isCanvasTexture && !(t.userData && t.userData.shared)) {
+          try { t.dispose(); } catch (e) { }
+          m[k] = null;
+        }
+      });
+      try { m.dispose(); } catch (e) { }
+    }
     Z.scene.traverse(function (o) {
-      if (o.isMesh) {
-        if (o.geometry && !o.userData.shared) o.geometry.dispose();
-      }
+      if (!o.isMesh) return;
+      if (o.geometry && !o.userData.shared) { try { o.geometry.dispose(); } catch (e) { } }
+      if (!o.material) return;
+      var ms = Array.isArray(o.material) ? o.material : [o.material];
+      ms.forEach(function (m) {
+        if (!m || seen.indexOf(m) >= 0) return;
+        seen.push(m); killMat(m);
+      });
     });
     Z.scene = null;
   }
@@ -2791,8 +2822,15 @@
 
   /* ---------------- 已建落地 / 管理 ---------------- */
   function spawnBuild(rec) {
-    if (rec.kind === 'npc') return spawnNpcPawn(rec);
-    if (rec.kind === 'unit') return spawnUnitPawn(rec);
+    /* 原来这两类直接 return，末尾那句 Z.placedRoots.push(root) 根本轮不到执行：
+       rootOfBuild 找不到它们，removeBuildObject 只能删档案、删不掉场上的棋子。
+       于是 AI 重生成同一幕时（applyEdict 先 edictUndo 再重放），档案里始终两条，
+       场上却按 2、4、6、8 递增，一堆同名人物和军团重叠站在同一格上。 */
+    if (rec.kind === 'npc' || rec.kind === 'unit') {
+      var pr = (rec.kind === 'npc') ? spawnNpcPawn(rec) : spawnUnitPawn(rec);
+      if (pr) { pr.userData.buildId = rec.id; Z.placedRoots.push(pr); }
+      return pr;
+    }
     var st = STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
     var root = null;
     if (rec.kind === 'model') {
@@ -2827,6 +2865,9 @@
   function removeBuildObject(id) {
     var root = rootOfBuild(id);
     if (root && root.parent) root.parent.remove(root);
+    /* 人物/军旅同时登记在 Z.pawns 里，只从场景摘掉不够：
+       残留的 meta 会继续出现在 snapshot()（喂给 AI 的「在场」）与点选命中里。 */
+    if (root) Z.pawns = Z.pawns.filter(function (p) { return !p || p.root !== root; });
     Z.placedRoots = Z.placedRoots.filter(function (r) { return r.userData.buildId !== id; });
     Z.colliders = Z.colliders.filter(function (c) { return c.buildId !== id; });
     Z.doors = Z.doors.filter(function (d) { return d.bid !== id; });
@@ -3501,7 +3542,11 @@
       var selDisp = Z.sel.rec ? Z.sel.rec.disp : (Z.sel.disp || buildingDisp(Z.sel.root));
       lab2.textContent = selDisp + ' · ' + posName(Math.round(Z.sel.root.position.x / CELL), Math.round(Z.sel.root.position.z / CELL));
       sb.appendChild(lab2);
-      if (Z.actor && Z.actor.root.parent && Z.actor.tag === 'unit') {
+      /* Z.actor 也可能是「禁卫军」那个合成对象，它的 root 就是 Z.player。
+         别处（点空地行军、攻击人物）都排除了 escort，只有这里漏了：
+         压进 Z.orders 的军令里 unit.root 指向主角本人，pawnTick 每帧把她按 5.5m/s
+         拖向那栋楼，期间玩家的摇杆/WASD 全被覆盖。 */
+      if (Z.actor && !Z.actor.escort && Z.actor.root.parent && Z.actor.tag === 'unit') {
         sb.appendChild(mkBtn('攻击', function () {
           var tgt = { root: Z.sel.root, disp: selDisp };
           Z.orders = Z.orders.filter(function (o) { return o.unit !== Z.actor; });
@@ -3776,6 +3821,10 @@
   };
   function spawnNpcPawn(rec) { // player-placed npc
     var t = NPC_TYPES[rec.npc] || HIST[rec.npc];
+    /* 剧情里来的具名角色（张仪、克娄巴特拉……）当然不在这两张表里。
+       原来直接 return null，于是正文写谁来了、三维里都不会出现。
+       按身份词猜个外形，名字用正文写的那个。 */
+    if (!t && rec.fromStory) t = castType(rec.role || rec.cat || rec.disp || '');
     if (!t) return null;
     var root = makePawn(t.cfg);
     root.position.set(rec.cx * CELL, 0, rec.cz * CELL);
@@ -4375,7 +4424,29 @@
     if (EDICT.key === key) return; // 本轮已应用
     if (EDICT.key && EDICT.key.split('@')[0] === String(key).split('@')[0]) edictUndo(); // 重演此幕：先撤上一版
     var made = [], razedKeys = [], razedRecs = [];
-    var builds = (spec.build || []).slice(0, 3).concat((spec.come || []).slice(0, 2));
+    /* 「来者」原来跟建筑走同一条流水，统一过 edictResolve —— 而那只在「可建之物」词表
+       （建筑/草木/道路/军旅 + 职业类目名）里找。人名当然找不到，score 恒 <0，
+       整条被丢弃：剧情里出现的任何具名角色都不会出现在三维里。
+       改成先按身份词猜个外形，再把 sec_deed 里写的那个人名原样挂上去。 */
+    (spec.come || []).slice(0, 3).forEach(function (c, ci) {
+      var nm = String((c && c.name) || '').trim();
+      if (!nm) return;
+      var item = edictResolve(nm) || edictResolve(String(c.role || '')) || null;
+      var store = buildsOf(Z.cityKey);
+      var spot = edictSpot(item || { kind: 'npc' }, key + '@who#' + ci);
+      if (!spot) return;
+      var rec = {
+        id: ++store.seq, kind: 'npc',
+        pack: (item && item.pack) || '', name: (item && item.name) || nm,
+        npc: (item && item.kind === 'npc') ? item.name : nm,
+        disp: nm, fromStory: 1, price: 0, cx: spot.cx, cz: spot.cz, ry: 0,
+        seed: Z.cityKey + '#' + store.seq, ai: 1
+      };
+      store.items.push(rec);
+      if (!spawnBuild(rec)) { store.items.pop(); --store.seq; return; }
+      made.push(rec.id);
+    });
+    var builds = (spec.build || []).slice(0, 3);
     builds.forEach(function (b, bi) {
       var item = edictResolve(b.name); if (!item) return;
       var n = Math.max(1, Math.min(3, b.n || 1));
@@ -4619,6 +4690,58 @@
       }
     }
   };
+  /* 读档：宿主把存档里的三维状态写回 localStorage 之后调这一下。
+     没有它的话，引擎闭包里那份页面加载时读进来的旧副本会在下一次保存时
+     把刚回档的名录整份覆盖回去——存档回到过去，城市却停在未来。 */
+  Z.reloadStore = function () {
+    try { BUILDS = JSON.parse(localStorage.getItem('zj3d_builds_v1') || '{}') || {}; } catch (e) { }
+    try { RAZED = JSON.parse(localStorage.getItem('zj3d_razed_v1') || '{}') || {}; } catch (e) { }
+    try {
+      var _e2 = JSON.parse(localStorage.getItem('zj3d_econ') || '{}');
+      /* 键不存在＝那份存档写下时还没花过钱，要回到初值，不能留着当前这一份 */
+      if (_e2 && _e2.gold != null) { ECON.gold = _e2.gold; ECON.stamp = _e2.stamp; }
+      else { ECON.gold = 5000; ECON.stamp = 0; }
+    } catch (e) { }
+    try { var _l2 = JSON.parse(localStorage.getItem('zj3d_ledger') || 'null'); LEDGER = (_l2 && _l2.built && _l2.razed) ? _l2 : { built: [], razed: [] }; } catch (e) { }
+    try { var _d2 = JSON.parse(localStorage.getItem('zj3d_edict') || 'null'); EDICT = (_d2 && _d2.key) ? _d2 : { key: '', city: '', built: [], razed: [], razedRecs: [] }; } catch (e) { }
+    Z.cityKey = null;                       /* 下一帧照新名录重建 */
+    try { updateHud(); } catch (e) { }
+  };
+  /* 天气取景。mvuSpec 里对模型白纸黑字承诺过「三维画面据此取景」，此前一直没兑现。
+     做法克制：只调雾的浓淡与天色/日照的冷暖，不加粒子系统——那会拖垮手机。
+     每次建城之后也要复涂一遍，否则新城会退回默认晴天。 */
+  Z.wx = null;
+  function applyWeather() {
+    var sc = Z.scene, w = Z.wx;
+    if (!sc || !sc.fog || !w) return;
+    var night = !!Z.night;
+    var base = night ? 0x141b2e : (sc.userData._skyC != null ? sc.userData._skyC : sc.background.getHex());
+    var near = sc.userData._fogNear, far = sc.userData._fogFar;
+    if (near == null || far == null) return;
+    var tint = null, k = 1;
+    if (w.fog) { tint = night ? 0x2a2f3a : 0xb9b3a4; k = 0.34; }        /* 雾/沙尘：视距压到三成 */
+    else if (w.snow) { tint = night ? 0x243046 : 0xd8dde4; k = 0.62; }
+    else if (w.rain) { tint = night ? 0x141a26 : 0x8f96a0; k = 0.55; }
+    else if (w.clear) { k = 1.25; }                                      /* 晴：看得更远 */
+    sc.fog.near = near * (k < 1 ? k : 1);
+    sc.fog.far = far * k;
+    if (tint != null) { sc.fog.color.setHex(tint); sc.background.setHex(tint); }
+    else { sc.fog.color.setHex(base); sc.background.setHex(base); }
+    /* 阴雨雪时把日照压下去一档，晴天恢复 */
+    sc.traverse(function (o) {
+      if (!o.isDirectionalLight) return;
+      if (o.userData._i0 == null) o.userData._i0 = o.intensity;
+      o.intensity = o.userData._i0 * ((w.rain || w.snow || w.fog) ? 0.55 : 1);
+    });
+  }
+  Z.setWeather = function (m) {
+    if (!m) return;
+    var sig = [m.fog ? 1 : 0, m.rain ? 1 : 0, m.snow ? 1 : 0, m.clear ? 1 : 0, Z.night ? 1 : 0].join('');
+    Z.wx = m;
+    if (sig === Z._wxSig) return;
+    Z._wxSig = sig;
+    try { applyWeather(); } catch (e) { }
+  };
   Z.setLow = function (on) { PERF.low = !!on; perfSave(); applyPerf(); if (Z._lowBtn) Z._lowBtn(); };
   /* ---------------- 三维 → prompt 的三个入口 ----------------
      环海侧一直有这三个函数，中原侧从来没有：于是玩周纪时 GENIVS.brief() 的第一行
@@ -4700,10 +4823,14 @@
       Z.rnd.setSize(w, h, false);
       Z.cam.aspect = w / h; Z.cam.updateProjectionMatrix();
     }
-    if (Z.night !== !!night && Z.mode === 'city' && Z.ready && Z.cityKey) {
+    /* 地点也变了的时候不必在这儿重建：紧接着的 showLocation 会用新的 Z.night 建新城，
+       原来这一句先拿旧的 Z.cityKey 整城重建一遍（约 450 次 spawn ＋ 现画一张 1024²
+       地面贴图），纯属白干还多泄漏一整套贴图。「入夜，她已抵达雅典」这种写法很常见。 */
+    if (Z.night !== !!night && Z.cityKey === locName && Z.mode === 'city' && Z.ready && Z.cityKey) {
       Z.night = !!night; buildFor(Z.cityKey); // rebuild lighting
     }
     showLocation(locName, night);
+    try { if (Z.wx) applyWeather(); } catch (e) { }   /* 新城建好后把天气复涂一遍 */
     updateHud();
   };
   // dev: jump straight to a city / interior

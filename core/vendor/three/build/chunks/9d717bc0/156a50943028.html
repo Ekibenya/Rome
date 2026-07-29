@@ -2879,7 +2879,7 @@ function condereSys(line,q){
     '【世界书·激活条目】\n'+loreFor(q),
     '【每回自查】'+(G.post_history_instructions||''),
     preEnd.join('\n')
-  ].filter(Boolean).join('\n\n');
+  ].filter(Boolean).map(macroFill).join('\n\n');
 }
 /* 鑄局指令：附一則既有開局的面板作為格式範例，確保欄位與符號一字不差 */
 function condereAsk(line,y,nm,cn){
@@ -3258,7 +3258,7 @@ var INV={eq:{dext:'gladius',sin:'scutum',corp:'lorica',cap:'cassis',hum:'sagum',
   bag:[{id:'pilum',n:1},{id:'panis',n:3},{id:'posca',n:1},{id:'fasciae',n:2},{id:'denarii',n:1},
        {id:'tabula',n:1},{id:'lucerna',n:1},{id:'tessera',n:1},{id:'dolabra',n:1},{id:'funda',n:1}]};
 try{var _iv=JSON.parse(localStorage.getItem('rome_inv')||'null');if(_iv&&_iv.eq&&_iv.bag)INV=_iv;}catch(_){}
-function invStore(){try{localStorage.setItem('rome_inv',JSON.stringify(INV));}catch(_){}}
+function invStore(){lsSet('rome_inv',JSON.stringify(INV))}
 var INVSEL=null;   /* {w:'eq'|'bag', k:slotKey|bagIndex, confirm:bool} */
 function armDesc(id){
   var it=ARMDB[id];if(!it)return '';
@@ -3405,7 +3405,7 @@ invRender();
 var TURNS=[],TURNI=0,BUSY=false;
 var CFGS={velo:1,font:1,preset:''};
 try{Object.assign(CFGS,JSON.parse(localStorage.getItem('rome_cfg')||'{}'));}catch(_){}
-function cfgStore(){try{localStorage.setItem('rome_cfg',JSON.stringify(CFGS));}catch(_){}}
+function cfgStore(){lsSet('rome_cfg',JSON.stringify(CFGS))}
 var VELOMAP=[26,13,4,0],FONTMAP=['11.5px','13px','14.5px','16.5px'];
 /* 界面缩放：一根拉杆放大缩小全部文字层（正文／情报台／顶栏／输入区／所有弹窗）。
    对外只露 0–100 的刻度（0=最小、100=最大，1 格 1%），内部线性映射到真正有用的
@@ -3597,7 +3597,7 @@ function genClose(){
 /* —— 神谕（AI）接入 —— */
 var API={base:'',key:'',model:'',img:''};
 try{Object.assign(API,JSON.parse(localStorage.getItem('rome_api')||'{}'));}catch(_){}
-function apiStore(){try{localStorage.setItem('rome_api',JSON.stringify(API));}catch(_){}}
+function apiStore(){lsSet('rome_api',JSON.stringify(API))}
 function apiReady(){return !!(API.base&&API.key&&API.model);}
 /* 关键词可能被写成 "罗马,元老院" 这样的字符串（不少 ST 世界书就是这么存的）。
    当数组用的话 .length 是字符数、[k] 是单字，「她走进马厩」里的「马」就会误命中。 */
@@ -3711,9 +3711,11 @@ var GENIVS=(function(){
     if(s.ledger.built.length||s.ledger.razed.length)
       L.push('· 尚未奏报的营造：兴作 '+s.ledger.built.length+' 项、除旧 '+s.ledger.razed.length+' 项。');
     if(s.vocab&&s.vocab.length)
-      L.push('【三维回执·可选】本回若有建筑兴废或人物进出此城，在 </mvu_panel> 之后另起一段：\n'
-            +'<sec_deed>\n▣兴作|名物×数\n▣毁损|名物\n▣来者|人名\n▣去者|人名\n</sec_deed>\n'
-            +'没有变化就整段不写。「名物」只能取自下列词表，取最接近的一个，不要自造：'
+      L.push('【三维回执·可选】本回若有建筑兴废或人物进出此城，'
+            +'在 </mvu_panel> 之后（务必在面板外面，绝不许写进面板里）另起一段：\n'
+            +'<sec_deed>\n▣兴作|名物×数\n▣毁损|名物\n▣来者|人名|身份词\n▣去者|人名\n</sec_deed>\n'
+            +'没有变化就整段不写。「名物」只能取自下列词表，取最接近的一个，不要自造；'
+            +'「人名」照正文写，不受词表约束，「身份词」用来给他画个像（如 将／医／商／祭／匠／史／农／士）：'
             +s.vocab.slice(0,80).join('、'));
     return L.join('\n');
   }
@@ -3775,7 +3777,9 @@ var GENIVS=(function(){
   function chKeys(){return (ACTIVE==='roma')
     ?['戎装','持物','神躯','观瞻','神格','血兴','心声','史笔']
     :['衣冠','持物','御体','观瞻','神格','心声','史笔'];}
-  var WX=['天朗气清','云压得低','风过柱廊','雨敲在瓦上','雾锁河面','雪落石阶'];
+  /* 前两条原来是「天朗气清」「云压得低」——本身就不含 晴/阴/雨/雪/风/雾 六字之一，
+     落到它们时心象图不出图标，下一轮又被自己的校验判成非法再随机一次。 */
+  var WX=['天晴气朗','阴云压得低','风过柱廊','雨敲在瓦上','雾锁河面','雪落石阶'];
 
   function get(rows,k){for(var i=0;i<rows.length;i++)if(rows[i][0]===k)return rows[i].slice(1).join('|');return null;}
   function set(rows,k,v){for(var i=0;i<rows.length;i++)if(rows[i][0]===k){rows[i]=[k,v];return;}rows.push([k,v]);}
@@ -3805,11 +3809,13 @@ var GENIVS=(function(){
     var dy=daysOf(txt);
     if(dy&&get(p.wd,'纪年')===get(prev.wd,'纪年'))
       set(p.wd,'纪年',bumpEra(get(p.wd,'纪年'),dy));
-    if(s&&s.city){
-      var td=get(p.wd,'时地')||'';
-      if(td.indexOf(s.city)<0)
-        set(p.wd,'时地',((td.split('·')[0]||(s.night?'夜':'白日')).trim())+' · '+s.city);
-    }
+    /* 只在这一栏整个为空时才用引擎城名兜底。原来是「时地里不含引擎城名就整段改写」：
+       AI 写的「拂晓 · 台伯河下游滩涂」「夜 · 战神广场」被改写成「拂晓 · 罗马」，
+       具体场所整段丢掉；这条被改写过的时地接着进编年史、进下一轮的「上一幕原值」，
+       模型于是认为戏已经在城里演，把河滩那场拉回城内。
+       画面与文本的对齐由 zj3dTick 里的 medLoc(时地) 单向完成，不需要反向再写回面板。 */
+    if(s&&s.city&&!String(get(p.wd,'时地')||'').trim())
+      set(p.wd,'时地',(s.night?'夜':'白日')+' · '+s.city);
     /* 只有 AI 完全没写这一栏时才兜底。原来「不含 晴阴雨雪风雾 六字之一」就整段丢弃、
        换成 WX 里的随机一条，于是「沙尘扑面，天色昏黄」被换成「雪落石阶」，而且每回合
        重新随机——面板天气与正文彻底无关，还带着三维画面在沙尘天里下雪。
@@ -3837,7 +3843,9 @@ var GENIVS=(function(){
       if(k==='心声')return;
       if(get(p.ch,k)==null){var pv=get(prev.ch,k);if(pv!=null)set(p.ch,k,pv);}
     });
-    if(get(p.ch,'心声')==null){var pm=get(prev.ch,'心声');set(p.ch,'心声',pm!=null?pm:'——');}
+    /* AI 漏写时不要塞占位符：塞了 '——' 之后，renderMvu 里那句「以 ~ 开头发言，即记于此」
+       的引导语就永远不会出现，玩家根本不知道这一栏怎么用。 */
+    if(get(p.ch,'心声')==null){var pm=get(prev.ch,'心声');if(pm!=null&&String(pm).trim()!=='——')set(p.ch,'心声',pm);}
     /* 取样必须在剥掉状态栏之后：rawText 是 AI 的完整原文，面板里那行「◆血兴」自带一个
        「血」字、「◆持物|短剑」自带一个「剑」字，hits 于是恒 ≥1，永远走递增支——一个
        完全平和的宫廷场景也会 44→48→52 一路单调爬到 100 并锁死在「战争化身」。
@@ -4005,6 +4013,18 @@ function modeSpec(){
     +'·【ITER】她启程前往某地，写路途见闻与抵达时的场面。\n'
     +'·（没有方括号标签的那一句是她自由写下的，照字面理解即可，不要去猜她属于上面哪一类。）';
 }
+/* 卡里共有十几处 {{user}} / {{char}}，此前一直是原样拼进系统提示：
+   模型收到的是「{{user}}第一人称扮演贝罗娜……{{char}}扮演的是她之外的整个地中海世界」，
+   较弱的模型会把它当字面文本，偶尔在正文里回吐 {{user}}，或者搞错「谁不许代演」。 */
+function macroFill(t){
+  var her=(ACTIVE==='roma')?'贝罗娜':'姬瑶';
+  return String(t==null?'':t)
+    .replace(/\{\{\s*user\s*\}\}/gi,her)
+    .replace(/\{\{\s*char\s*\}\}/gi,'你（叙事者）')
+    .replace(/\{\{\s*description\s*\}\}/gi,'')
+    .replace(/\{\{\s*personality\s*\}\}/gi,'')
+    .replace(/\{\{\s*scenario\s*\}\}/gi,'');
+}
 function sysPrompt(){
   var G=CARDS[ACTIVE]||{};
   /* 检索文本不要掺 gearLine()：装备名每回合都一样，会让一批兵器甲胄词条
@@ -4040,7 +4060,9 @@ function sysPrompt(){
     minc,
     CFGS.preset?('【玩家自定义常驻指令】'+CFGS.preset):'',
     preEnd.join('\n')
-  ].filter(Boolean).join('\n\n');
+  /* 整份系统提示统一过一遍宏替换：卡的四个字段、预设、玩家自定义常驻指令里
+     都可能带 {{user}}/{{char}}。 */
+  ].filter(Boolean).map(macroFill).join('\n\n');
 }
 function oracleCall(messages,cb,err,opt){
   opt=opt||{};
@@ -4067,12 +4089,17 @@ function oracleCall(messages,cb,err,opt){
     try{_cb0(t,meta);}catch(e){setTimeout(function(){throw e;},0);}};
   err=function(m){if(_fired)return;_fired=true;try{_err0(m);}catch(_){}};
   function mkBody(msgs,stream){
+    /* 输入框的 placeholder 写着 4096，玩家很容易照着填「8k」「4096 tokens」；
+       +'8k' 是 NaN，JSON 序列化成 "max_tokens":null，多数端点直接 400 或返回空回复，
+       而空回复还会触发一次完整的非流式重发——整份几万字提示词白发两遍。 */
+    function _fin(v,d){var n=(typeof SET!=='undefined')?parseFloat(v):NaN;return isFinite(n)?n:d;}
+    var _mt=(typeof SET!=='undefined')?parseInt(SET.samp.maxt,10):NaN;
     var body={model:API.model,messages:msgs,
-      temperature:(typeof SET!=='undefined'&&SET.samp.temp!=='')?+SET.samp.temp:.9,
-      max_tokens:(typeof SET!=='undefined'&&SET.samp.maxt!=='')?+SET.samp.maxt:4096};
+      temperature:_fin(SET&&SET.samp&&SET.samp.temp,.9),
+      max_tokens:(isFinite(_mt)&&_mt>0)?_mt:4096};
     for(var ok in opt)body[ok]=opt[ok];
     if(typeof SET!=='undefined'){
-      if(SET.samp.topp!=='')body.top_p=+SET.samp.topp;
+      if(SET.samp.topp!==''&&isFinite(parseFloat(SET.samp.topp)))body.top_p=parseFloat(SET.samp.topp);
       if(SET.samp.reason)body.reasoning_effort=['','low','medium','high'][SET.samp.reason];
     }
     if(stream)body.stream=true;
@@ -4245,7 +4272,7 @@ function buildOracleMsgs(){
   msgs=msgs.concat(hist);
   /* post_history_instructions 顾名思义该落在历史之后。埋在 system 里会被前面
      几万字稀释，铁则一和面板自查都守不住；在队尾再钉一次。 */
-  var _G2=CARDS[ACTIVE]||{},_phi=_G2.post_history_instructions||'';
+  var _G2=CARDS[ACTIVE]||{},_phi=macroFill(_G2.post_history_instructions||'');
   msgs.push({role:'system',content:'【本回合落笔前·最后自查】'+_phi
     +'\n【铁则一·压倒一切，高于任何文体规范】'+(ACTIVE==='roma'?'贝罗娜':'姬瑶')
     +'的台词、动作、决定、内心，一个字都不许你写。需要她表态时，把场面推到她面前，停笔，交还玩家。'});
@@ -4713,7 +4740,7 @@ try{var _s=JSON.parse(localStorage.getItem('rome_set')||'{}');
   if(!Array.isArray(SET.img.ilore))SET.img.ilore=[];
   if(!SET.profs||typeof SET.profs!=='object')SET.profs={};
 })();
-function setStore(){try{localStorage.setItem('rome_set',JSON.stringify(SET));}catch(_){}}
+function setStore(){lsSet('rome_set',JSON.stringify(SET))}
 /* 页签切换 */
 (function(){
   var tabs=document.querySelectorAll('#cfgTabs span');
@@ -5223,7 +5250,7 @@ function imgcRender(){
 $('#imgcClear').addEventListener('dblclick',function(){imgsPut([]);imgcRender();});
 /* —— 书·世界书管理（统一自写条目） —— */
 function loreCustomGet(){try{return JSON.parse(localStorage.getItem('rome_lore_custom')||'[]');}catch(_){return[];}}
-function loreCustomPut(a){try{localStorage.setItem('rome_lore_custom',JSON.stringify(a));}catch(_){}}
+function loreCustomPut(a){lsSet('rome_lore_custom',JSON.stringify(a))}
 var LFEDIT=-1;
 $('#loreBud').value=SET.loreBud;$('#loreBudV').textContent=SET.loreBud;
 $('#loreBud').addEventListener('input',function(){
@@ -5694,13 +5721,19 @@ var BAK_CATS={
   inv:{n:'装备行囊',key:'rome_inv'},
   save:{n:'存档(全部槽位)',multi:'rome_sv2_'},
   imgs:{n:'图库缓存',key:'rome_imgs'},
+  /* savePref() 把编年长卷 S.mem、人物档案 S.npcMeta、图谱 S.graphHidden 都写在 SET.zj 下，
+     而这一项原来是「SET 里除那五个数组之外的全部键」——于是「其他设置」实际上连两张卡的
+     长程记忆与图谱一起导出（发给别人即泄露全部剧情），导入则用对方的记忆静默替换自己的。
+     把 zj 排除出去，另立一个看得见的备份项。 */
   disp:{n:'其他设置(显示/生图/语音/采样)',get:function(){
-      var s={};Object.keys(SET).forEach(function(k){if(['presets','mems','rx','js','cards'].indexOf(k)<0)s[k]=SET[k];});
+      var s={};Object.keys(SET).forEach(function(k){if(['presets','mems','rx','js','cards','zj'].indexOf(k)<0)s[k]=SET[k];});
       return {set:s,cfg:localStorage.getItem('rome_cfg')||''};
     },set:function(v){
-      if(v&&v.set){Object.keys(v.set).forEach(function(k){SET[k]=v.set[k];});setStore();}
-      if(v&&v.cfg)try{localStorage.setItem('rome_cfg',v.cfg);}catch(_){}
-    }}
+      if(v&&v.set){Object.keys(v.set).forEach(function(k){if(k==='zj')return;SET[k]=v.set[k];});setStore();}
+      if(v&&v.cfg)lsSet('rome_cfg',v.cfg);
+    }},
+  chron:{n:'编年长卷/人物图谱',get:function(){return SET.zj||{};},
+    set:function(v){SET.zj=v||{};setStore();try{zjLoadPref();}catch(_){}}}
 };
 function bakCatData(k){
   var c=BAK_CATS[k];
@@ -5819,8 +5852,10 @@ $('#exSave').addEventListener('click',function(){
     var slot=0,oldest=null;
     /* 槽位共 SVN 格。只扫前 3 格会把玩家手动存在 I/II/III 的档无声覆盖掉，
        哪怕后面几十格全是空的。 */
+    /* when 是 toLocaleString() 的本地化串（"2026/7/29 15:04:21"），字符串序下跨月跨年
+       完全乱套——会覆盖掉今天刚存的档而不是真正最旧的那格。svSnap 早就另存了数值 ts。 */
     for(var n=1;n<=SVN;n++){var v=svGet(n);if(!v){slot=n;break;}
-      if(!oldest||(v.when||'')<(oldest.when||'')){oldest=v;oldest._n=n;}}
+      if(!oldest||((v.ts||0)<(oldest.ts||0))){oldest=v;oldest._n=n;}}
     if(!slot)slot=oldest?oldest._n:1;
     /* svPut 内部已经把配额溢出捕获掉并 return false，所以外面这层 try/catch 永远不会
        触发：原来照样显示「已写入」并在 700ms 后退出，整局进度无声蒸发。 */
@@ -5830,7 +5865,7 @@ $('#exSave').addEventListener('click',function(){
       return;
     }
     if(typeof svRender==='function')try{svRender();}catch(_){}
-    $('#exMsg').textContent='已写入 TABVLA '+(['I','II','III'][slot-1]||('第'+slot+'格'))+' · 正在离开…';
+    $('#exMsg').textContent='已写入 TABVLA '+(SV_ROMAN[slot-1]||('第'+slot+'格'))+' · 正在离开…';
     setTimeout(function(){btn.dataset.busy='';$('#dlgExit').style.display='none';$('#exMsg').textContent='';gameExit();},700);
   }catch(e){btn.dataset.busy='';$('#exMsg').textContent='存档失败：'+(e&&e.message||'未知错误');}
 });
@@ -6202,6 +6237,13 @@ function heroMind(within){
 }
 function capFor(caps,v){var lab='';if(!caps)return lab;
   for(var i=0;i<caps.length;i++)if(v>=caps[i][0])lab=caps[i][1];return lab;}
+/* 数值容错：模型常写成 72/100、７２、72（微升）这几种。角色段与世界段共用一套，
+   否则同一份面板在两段里一个有进度条一个没有。 */
+function mvuNum(v){
+  var t=String(v==null?'':v).replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);});
+  var m=/^\s*(\d{1,3})\s*(?:\/\s*100)?\s*(?:[（(][^)）]*[)）])?\s*$/.exec(t);
+  return m?m[1]:null;
+}
 function renderMvu(panel){
   if(!panel)return;
   var spec=(CARDS[ACTIVE]&&CARDS[ACTIVE].panelSpec)||null;
@@ -6212,7 +6254,9 @@ function renderMvu(panel){
     if(w.type==='moodglyph'){glyphSrc=w.src;glyphMap=w.map;}
   });
   var aiMind='';
-  panel.ch.forEach(function(kv){if(/^心声|^心声/.test(kv[0]||''))aiMind=kv.slice(1).join('|');});
+  /* 原来这个正则的两个分支字面完全一样（本该是 心声|心聲）：模型写成繁体的 ◆心聲 时
+     既认不出是心声，又会作为普通资料行混进列表，于是「心聲 / 哼」和『——』同时出现。 */
+  panel.ch.forEach(function(kv){if(/^(心声|心聲)/.test(kv[0]||''))aiMind=kv.slice(1).join('|');});
   /* 卡里的 panelSpec.textOrder 声明了这几栏「本卡必有、且按此顺序」，reserved 声明了
      「属于叙述性的长文，排在数值之后」。这两个字段此前从没被任何代码读过——
      于是行序全看模型当轮的心情，声明过却一次没写过的栏位干脆永不出现。
@@ -6237,12 +6281,11 @@ function renderMvu(panel){
   })();
   panel.ch.forEach(function(kv){
     var k=kv[0],v=kv.slice(1).join('|');
-    if(/^心声|^心声/.test(k))return;              /* 心声另起引言块，不混在资料列里 */
+    if(/^(心声|心聲)/.test(k))return;             /* 心声另起引言块，不混在资料列里 */
     /* 数值容错：模型常写成 72/100、７２、72（微升）这几种，原来只认纯数字，
        一不合规就退化成文字行，进度条与位阶文案一起消失。 */
-    var _nv=v.replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);});
-    var _mn=/^\s*(\d{1,3})\s*(?:\/\s*100)?\s*(?:[（(][^)）]*[)）])?\s*$/.exec(_nv);
-    var isNum=!!_mn;if(isNum)v=_mn[1];
+    var _mn=mvuNum(v);
+    var isNum=_mn!==null;if(isNum)v=_mn;
     var bw=null;if(isNum&&bars.length)bars.forEach(function(b){if(b.k===k)bw=b;});
     if(bw){
       var n=Math.max(0,Math.min(100,parseInt(v,10)||0));
@@ -6284,8 +6327,12 @@ function renderMvu(panel){
     h+='<div class="mSec"><div class="mHead"><i>◆</i>&nbsp;'+(ACTIVE==='roma'?'MVNDVS&nbsp;·&nbsp;大势':'天下大势')+'</div>';
     panel.wd.forEach(function(kv){
       var k=kv[0],v=kv.slice(1).join('|');
-      if(/^\d{1,3}$/.test(v.trim())){
-        var n=Math.max(0,Math.min(100,parseInt(v,10)||0));
+      /* 世界段原来只认纯数字：AI 写「安稳|35/100」或全角「３５」，这条唯一的世界进度条
+         就整条消失、退化成一行灰字，而紧挨着的角色段「神格|72/100」照常出条——
+         同一份面板走正常回合有条、读档后没条。两段共用同一套容错。 */
+      var _wn=mvuNum(v);
+      if(_wn!==null){
+        var n=Math.max(0,Math.min(100,parseInt(_wn,10)||0));
         h+='<div class="mRow"><span>'+esc2(k)+'</span><b>'+n+'</b></div><div class="mBar"><i style="width:'+n+'%"></i></div>';
       }else{
         h+='<div class="mRow"><span>'+esc2(k)+'</span></div><div class="mLead">'+esc2(v)+'</div>';
@@ -6991,6 +7038,15 @@ function parseDeed(text){
   m[1].split('\n').forEach(function(l){
     l=l.trim();if(l.charAt(0)!=='▣')return;
     var pp=l.slice(1).split('|');var k=map[(pp[0]||'').trim()];if(!k||!pp[1])return;
+    /* 「来者/去者」写的是人名，人名里带顿号逗号的情况远比一次列两个人常见，
+       所以这两类整行只当一个人；建筑那两类才按分隔符拆开。
+       另外 ▣来者 允许写成「人名|身份词」——身份词用来猜三维里的外形。 */
+    if(k==='come'||k==='go'){
+      var who=String(pp[1]||'').trim(),role=String(pp[2]||'').trim();
+      if(!who||who==='无')return;
+      out[k].push({name:who,role:role,n:1});
+      return;
+    }
     pp[1].split(/[、,，;；]/).forEach(function(it){
       it=it.trim();if(!it||it==='无')return;
       var mm=/^(.+?)[×xX*]\s*(\d+)$/.exec(it);
@@ -7117,10 +7173,11 @@ function zj3dTick(){
     var _Eo=(ACTIVE==='roma')?window.MED3D:window.ZJ3D; /* 档位记在本卡引擎上，借用引擎同步之 */
     if(E!==_Eo&&_Eo&&_Eo.tier!=null){E.tier=_Eo.tier;E.expanded=!!_Eo.expanded;}
     if(E.setEra)E.setEra(cw['纪年']||(GAME.op?GAME.op.era:'')||'');
-    if(E.onRender)E.onRender(_loc,_m.night,_m);
     /* mvuSpec 里对模型白纸黑字写着「天气一栏必须含 晴/阴/雨/雪/风/雾 之一（三维画面据此取景）」，
-       但天气此前从未传给过引擎——对玩家和对模型都是失约。 */
+       但天气此前从未传给过引擎——对玩家和对模型都是失约。先交天气再交地点，
+       这样新城一建好就带着当下的天色，不会先亮一帧晴天再变。 */
     if(E.setWeather){try{E.setWeather(_m);}catch(_){}}
+    if(E.onRender)E.onRender(_loc,_m.night,_m);
     if(E.onStory){var _lm=null;for(var i=S.history.length-1;i>=0;i--){if(S.history[i].role!=='user'){_lm=S.history[i];break;}}E.onStory(_lm&&_lm.text?_lm.text:'');}
     /* 把状态栏 ◈ 行里的在场者交给引擎放进场景：AI 写到谁，谁就站在她面前。
        在此之前场上只有程序生成的路人，剧情写谁画面都不知道。 */
@@ -7392,6 +7449,21 @@ function ebRenderOps(){
 })();
 /* save slots v2: full snapshots — write / load / delete / export / import */
 function svGet(n){try{return JSON.parse(localStorage.getItem('rome_sv2_'+n)||'null');}catch(_){return null;}}
+/* 全站唯一的 localStorage 写入口。原来到处都是 try{setItem}catch(_){}：
+   配额一满（开过生图极易达到），编年长卷、人物图谱、装备、接口 Key、自写世界书
+   全部停止落盘，而界面上一个字都不提示——玩家以为都存好了，一刷新全没了。 */
+var _LSWARNED=false;
+function lsSet(k,v){
+  try{localStorage.setItem(k,v);return true;}
+  catch(e){
+    if(!_LSWARNED){
+      _LSWARNED=true;
+      try{narrAdd('sys','⚠&nbsp;本机存储已满：进度与设置已停止保存。请到&nbsp;设置·备&nbsp;清理「图库缓存」或删掉几格存档',null);}catch(_){}
+      try{console.warn('[storage] quota exceeded on',k);}catch(_){}
+    }
+    return false;
+  }
+}
 function svPut(n,v){
   try{localStorage.setItem('rome_sv2_'+n,v?JSON.stringify(v):'');
       if(!v)localStorage.removeItem('rome_sv2_'+n);return true;}
@@ -7427,6 +7499,16 @@ function svSnap(){
        memN，命中「历史被重开/回退」分支，把最近的全部纪要删掉并立刻 savePref 落盘——
        重开也回不来。而 sysPrompt 每回把编年长卷当「本局全部既定事实」注入，
        于是 AI 被告知故事停在第 20 回、正文却已演到第 30 回，它把 21～30 回重演一遍。 */
+    /* 三维那一侧的营造名录、金库、敕令全是「32 个槽位共用的单份全局值」：
+       存档回到过去、城市却停在未来——拆掉的建筑不会回来，花掉的金子不会退。
+       整份快照进存档，读档时原样写回。 */
+    b3d:(function(){
+      var K=['med3d_builds_v1','med3d_razed_v1','zj3d_builds_v1','zj3d_razed_v1',
+             'med3d_econ','zj3d_econ','med3d_ledger','zj3d_ledger','med3d_edict','zj3d_edict'];
+      var o={};K.forEach(function(k){var v=null;try{v=localStorage.getItem(k);}catch(_){}
+        if(v!=null)o[k]=v;});
+      return o;
+    })(),
     turns:TURNS.slice(-200)};
 }
 function svLoad(v){
@@ -7469,6 +7551,27 @@ function svLoad(v){
     if(v.zj.memOn!==undefined)S.memOn=v.zj.memOn!==false;
     S.npcMeta=v.zj.npcMeta||{};S.graphHidden=v.zj.graphHidden||[];
     try{savePref();}catch(_){}
+  }
+  /* 三维状态回档。写回后把两台引擎的城池键清掉，让它们下一帧照新名录重建，
+     否则画面上还站着上一份存档里的建筑。 */
+  if(v.b3d){
+    try{
+      /* 存档是权威：快照里没有的键要删掉，不能留着。否则「存档时还没花过钱、
+         之后花掉一半国库」这种情况读档后金库仍是花完的样子——存档回到过去、
+         城市停在未来，正是这条要修的毛病。 */
+      var _K3=['med3d_builds_v1','med3d_razed_v1','zj3d_builds_v1','zj3d_razed_v1',
+               'med3d_econ','zj3d_econ','med3d_ledger','zj3d_ledger','med3d_edict','zj3d_edict'];
+      _K3.forEach(function(k){
+        if(v.b3d[k]!=null)lsSet(k,v.b3d[k]);
+        else try{localStorage.removeItem(k);}catch(_){}
+      });
+      ['MED3D','ZJ3D'].forEach(function(en){
+        var E=window[en];if(!E)return;
+        if(E.reloadStore){try{E.reloadStore();}catch(_){}}
+        else try{E.cityKey=null;}catch(_){}
+      });
+      setTimeout(function(){try{zj3dTick();}catch(_){}},200);
+    }catch(_){}
   }
   setTimeout(function(){try{if(GAME.lastPanel)renderMvu(GAME.lastPanel);else graphHydrate();}catch(_){}},80);
   $('#dlgSave').style.display='none';
@@ -7713,9 +7816,41 @@ $('#svFile').addEventListener('change',function(){
   rd.onload=function(){
     try{
       var all=JSON.parse(rd.result);
-      for(var i=1;i<=SVN;i++)if(all['slot'+i])svPut(i,all['slot'+i]);
+      /* 原来只判真值：手改过的 JSON、别的工具导出的东西，任何非空值都会被当成存档
+         写进槽位并直接覆盖那一格的好档（无确认、无备份）。之后点 LEGERE 走 svLoad，
+         v.html/v.loc/v.mfd 全是 undefined —— 正文、地点、情报台当场清空，原档找不回来。
+         svPut 的 false 返回也一直被忽略：存储满时导入「看起来成功了」，其实一格没写。 */
+      function _svValid(o){
+        return o&&typeof o==='object'&&typeof o.html==='string'&&Array.isArray(o.turns);
+      }
+      var okN=0,badN=0,failN=0,over=[];
+      for(var i=1;i<=SVN;i++){
+        var one=all['slot'+i];
+        if(!one)continue;
+        if(!_svValid(one)){badN++;continue;}
+        if(svGet(i))over.push(SV_ROMAN[i-1]||('第'+i+'格'));
+      }
+      if(over.length&&!confirm('这些槽位已有存档，汇入会覆盖：'+over.join('、')+'\n确定继续？')){
+        try{var _m0=$('#svCoreSub');if(_m0)_m0.textContent='已取消汇入';}catch(_){}
+        return;
+      }
+      for(var i2=1;i2<=SVN;i2++){
+        var v2=all['slot'+i2];
+        if(!v2)continue;
+        if(!_svValid(v2))continue;
+        if(svPut(i2,v2))okN++;else failN++;
+      }
       svRender();
-    }catch(_){}
+      try{if(typeof svCoreUpd==='function')svCoreUpd();}catch(_){}
+      try{
+        var _m=$('#svCoreSub');
+        if(_m)_m.textContent='汇入 '+okN+' 格'
+          +(badN?('　·　跳过畸形 '+badN+' 格'):'')
+          +(failN?('　·　写入失败 '+failN+' 格（存储已满）'):'');
+      }catch(_){}
+    }catch(_){
+      try{var _m2=$('#svCoreSub');if(_m2)_m2.textContent='汇入失败：不是合法的存档 JSON';}catch(__){}
+    }
   };
   rd.readAsText(f);this.value='';
 });
