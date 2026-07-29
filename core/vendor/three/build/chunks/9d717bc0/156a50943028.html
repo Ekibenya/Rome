@@ -787,27 +787,30 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 @keyframes mvScreen{from{opacity:0;transform:scale(1.012)}to{opacity:1;transform:none}}
 
 /* —— 弹窗：遮罩淡入，内容托起 —— */
-.gDlg{animation:mvFade var(--t-view) var(--e-out) both}
-.gDlg .box{animation:mvRise var(--t-view) var(--e-out) both;animation-delay:60ms}
+.gDlg{animation:mvFade var(--t-view) var(--e-out) backwards}
+.gDlg .box{animation:mvRise var(--t-view) var(--e-out) backwards;animation-delay:60ms}
 
 /* —— 换屏：进入游戏／回菜单／选身份／选年代 —— */
-#intro,#menu,#persona,#eraBox{animation:mvScreen var(--t-view) var(--e-out) both}
-#game.show{animation:mvScreen var(--t-view) var(--e-out) both}
+/* #intro / #menu 不在此列：它们靠 opacity 控显隐（#menu{opacity:0}+.show{opacity:1}），
+   而动画的填充态优先级高于类规则，会把 opacity 永久钉在 1，菜单再也淡不出去，
+   直接盖死后面的开局环。这两个本来就自带 .8s 过渡，不需要再加。 */
+#persona,#eraBox{animation:mvScreen var(--t-view) var(--e-out) backwards}
+#game.show{animation:mvScreen var(--t-view) var(--e-out) backwards}
 
 /* —— 正文：每段落地时轻轻浮上来。流式那一段排除在外，
       否则每帧重建都会重放动画，字会一直在抖。 —— */
 #gNarr>p,#gNarr>.tOps,#gNarr>div:not(.liveWrap){
-  animation:mvRiseSm var(--t-ui) var(--e-out) both}
+  animation:mvRiseSm var(--t-ui) var(--e-out) backwards}
 #gNarr .liveWrap,#gNarr .liveWrap *{animation:none!important}
 
 /* —— 情报台：整块重绘时分区依次落位（错开 55ms） —— */
-.gMfd .mSec{animation:mvRiseSm 260ms var(--e-out) both}
+.gMfd .mSec{animation:mvRiseSm 260ms var(--e-out) backwards}
 /* 错开量由 JS 按文档顺序派发：有几个 .mSec 嵌在 .zjP 里，
    nth-of-type 会在嵌套层重新计数，排出来是 0/55/0/55。 */
 .gMfd .mBar i{transition:width 420ms var(--e-io)}   /* 数值条走过去，不是跳过去 */
 
 /* —— 参谋四策：四条依次出现 —— */
-.gSugRow .sg{animation:mvRiseSm 240ms var(--e-out) both}
+.gSugRow .sg{animation:mvRiseSm 240ms var(--e-out) backwards}
 .gSugRow .sg:nth-child(2){animation-delay:60ms}
 .gSugRow .sg:nth-child(3){animation-delay:120ms}
 .gSugRow .sg:nth-child(4){animation-delay:180ms}
@@ -840,8 +843,8 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 
 
 /* —— 营造托盘：自下滑入；物品卡依次落位 —— */
-.zjTray{animation:mvSlideUp 280ms var(--e-out) both}
-.zjTray .zjCard{animation:mvRiseSm 220ms var(--e-out) both}
+.zjTray{animation:mvSlideUp 280ms var(--e-out) backwards}
+.zjTray .zjCard{animation:mvRiseSm 220ms var(--e-out) backwards}
 .zjTray .zjCard:nth-child(2){animation-delay:30ms}
 .zjTray .zjCard:nth-child(3){animation-delay:60ms}
 .zjTray .zjCard:nth-child(4){animation-delay:90ms}
@@ -851,7 +854,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 .zjTray .zjCard:active{transform:scale(.94)}
 
 /* —— 设置窗换页 / 世界书换条目：内容淡入，不要硬切 —— */
-#dlgCfg .cfgPane,.cxBody,#zjGraphBox,.zjMemPane{animation:mvFade 220ms var(--e-out) both}
+#dlgCfg .cfgPane,.cxBody,#zjGraphBox,.zjMemPane{animation:mvFade 220ms var(--e-out) backwards}
 
 /* —— 存档格：它靠 transform:translate(-50%,-50%) 定位，
       任何 transform 类的反馈都会把它弹到错位置。改用边框与底光。 —— */
@@ -1447,7 +1450,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='2.1.2';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
+  var ZJ3D_VER='2.1.3';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -8217,7 +8220,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.1.2';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.1.3';}catch(_){}
 })();
 </script>
 </body>
