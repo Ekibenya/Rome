@@ -4615,6 +4615,54 @@
 
   /* ---------------- 营造 HUD（托盘 / 幽灵操作 / 选中操作 / 国库） ---------------- */
   var bHud = { wrap: null, goldChip: null, viewBtn: null, trayBtn: null, tray: null, tabsEl: null, listEl: null, ghostBar: null, selBar: null, tab: 0, thumbQ: null };
+  /* 横向拖动滚动。
+     只写 overflow-x:auto 是不够的：桌面鼠标压根拖不动滚动容器（只能用滚动条或
+     shift+滚轮），触摸端这里又叠在三维画布的手势层上，原生 pan 未必轮得到。
+     所以自己接指针事件来拖；顺带把竖直滚轮映射成横滚。
+     拖动超过阈值才算滚动，并在这一次抬手时吃掉 click——否则一拖就误选了物品。 */
+  function dragScroll(el) {
+    if (!el || el._dragBound) return;
+    el._dragBound = 1;
+    var down = false, moved = false, sx = 0, sl = 0, pid = null;
+    el.style.touchAction = 'pan-x';   /* 触摸交给浏览器原生横向 pan（带惯性），别跟它抢 */
+    el.style.cursor = 'grab';
+    el.addEventListener('pointerdown', function (e) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;  /* 触摸走原生 */
+      if (e.button != null && e.button !== 0) return;
+      if (el.scrollWidth <= el.clientWidth + 1) return;   /* 装得下就不劫持 */
+      el._eatClick = 0;                                   /* 新一次交互开始，清掉上次拖动留下的吃点标志 */
+      down = true; moved = false; sx = e.clientX; sl = el.scrollLeft; pid = e.pointerId;
+      try { el.setPointerCapture(pid); } catch (_) { }
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      var dx = e.clientX - sx;
+      if (!moved && Math.abs(dx) < 4) return;             /* 4px 之内仍当点击 */
+      moved = true;
+      el.scrollLeft = sl - dx;
+      el.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    function up(e) {
+      if (!down) return;
+      down = false; el.style.cursor = 'grab';
+      try { el.releasePointerCapture(pid); } catch (_) { }
+      /* 这次是拖不是点：吃掉随之而来的那一次 click。
+         标志在下一次 pointerdown 时清，不靠定时器——定时器在连续操作里来不及生效。 */
+      if (moved) el._eatClick = 1;
+    }
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('click', function (e) {
+      if (el._eatClick) { e.stopPropagation(); e.preventDefault(); }
+    }, true);
+    el.addEventListener('wheel', function (e) {
+      if (el.scrollWidth <= el.clientWidth + 1) return;
+      var d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (!d) return;
+      el.scrollLeft += d; e.preventDefault();
+    }, { passive: false });
+  }
   function ensureBuildHud(host) {
     if (bHud.wrap && bHud.wrap.parentNode === hud) return;
     bHud._openedSession = false; // 新建/重建 HUD 时复位，好让「进营造自动弹清单」对新托盘重新生效
@@ -4684,6 +4732,7 @@
     var list = document.createElement('div');
     list.style.cssText = 'display:flex;gap:' + (mob ? '4px' : '6px') + ';overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:' + (mob ? '4px' : '6px') + ';height:' + (mob ? '66px' : '96px') + ';scrollbar-width:thin';
     tray.appendChild(list); bHud.listEl = list;
+    dragScroll(tabs); dragScroll(list);   /* 光有 overflow-x 是拖不动的，见下 */
     w.appendChild(tray); bHud.tray = tray;
     // 幽灵操作条
     var gb = document.createElement('div');
