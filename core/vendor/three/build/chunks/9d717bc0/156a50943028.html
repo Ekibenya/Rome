@@ -696,7 +696,11 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
    而右缘这一条是空的（底部已被 DICTVM 指令栏与建造清单／执行占满）。 */
 /* 三维框的右下角：仍挂在框的下沿（跟原来一样是一条横向小标签），
    但从正中挪到最右侧——正中那块要留给正文，靠右就不碍事了。 */
-#arrTx{position:absolute;top:calc(46px + min(24vh,215px));right:calc(322px*var(--ui) + 10px);left:auto;
+/* 基准位置＝「三维画面已经收干净」时该待的地方，也就是紧贴顶栏下沿。
+   原来这里写死的是「已展开」那一档的高度（46px + 24vh），而 .txOpen 那几条给的又是
+   同一个值——于是彻底收起后画面没了，这条小标签却还停在原来那条下沿上，
+   孤零零悬在正文中间。展开时的位置一律交给下面的 #game.txOpen 三条去写。 */
+#arrTx{position:absolute;top:calc(46px*var(--ui));right:calc(322px*var(--ui) + 10px);left:auto;
       transform:none;height:24px;padding:0;z-index:26;
       border:1px solid rgba(236,236,232,.16);border-top:0;
       background:rgba(6,6,6,.9);display:flex;flex-direction:row;align-items:stretch;color:var(--mut);
