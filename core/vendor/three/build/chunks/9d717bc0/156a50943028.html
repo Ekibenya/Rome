@@ -1273,7 +1273,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.8.6';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
+  var ZJ3D_VER='1.9.0';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -2801,7 +2801,7 @@ $('#miOrac').addEventListener('pointerup',function(e){e.stopPropagation();apiOpe
 $('#miArch').addEventListener('pointerup',function(e){e.stopPropagation();svOpen();});
 
 /* ================= game stage: Ghost layout in ROME dress ================ */
-var BUILD=63;
+var BUILD=64;
 var GAME={on:false,mapOpen:false,armOpen:false,place:null,dest:null,lon:15*Math.PI/180,vel:0,drag:false,
           lx:0,moved:0,mx:-1e4,my:-1e4,hit:[]};
 var gEl=$('#game'),gmCv=$('#gmapCv'),gmc=gmCv.getContext('2d');
@@ -3498,7 +3498,15 @@ $('#gNarr').addEventListener('click',function(e){
   var op=e.target.closest&&e.target.closest('[data-op]');if(!op)return;
   var a=op.getAttribute('data-op');
   if(a==='draw')drawScene();
-  else if(a==='redo')$('#gRedo').click();
+  else if(a==='redo'){
+    /* 这个钮一律转发给顶栏的 gRedo，而 gRedo 只认 TURNS 的最后一条：
+       玩家往上滚、点第 3 回的「重演」，被删掉重写的是第 10 回，第 3 回原封不动。
+       玩家会以为按钮坏了反复点，于是最新回合被反复删掉重生成。 */
+    var _rh=op.closest('[data-t]'),_rt=_rh?+_rh.getAttribute('data-t'):-1;
+    var _rl=TURNS[TURNS.length-1];
+    if(_rl&&_rl.role==='assistant'&&_rl.t===_rt)$('#gRedo').click();
+    else narrAdd('sys','只能重演最后一回',null);
+  }
   else if(a==='tts'){
     var host=op.closest('[data-t]'),tI=host?host.getAttribute('data-t'):null,txt='';
     if(tI!=null)document.querySelectorAll('#gNarr p[data-t="'+tI+'"]').forEach(function(n){txt+=n.textContent+'\n';});
@@ -3591,37 +3599,64 @@ var API={base:'',key:'',model:'',img:''};
 try{Object.assign(API,JSON.parse(localStorage.getItem('rome_api')||'{}'));}catch(_){}
 function apiStore(){try{localStorage.setItem('rome_api',JSON.stringify(API));}catch(_){}}
 function apiReady(){return !!(API.base&&API.key&&API.model);}
+/* 关键词可能被写成 "罗马,元老院" 这样的字符串（不少 ST 世界书就是这么存的）。
+   当数组用的话 .length 是字符数、[k] 是单字，「她走进马厩」里的「马」就会误命中。 */
+function _loreKeys(v){
+  if(Array.isArray(v))return v;
+  if(typeof v==='string')return v.split(/[,，、|]/);
+  return [];
+}
 function loreFor(text){
   var lb=(CARDS[ACTIVE].lorebook||[]).slice();
-  /* 自定义条目最先装桶（Ghost 规则），按 ord 升序 */
+  /* 玩家自写的条目最先装桶，其次才是角色卡带来的条目。
+     原来只按 custom 分两档，而角色卡主条目被写死 ord=50、玩家自写默认 ord=100，
+     于是一条两三千字的卡设定先把预算吃光，玩家自己写的条目走 continue 被静默丢弃，
+     界面上却还显示「启用中」——玩家的结论只能是「我写的世界书不生效」。 */
+  function rank(e){return (e&&e.cat==='自写')?0:((e&&e.custom)?1:2);}
   lb.sort(function(a,b){
-    var ca=a.custom?0:1,cb=b.custom?0:1;
+    var ca=rank(a),cb=rank(b);
     if(ca!==cb)return ca-cb;
     return (a.ord||100)-(b.ord||100);
   });
-  var out=[],budget=(typeof SET!=='undefined'&&SET.loreBud)||5000;
+  /* 关键词一律小写后比对：ST 世界书默认 caseSensitive:false，
+     原来是裸 indexOf，从酒馆搬过来的英文关键词几乎全哑火。 */
+  var _lt=String(text==null?'':text).toLowerCase();
+  var out=[],budget=(typeof SET!=='undefined'&&SET.loreBud)||5000,dropped=0;
   /* 第一遍：constant（铁则）条目无条件全量注入，不参与预算竞争。
      原来它们和普通词条按数组顺序抢同一个预算，结果排在后面的几条【铁则】
      每回合都被前面的普通词条吃光预算、静默丢弃——其中就包括管另一个主角
      怎么出场的那条，直接对应「AI 分不清谁是谁」。 */
+  /* 常驻条目原来完全绕开预算：拉到最低的 3000 也压不住，实测一本以常驻为主的世界书
+     能一口气塞进八万多字，每回请求直接撑爆上下文（接口 400／超时／天价 token），
+     而玩家在界面上只会认为「注入预算这个滑杆不作用」。给它一个独立的、宽一些的桶。 */
+  var cbud=Math.max(1200,Math.round(budget*1.5));
   for(var ci=0;ci<lb.length;ci++){var ce=lb[ci];
     if(!ce||ce.on===false||!ce.constant)continue;
-    out.push('『'+ce.title+'』'+ce.content);}
+    var cs='『'+ce.title+'』'+ce.content;
+    if(cbud-cs.length<0){dropped++;continue;}
+    out.push(cs);cbud-=cs.length;}
   /* 第二遍：关键词命中的条目，按预算装桶 */
   for(var i=0;i<lb.length;i++){var e=lb[i];if(!e||e.on===false||e.constant)continue;
-    var hit=false;
-    if(!hit&&e.keys)for(var k=0;k<e.keys.length;k++)
-      if(e.keys[k]&&text.indexOf(e.keys[k])>=0){hit=true;break;}
-    if(hit&&e.keys2&&e.keys2.length){
+    var hit=false,_ks=_loreKeys(e.keys);
+    for(var k=0;k<_ks.length;k++){
+      var _kk=String(_ks[k]==null?'':_ks[k]).trim().toLowerCase();
+      if(_kk&&_lt.indexOf(_kk)>=0){hit=true;break;}
+    }
+    var _k2s=_loreKeys(e.keys2);
+    if(hit&&_k2s.length){
       var hit2=false;
-      for(var k2=0;k2<e.keys2.length;k2++)
-        if(e.keys2[k2]&&text.indexOf(e.keys2[k2])>=0){hit2=true;break;}
+      for(var k2=0;k2<_k2s.length;k2++){
+        var _kk2=String(_k2s[k2]==null?'':_k2s[k2]).trim().toLowerCase();
+        if(_kk2&&_lt.indexOf(_kk2)>=0){hit2=true;break;}
+      }
       if(!hit2)hit=false;
     }
     if(hit&&e.prob!=null&&e.prob<100&&Math.random()*100>e.prob)hit=false;
     if(hit){var s='『'+e.title+'』'+e.content;
-      if(budget-s.length<0)continue;out.push(s);budget-=s.length;}
+      if(budget-s.length<0){dropped++;continue;}out.push(s);budget-=s.length;}
   }
+  /* 被预算挤掉的条目要有个交代，别让玩家对着「启用中」三个字瞎猜 */
+  if(dropped)try{console.warn('[lore] 注入预算不足，本回丢弃 '+dropped+' 条');}catch(_){}
   return out.join('\n');
 }
 var ROMA_STYLE='【文体铁则·最高优先级·覆盖模型自身习惯】本卡正文分两层，各守各的腔，严禁互相污染。\n〔一〕地の文（叙述层）＝详实历史小说体。长句可用，从句可用，破折号可用；史实、器物、地理、制度、因果必须交代到位，读者不查资料也能看懂。忌辞藻堆砌，忌抒情泛滥，忌用「仿佛」「宛如」连发。凡涉政治、军制、年代、亲缘的说明，一律落到具体名物与数字（第几年、几里、几人、什么料子、谁的儿子），不许含糊带过。\n〔二〕台词（对白层）＝日本轻小说腔。铁律如下：\n①一句一个念头，句号砸死，绝不把三件事塞进一个长句；\n②关键词单独成行落地（例：「……没有心。」／「楔子不为一个人停。」／「她怕了。」）；\n③长短落差是喜剧与压迫感的引擎：稳重者、年长者、下位者说敬语长台词，铺垫绵密、慇懃而不祥；上位者、狂者、武人一句怼回去，越短越狠；\n④先说死，再收半句（例：「稳妥，不折人。」「……陛下？」）；\n⑤惨事用公事公办的报告体讲，恐怖从语气与内容的落差里渗，不许在台词里加形容词渲染（例：「谨报如下。第一头，肝叶有裂。第二头，同。第三头。……没有心。」）；\n⑥武人、老兵用短促的断言句，可带「记住了」「话我只说一遍」这类收尾；\n⑦【铁则一·高于本节全部文体规范】主角贝罗娜的台词、动作、决定、内心，一个字都不许你写——本节①—⑥、⑧⑨的腔调规范只约束 NPC 与叙述层。玩家已经写出来的主角台词，你可以让 NPC 引用、回应、误解、记恨，但绝不许由你续写、改写、补写，或替她把话说完。需要她表态时，把场面推到她面前，停笔，交还玩家。\n⑧对白一律用「」，引用与强调用『』；省略号用「……」保留余韵；决定性瞬间可插拟声词（咔。咔。咔。／吱呀。）。\n⑨严禁中文网文腔：不许出现「不愧是」「不由得」「心中一凛」「嘴角勾起」「眸子」「淡淡地说道」「不禁」「暗道」等套语，不许网络流行语，不许翻译腔的「哦，我的老伙计」。\n〔三〕分工：叙述负责让人看懂，对白负责有味道。说明性内容一律写进叙述层，不许塞进人物嘴里让他念资料；反过来，人物的性格与压迫感一律靠台词的长短、断句与落差呈现，不许由叙述层直接下判语。';
@@ -3639,7 +3674,19 @@ var GENIVS=(function(){
   var RING=[];            /* 降级叙述的反循环环形缓冲 */
   var APPLIED={};         /* 已落地的意图哈希，防重复应用 */
 
-  function ENG(){try{return (ACTIVE==='roma')?window.MED3D:window.ZJ3D;}catch(_){return null;}}
+  /* 按「正在显示的那台引擎」取，而不是按卡片。罗马卡的开局 8「东方尽头」把画面交给了
+     中原引擎（zh3d:'咸阳'），◇时地 里出现洛邑/邯郸/临淄等中原城名时也一样；
+     此时 ACTIVE 仍是 'roma'，原来的写法把 brief()/absorb() 整条链都打到了看不见的
+     MED3D 上：MED3D 没有 cityKey → snapshot() 返回 null → 系统提示里整段【三维实况】
+     和 <sec_deed> 回执说明全部消失，AI 不知道三维里有什么、也不会写回执；
+     反过来正文里的建／拆／来／去也落在看不见的那座城里。 */
+  function ENG(){
+    try{
+      var cur=window.__CUR3D;
+      if(cur&&cur.owns&&cur.owns())return cur;
+    }catch(_){}
+    try{return (ACTIVE==='roma')?window.MED3D:window.ZJ3D;}catch(_){return null;}
+  }
   function snap(){
     var e=ENG();
     try{return (e&&e.owns&&e.owns()&&e.snapshot)?e.snapshot():null;}catch(_){return null;}
@@ -4401,7 +4448,24 @@ function suggGen(){
       document.querySelectorAll('#gNarr [data-t="'+last.t+'"]').forEach(function(n){n.remove();});
       TURNS.pop();
     }
-    if(apiReady())askOracle();
+    /* 面板要跟着一起退回上一幕，否则情报台还挂着刚被丢弃那一回的状态 */
+    GAME.lastPanel=null;
+    for(var _li=TURNS.length-1;_li>=0;_li--){
+      if(TURNS[_li].role!=='assistant')continue;
+      GAME.lastPanel=parseMvu(TURNS[_li].content)||null;
+      if(GAME.lastPanel)break;
+    }
+    if(!GAME.lastPanel&&GAME.opText)GAME.lastPanel=parseMvu(GAME.opText)||null;
+    try{GENIVS.setPrev(GAME.lastPanel);}catch(_){}
+    if(GAME.lastPanel)renderMvu(GAME.lastPanel);
+    if(apiReady()){askOracle();return;}
+    /* 没配接口时游戏本来就靠 GENIVS.offlineTurn 推进，完全可玩。
+       原来这里直接什么都不做——正文已经删了、却不补新的，玩家每点一次少一段剧情。 */
+    var _uv='';
+    for(var _ui=TURNS.length-1;_ui>=0;_ui--)if(TURNS[_ui].role==='user'){_uv=TURNS[_ui].content;break;}
+    var _ut=(TURNS.length?TURNS[TURNS.length-1].t:null);
+    try{GENIVS.offlineTurn(_uv||'（继续）',_ut);}
+    catch(_){narrAdd('sys','…&nbsp;ORACVLVM&nbsp;未接线&nbsp;·&nbsp;已记录…',_ut);}
   });
   /* 回溯：舍弃最后一问一答 */
   $('#gBack').addEventListener('click',function(){
@@ -4966,14 +5030,26 @@ function bufToDataUrl(buf,cb){
 }
 /* 提示词组装：镜头前缀 + 场景 + 生图世界书片段 */
 function imgPromptBase(sceneText){
-  var frags=(SET.img.ilore||[]).filter(function(e){
-    if(e.on===false)return false;
-    if(!e.k)return true;
-    var ks=e.k.split(/[、,，]/);
-    for(var i=0;i<ks.length;i++)if(ks[i]&&sceneText.indexOf(ks[i])>=0)return true;
-    return false;
-  }).map(function(e){return e.f;});
-  return CAM_PROMPT[SET.img.cam]+'ancient Roman world, dark gold cinematic aesthetic, '
+  /* 命中关键词的片段排前面，没有关键词的通用片段垫后。
+     原来「没写关键词就无条件全量拼」，纯文本导入的世界书（每一行的关键词都是空的）
+     会把上百条一股脑倒进 prompt，实测单次四千多字——NovelAI/SD 直接截断或报错。 */
+  var hitF=[],anyF=[];
+  (SET.img.ilore||[]).forEach(function(e){
+    if(!e||e.on===false||!e.f)return;
+    if(!e.k){anyF.push(e.f);return;}
+    var ks=String(e.k).split(/[、,，]/);
+    for(var i=0;i<ks.length;i++)if(ks[i]&&sceneText.indexOf(ks[i])>=0){hitF.push(e.f);return;}
+  });
+  var frags=[],used=0;
+  hitF.concat(anyF).forEach(function(f){
+    if(frags.length>=12||used+f.length>600)return;
+    frags.push(f);used+=f.length;
+  });
+  /* 世界基调原来写死 ancient Roman world：玩周纪的人每一张配图都被画成古罗马，
+     而面板上找不到任何可以改掉它的开关。 */
+  var wb=(ACTIVE==='zhou')?'ancient Chinese Zhou-dynasty world, ink-wash inspired'
+                          :'ancient Roman world';
+  return CAM_PROMPT[SET.img.cam]+wb+', dark gold cinematic aesthetic, '
     +frags.join(', ')+(frags.length?', ':'');
 }
 function genOne(prompt,seed,cb,err){
@@ -5188,13 +5264,16 @@ $('#loreNew').addEventListener('click',function(){
   $('#lfTtl').value='';$('#lfKeys').value='';$('#lfKeys2').value='';
   $('#lfOrd').value=100;$('#lfProb').value=100;setSeg('#sgLfConst',0);$('#lfTxt').value='';
 });
+function _lfNum(v,d){v=String(v==null?'':v).trim();return (v===''||isNaN(+v))?d:+v;}
 $('#lfCancel').addEventListener('click',function(){$('#loreForm').style.display='none';});
 $('#lfSave').addEventListener('click',function(){
   var e={cat:'自写',custom:true,on:true,
     title:$('#lfTtl').value.trim(),
     keys:$('#lfKeys').value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean),
     keys2:$('#lfKeys2').value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean),
-    ord:+$('#lfOrd').value||100,prob:+$('#lfProb').value||100,
+    /* 0 是有意义的值：概率 0 是「暂时关掉这条」，顺序 0 是「排到最前」。
+       原来一律 ||100，玩家以为关掉的条目每回合 100% 注入，想置顶的反而掉到队尾。 */
+    ord:_lfNum($('#lfOrd').value,100),prob:_lfNum($('#lfProb').value,100),
     constant:$('#sgLfConst').children[1].classList.contains('on'),
     content:$('#lfTxt').value.trim()};
   if(!e.title||!e.content){$('#loreMsg').textContent='条目名与内容必填';return;}
@@ -5214,9 +5293,16 @@ $('#loreFile').addEventListener('change',function(){
       list.forEach(function(e){
         var t=e.title||e.comment||e.name,c=e.content;
         if(!t||!c)return;
-        arr.push({cat:'自写',custom:true,on:true,title:t,
-          keys:e.keys||e.key||[],keys2:e.keys2||e.keysecondary||[],
-          ord:e.ord||e.order||e.insertion_order||100,prob:e.prob||e.probability||100,
+        arr.push({cat:'自写',custom:true,
+          /* 作者明确停用的条目导入后不该复活 */
+          on:!(e.disable||e.disabled||e.enabled===false),
+          title:t,
+          keys:e.keys||e.key||[],
+          /* keysecondary 只在 selective 开启时才是「必须同时命中」的二级门。
+             ST 里它常年留着历史数据，无条件搬过来就等于给条目加了一道谁也过不去的锁。 */
+          keys2:(e.selective===false?[]:(e.keys2||e.keysecondary||[])),
+          ord:_lfNum(e.ord!=null?e.ord:(e.order!=null?e.order:e.insertion_order),100),
+          prob:_lfNum(e.prob!=null?e.prob:e.probability,100),
           constant:!!e.constant,content:c});ok++;
       });
       loreCustomPut(arr);loreSync();loreRender();
@@ -5242,7 +5328,17 @@ function rxApply(text,scopeSend){
     if(r.on===false)return;
     if(scopeSend&&r.scope!==1)return;
     var re=rxParse(r.find);if(!re)return;
-    try{text=text.replace(re,r.rep||'');}catch(_){}
+    try{
+      var _t=text.replace(re,r.rep||'');
+      /* 写错的贪婪式（把整篇都吃掉的那种）会把整段正文替成空：屏幕上这一回什么都没有，
+         而界面上没有任何「看原文」的出口，玩家只会以为 AI 没回话。
+         原文非空却被替成空——那一定是规则写错了，跳过这一条并留个提示。 */
+      if(String(text).trim().length>40&&!String(_t).trim()){
+        try{var _m=$('#rxMsg');if(_m)_m.textContent='正则「'+(r.find||'')+'」会清空整段正文，已跳过';}catch(_){}
+        return;
+      }
+      text=_t;
+    }catch(_){}
   });
   return text;
 }
@@ -5716,7 +5812,9 @@ $('#gtApi').addEventListener('click',function(){apiOpen();});
 $('#gtVoc').addEventListener('click',function(){gDlgShow('#dlgVoc');});
 $('#exSave').addEventListener('click',function(){
   /* 存档后离开：优先写入空槽，无空槽则覆写最旧的一格 */
-  var btn=this;if(btn.dataset.busy)return;btn.dataset.busy='1';
+  var btn=this;if(btn.dataset.busy)return;
+  if(BUSY){$('#exMsg').textContent='神谕落笔中，请等本回写完再存档';return;}
+  btn.dataset.busy='1';
   try{
     var slot=0,oldest=null;
     /* 槽位共 SVN 格。只扫前 3 格会把玩家手动存在 I/II/III 的档无声覆盖掉，
@@ -5724,9 +5822,15 @@ $('#exSave').addEventListener('click',function(){
     for(var n=1;n<=SVN;n++){var v=svGet(n);if(!v){slot=n;break;}
       if(!oldest||(v.when||'')<(oldest.when||'')){oldest=v;oldest._n=n;}}
     if(!slot)slot=oldest?oldest._n:1;
-    svPut(slot,svSnap());
+    /* svPut 内部已经把配额溢出捕获掉并 return false，所以外面这层 try/catch 永远不会
+       触发：原来照样显示「已写入」并在 700ms 后退出，整局进度无声蒸发。 */
+    if(!svPut(slot,svSnap())){
+      btn.dataset.busy='';
+      $('#exMsg').textContent='存档失败：本机存储已满（可在 设置·备 清理图库缓存或自定义字体）· 未离开';
+      return;
+    }
     if(typeof svRender==='function')try{svRender();}catch(_){}
-    $('#exMsg').textContent='已写入 TABVLA '+['I','II','III'][slot-1]+' · 正在离开…';
+    $('#exMsg').textContent='已写入 TABVLA '+(['I','II','III'][slot-1]||('第'+slot+'格'))+' · 正在离开…';
     setTimeout(function(){btn.dataset.busy='';$('#dlgExit').style.display='none';$('#exMsg').textContent='';gameExit();},700);
   }catch(e){btn.dataset.busy='';$('#exMsg').textContent='存档失败：'+(e&&e.message||'未知错误');}
 });
@@ -6862,11 +6966,19 @@ function movePlayerTo(name){
 }
 function mood(){
   var p=currentPanel(); var cw=p?p.world:{};
-  var place=cw['时地']||'', wx=cw['天气']||'';
+  /* 繁体键也要认：模型写成 ◇時地／◇天氣 时，原来这里两个都取不到，
+     画面当场退回默认的白天晴天。 */
+  var place=cw['时地']||cw['時地']||'', wx=cw['天气']||cw['天氣']||'';
   return {
     place:place, wx:wx,
-    night:/夜|晚|夜半|入夜/.test(place),
-    snow:/雪/.test(wx+place),
+    /* 判夜的词卡里自带的开局就用过：黄昏、日暮、日昃、三更……原来一个都不认，
+       写着「日暮前」的一幕在三维里仍是大白天。 */
+    night:/夜|晚|入夜|夜半|黄昏|日暮|日昃|薄暮|昏时|掌灯|[一二三四五]更|子时|亥时|戌时|丑时|寅时/.test(place),
+    snow:/雪|霜|冰/.test(wx+place),
+    rain:/雨|霖|滂沱|淋/.test(wx),
+    fog:/雾|霭|霾|沙尘|扬尘/.test(wx),
+    wind:/风|飙|飓/.test(wx),
+    clear:/晴|朗|烈日|皎|星斗/.test(wx),
     spring:/春|柳絮|杏|花|燕/.test(wx+place),
     water:/池|洛水|高台|苑|河/.test(place)
   };
@@ -6916,13 +7028,23 @@ function worldCommand(raw){
   sendText('（天子颁令于天下：「'+raw+'」。宫人立办，其果如下——'+r.report+'。此为既成事实：请顺此结果叙事见闻与众人反应，不得更改、推翻或另行虚构执行细节。）');
 }
 /* 三维营造模式的敕令通报入口：AI 忙时排队重试 */
-window.ZJ3D_say=function(text,tries){
-  if(BUSY||!GAME.on){
-    if((tries||0)<8)setTimeout(function(){window.ZJ3D_say(text,(tries||0)+1);},1600);
-    return;
-  }
-  sendText(text);
+/* 三维里的动作（营造、拆毁、纵火、与人对话、出手）全靠这条通道上报给正文。
+   原来是各自重试 8 次≈12.8 秒就把文本丢掉——而一次神谕通常要跑 20 到 60 秒，
+   也正是玩家最爱去三维画面里点点看的时段。结果是三维里房子起来了、人死了，
+   正文一个字都不知道；下一回合 brief() 又用「引擎账实·最高可信」把这些列给 AI，
+   AI 只能凭空补叙或干脆忽略。改成真队列：等多久都不丢，按顺序一条条发。 */
+var _SAYQ=[];
+function _sayFlush(){
+  if(BUSY||!GAME.on||!_SAYQ.length)return;
+  var t=_SAYQ.shift();
+  try{sendText(t);}catch(_){}
+}
+window.ZJ3D_say=function(text){
+  if(!String(text||'').trim())return;
+  if(_SAYQ.length>=12)_SAYQ.shift();          /* 只防无限堆积，不做静默丢弃 */
+  _SAYQ.push(text);_sayFlush();
 };
+setInterval(_sayFlush,900);
 window.ZJ3D_closePane=function(){
   try{
     GAME.txOpen=false;
@@ -6974,13 +7096,19 @@ function zj3dTick(){
       }
       _zh=_loc; /* 周纪卡永远走中原引擎 */
     }
+    /* 【方位】只在地球仪选点和开局时写过，剧情推着走之后再没人更新：
+       system 里每回合都写着「当前所在：罗马」，状态栏却已经在雅典，
+       模型于是反复把主角拉回罗马、或写出「你人在雅典（罗马）」这种自相矛盾的句子。
+       这里跟着状态栏的 ◇时地 同步一次，三者（提示词方位／状态栏时地／三维城池）对齐。 */
     var zhShow=!!_zh;
     if(zhShow)_loc=_zh;
+    if(_loc&&(!GAME.place||GAME.place.cn!==_loc))GAME.place={n:(GAME.place&&GAME.place.n)||'',cn:_loc};
     var zh=document.getElementById('zjScene3D'),mh=document.getElementById('mdScene3D');
     if(zh)zh.style.display=zhShow?'block':'none';
     if(mh)mh.style.display=zhShow?'none':'block';
     var E=zhShow?window.ZJ3D:window.MED3D;
     var O=zhShow?window.MED3D:window.ZJ3D;
+    window.__CUR3D=E;                    /* GENIVS.ENG() 据此对准正在显示的那台引擎 */
     if(O&&O!==E&&O.sleep)O.sleep(); /* 另一侧引擎休眠省内存 */
     if(!E)return;
     /* 中原引擎兩張卡共用：告訴它現在誰在操縱，天子與貝羅娜不是同一個人 */
@@ -6989,7 +7117,10 @@ function zj3dTick(){
     var _Eo=(ACTIVE==='roma')?window.MED3D:window.ZJ3D; /* 档位记在本卡引擎上，借用引擎同步之 */
     if(E!==_Eo&&_Eo&&_Eo.tier!=null){E.tier=_Eo.tier;E.expanded=!!_Eo.expanded;}
     if(E.setEra)E.setEra(cw['纪年']||(GAME.op?GAME.op.era:'')||'');
-    if(E.onRender)E.onRender(_loc,_m.night);
+    if(E.onRender)E.onRender(_loc,_m.night,_m);
+    /* mvuSpec 里对模型白纸黑字写着「天气一栏必须含 晴/阴/雨/雪/风/雾 之一（三维画面据此取景）」，
+       但天气此前从未传给过引擎——对玩家和对模型都是失约。 */
+    if(E.setWeather){try{E.setWeather(_m);}catch(_){}}
     if(E.onStory){var _lm=null;for(var i=S.history.length-1;i>=0;i--){if(S.history[i].role!=='user'){_lm=S.history[i];break;}}E.onStory(_lm&&_lm.text?_lm.text:'');}
     /* 把状态栏 ◈ 行里的在场者交给引擎放进场景：AI 写到谁，谁就站在她面前。
        在此之前场上只有程序生成的路人，剧情写谁画面都不知道。 */
@@ -7274,7 +7405,17 @@ function svPut(n,v){
 function svSnap(){
   return {t:$('#gLoc').textContent.trim(),when:new Date().toLocaleString(),
     active:ACTIVE,year:ERA.year,loc:$('#gLoc').innerHTML,
-    html:$('#gNarr').innerHTML,mfd:document.querySelector('#game .gMfd').innerHTML,
+    /* 存档时正文可能正在流式输出：直接抓 innerHTML 会把进度条和 .liveWrap 半截正文
+       一起写进去，读档后正文里永久卡着一条走不完的进度条（序列化丢事件，✕ 中断
+       变成死按钮）外加一段半截文。先克隆一份、摘掉这两类临时节点再序列化。 */
+    html:(function(){
+      try{
+        var _nr=$('#gNarr').cloneNode(true);
+        _nr.querySelectorAll('.genBar,.liveWrap').forEach(function(n){n.remove();});
+        return _nr.innerHTML;
+      }catch(_){return $('#gNarr').innerHTML;}
+    })(),
+    mfd:document.querySelector('#game .gMfd').innerHTML,
     inv:JSON.parse(JSON.stringify(INV)),place:GAME.place,
     ts:Date.now(),                                     /* when 是本地化字符串排不了序，另存真时间戳 */
     op:GAME.op,opText:GAME.opText,dest3d:GAME.dest3d,   /* 开局锚点：不存则读档后 AI 与三维都不知本局年代场景 */
@@ -7631,7 +7772,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.8.6';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.9.0';}catch(_){}
 })();
 </script>
 </body>

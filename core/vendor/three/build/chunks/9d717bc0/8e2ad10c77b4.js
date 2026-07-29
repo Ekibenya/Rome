@@ -161,6 +161,8 @@
     }).then(function () {
       Z.ready = true; Z.loading = false;
       if (Z.pending) { var p = Z.pending; Z.pending = null; showLocation(p[0], p[1]); }
+      /* 加载期间到达的那一幕在这里补放，别让开局的剧情感知整个丢掉 */
+      if (Z.pendStory) { var ps = Z.pendStory; Z.pendStory = null; try { Z.onStory(ps); } catch (e) { } }
       if (window.ZJ3D_onExpand) window.ZJ3D_onExpand(); // re-render app so the pane hands over to 3D
     }).catch(function (e) {
       console.warn('zj3d assets failed', e); Z.failed = true; Z.loading = false; updateHud();
@@ -898,8 +900,13 @@
   var STORY = { last: '', coolAt: 0 };
   Z.onStory = function (text) {
     if (!text || text === STORY.last) return;
+    /* 引擎加载完通常要几秒（真实网络取资材包更久），而宿主在展开三维面板 600ms 后
+       就把开局那一幕递了进来。原来先记 STORY.last 再查 ready：这一幕被记成「已处理」
+       却什么都没做，等 ready 之后宿主再递同一段文本时，第一行的去重直接把它挡掉——
+       开局里的「软禁/人质/阶下囚」不会让仪仗散去，「刺客/夜袭」不会触发遇刺事件。
+       onRender 早就有 pending 重放，onStory 一直没有。 */
+    if (!Z.ready) { Z.pendStory = text; return; }
     STORY.last = text;
-    if (!Z.ready) return;
     // 软禁与获释
     if (/软禁|幽禁|禁足|被囚|囚于|拘于|人质|阶下囚|不得出|看守森严|活玉玺/.test(text)) {
       if (!Z.captive) { Z.captive = true; spawnEscort(); }
@@ -3820,8 +3827,19 @@
 
   /* ---------------- 建造存档 ---------------- */
   var BUILDS = {};
-  try { BUILDS = JSON.parse(localStorage.getItem('zj3d_builds_v1') || '{}'); } catch (e) { }
-  function buildsSave() { try { localStorage.setItem('zj3d_builds_v1', JSON.stringify(BUILDS)); } catch (e) { } }
+  /* 两台引擎是两个独立闭包，各自在初始化时把整份 zj3d_builds_v1 读进内存、
+     之后又把自己那份整个写回。同一次会话里先在罗马造几栋、再走到洛邑造一栋，
+     后写的一方就用页面加载时的陈旧副本把前一座城的营造记录整批抹掉（金币还照扣）。
+     所以：环海侧换用自己的键，并且每次落盘前先回读合并，彻底消除整份覆盖。 */
+  var BK = 'med3d_builds_v1';
+  try { BUILDS = JSON.parse(localStorage.getItem(BK) || 'null') || JSON.parse(localStorage.getItem('zj3d_builds_v1') || '{}'); } catch (e) { }
+  function buildsSave() {
+    try {
+      var cur = {}; try { cur = JSON.parse(localStorage.getItem(BK) || '{}') || {}; } catch (e2) { }
+      for (var k in BUILDS) if (Object.prototype.hasOwnProperty.call(BUILDS, k)) cur[k] = BUILDS[k];
+      localStorage.setItem(BK, JSON.stringify(cur));
+    } catch (e) { }
+  }
   function buildsOf(loc) {
     if (Z.mode === 'interior' && Z.intKey) loc = Z.intKey; // 室内陈设各屋一档
     return BUILDS[loc] || (BUILDS[loc] = { seq: 0, items: [] });
@@ -5235,7 +5253,7 @@
     '姑苏': ['sunwu', 'wuzixu'],
     '会稽': ['fanli', 'xishi'],
     '陶邑': ['fanli'],
-    '商丘': ['mozhe' /* 墨者众 */],
+    '商丘': ['gongshu'],
     '成都': ['xuxing'],
     '灵寿': ['lianpo']
   };
@@ -5402,7 +5420,10 @@
       });
     }
     (HIST_BY_LOC[locName] || []).forEach(function (hk, i) {
+      /* 表里拼错一个键，整城构建就会在这里抛 TypeError 半途夭折——而调用方那层
+         try/catch 会把它整个吞掉：玩家看到的是一座缺了大半的空城，控制台一声不响。 */
       var h = HIST[hk];
+      if (!h) { console.warn('HIST_BY_LOC 指向不存在的条目:', hk); return; }
       var root = makePawn(h.cfg);
       var a = 1.2 + i * 1.5, d = 18 + i * 9;
       root.position.set(Math.sin(a) * d, 0, Math.cos(a) * d - 10);
@@ -5657,9 +5678,16 @@
   Z.cityRoots = [];   // 原生城建可点根节点
   Z.anims = [];       // 进行中的拆毁动画
   var RAZED = {};
-  try { RAZED = JSON.parse(localStorage.getItem('zj3d_razed_v1') || '{}'); } catch (e) { }
+  var RK = 'med3d_razed_v1';
+  try { RAZED = JSON.parse(localStorage.getItem(RK) || 'null') || JSON.parse(localStorage.getItem('zj3d_razed_v1') || '{}'); } catch (e) { }
   function razedOf(loc) { return RAZED[loc] || (RAZED[loc] = []); }
-  function razedSave() { try { localStorage.setItem('zj3d_razed_v1', JSON.stringify(RAZED)); } catch (e) { } }
+  function razedSave() {
+    try {
+      var cur = {}; try { cur = JSON.parse(localStorage.getItem(RK) || '{}') || {}; } catch (e2) { }
+      for (var k in RAZED) if (Object.prototype.hasOwnProperty.call(RAZED, k)) cur[k] = RAZED[k];
+      localStorage.setItem(RK, JSON.stringify(cur));
+    } catch (e) { }
+  }
 
   function rootHalf(root) {
     var bb = new T.Box3().setFromObject(root);
@@ -6017,7 +6045,10 @@
     edictSave();
   }
   Z.applyEdict = function (spec, key) {
-    if (!Z.ready || Z.mode !== 'city' || !Z.cityKey || !spec) return;
+    /* 面板收起满 90 秒场景会被拆掉（Z.scene=null），但 ready/mode/cityKey 都还在。
+       原来的守卫查不到这一点，一路走到 spawn 的 Z.scene.add(g) 抛 TypeError；
+       而记录是「先入档再 spawn」，于是档案里留下一条只有记录没有实体的重影建筑。 */
+    if (!Z.ready || !Z.scene || Z.mode !== 'city' || !Z.cityKey || !spec) return;
     if (EDICT.key === key) return; // 本轮已应用
     if (EDICT.key && EDICT.key.split('@')[0] === String(key).split('@')[0]) edictUndo(); // 重演此幕：先撤上一版
     var made = [], razedKeys = [], razedRecs = [];
@@ -6235,7 +6266,7 @@
   Z.command = function (raw) {
     raw = String(raw || '').trim();
     if (!raw) return { ok: false, report: '指令为空' };
-    if (!Z.ready || Z.mode !== 'city' || !Z.cityKey) return { ok: false, report: '三维天下尚未就绪，请展开上方三维画面待城池加载完毕' };
+    if (!Z.ready || !Z.scene || Z.mode !== 'city' || !Z.cityKey) return { ok: false, report: '三维天下尚未就绪，请展开上方三维画面待城池加载完毕' };
     var m;
     m = /(?:攻打|攻击|讨伐|兵发|^攻|^伐)\s*(.+)$/.exec(raw); if (m) return cmdAttack(m[1]);
     m = /(?:拆除|拆掉|拆了|平毁|撤去|清除|^拆)\s*(.+)$/.exec(raw); if (m) return cmdRaze(m[1]);
@@ -6317,7 +6348,17 @@
   Z.wake = function () {
     if (!Z.asleep) return;
     Z.asleep = false;
-    if (Z._torn) { Z._torn = false; Z.cityKey = null; } /* 强制下帧重建当前城 */
+    if (Z._torn) {
+      /* 场景已经被拆干净了，室内陈设无论如何都回不去。原来 wake 不动 Z.mode，
+         于是重新展开后 showLocation 第一行的 `if (Z.mode === 'interior') return;`
+         直接返回，永远走不到 buildFor —— Z.scene 永远是 null，画面死锁。
+         唯一正确的落点是回到城里。 */
+      Z._torn = false; Z.cityKey = null;
+      if (Z.mode === 'interior') {
+        Z.mode = 'city'; Z.intKey = null; Z.intPlan = false;
+        Z.interiorFrom = null; Z.exitDoor = null;
+      }
+    }
   };
   Z.setLow = function (on) { PERF.low = !!on; perfSave(); applyPerf(); if (Z._lowBtn) Z._lowBtn(); };
   Z.isLow = function () { return PERF.low; };

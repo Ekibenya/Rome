@@ -155,6 +155,8 @@
     }).then(function () {
       Z.ready = true; Z.loading = false;
       if (Z.pending) { var p = Z.pending; Z.pending = null; showLocation(p[0], p[1]); }
+      /* 加载期间到达的那一幕在这里补放，别让开局的剧情感知整个丢掉 */
+      if (Z.pendStory) { var ps = Z.pendStory; Z.pendStory = null; try { Z.onStory(ps); } catch (e) { } }
       if (window.ZJ3D_onExpand) window.ZJ3D_onExpand(); // re-render app so the pane hands over to 3D
     }).catch(function (e) {
       console.warn('zj3d assets failed', e); Z.failed = true; Z.loading = false; updateHud();
@@ -983,8 +985,13 @@
   var STORY = { last: '', coolAt: 0 };
   Z.onStory = function (text) {
     if (!text || text === STORY.last) return;
+    /* 引擎加载完通常要几秒（真实网络取资材包更久），而宿主在展开三维面板 600ms 后
+       就把开局那一幕递了进来。原来先记 STORY.last 再查 ready：这一幕被记成「已处理」
+       却什么都没做，等 ready 之后宿主再递同一段文本时，第一行的去重直接把它挡掉——
+       开局里的「软禁/人质/阶下囚」不会让仪仗散去，「刺客/夜袭」不会触发遇刺事件。
+       onRender 早就有 pending 重放，onStory 一直没有。 */
+    if (!Z.ready) { Z.pendStory = text; return; }
     STORY.last = text;
-    if (!Z.ready) return;
     // 软禁与获释
     if (/软禁|幽禁|禁足|被囚|囚于|拘于|人质|阶下囚|不得出|看守森严|活玉玺/.test(text)) {
       if (!Z.captive) { Z.captive = true; spawnEscort(); }
@@ -2014,6 +2021,15 @@
   var _ray = new T.Raycaster();
   function tick() {
     requestAnimationFrame(tick);
+    /* 收起即休眠：停渲染停演算。中原侧此前没有这一段，宿主调 O.sleep() 让另一侧引擎
+       让路时它照样满帧跑，两台引擎同时渲染——手机上直接掉到个位数帧率。 */
+    if (Z.asleep) {
+      if (!Z._torn && Z.scene && performance.now() - Z._sleptAt > 90000) {
+        try { disposeScene(); } catch (e) { }
+        Z._torn = true;
+      }
+      return;
+    }
     if (!Z.scene || !Z.rnd || !Z.cv.isConnected) return;
     if (isTouch()) { // 手机：操作中全速，静止或低配 30fps；打字时 ~8fps 让键盘丝滑
       var nowT = performance.now();
@@ -2341,7 +2357,13 @@
   /* ---------------- 建造存档 ---------------- */
   var BUILDS = {};
   try { BUILDS = JSON.parse(localStorage.getItem('zj3d_builds_v1') || '{}'); } catch (e) { }
-  function buildsSave() { try { localStorage.setItem('zj3d_builds_v1', JSON.stringify(BUILDS)); } catch (e) { } }
+  function buildsSave() {
+    try {
+      var cur = {}; try { cur = JSON.parse(localStorage.getItem('zj3d_builds_v1') || '{}') || {}; } catch (e2) { }
+      for (var k in BUILDS) if (Object.prototype.hasOwnProperty.call(BUILDS, k)) cur[k] = BUILDS[k];
+      localStorage.setItem('zj3d_builds_v1', JSON.stringify(cur));
+    } catch (e) { }
+  }
   function buildsOf(loc) {
     if (Z.mode === 'interior' && Z.intKey) loc = Z.intKey; // 室内陈设各屋一档
     return BUILDS[loc] || (BUILDS[loc] = { seq: 0, items: [] });
@@ -3642,7 +3664,7 @@
     '姑苏': ['sunwu', 'wuzixu'],
     '会稽': ['fanli', 'xishi'],
     '陶邑': ['fanli'],
-    '商丘': ['mozhe' /* 墨者众 */],
+    '商丘': ['gongshu'],
     '成都': ['xuxing'],
     '灵寿': ['lianpo']
   };
@@ -3791,7 +3813,10 @@
       });
     }
     (HIST_BY_LOC[locName] || []).forEach(function (hk, i) {
+      /* 表里拼错一个键，整城构建就会在这里抛 TypeError 半途夭折——而调用方那层
+         try/catch 会把它整个吞掉：玩家看到的是一座缺了大半的空城，控制台一声不响。 */
       var h = HIST[hk];
+      if (!h) { console.warn('HIST_BY_LOC 指向不存在的条目:', hk); return; }
       var root = makePawn(h.cfg);
       var a = 1.2 + i * 1.5, d = 18 + i * 9;
       root.position.set(Math.sin(a) * d, 0, Math.cos(a) * d - 10);
@@ -4016,7 +4041,13 @@
   var RAZED = {};
   try { RAZED = JSON.parse(localStorage.getItem('zj3d_razed_v1') || '{}'); } catch (e) { }
   function razedOf(loc) { return RAZED[loc] || (RAZED[loc] = []); }
-  function razedSave() { try { localStorage.setItem('zj3d_razed_v1', JSON.stringify(RAZED)); } catch (e) { } }
+  function razedSave() {
+    try {
+      var cur = {}; try { cur = JSON.parse(localStorage.getItem('zj3d_razed_v1') || '{}') || {}; } catch (e2) { }
+      for (var k in RAZED) if (Object.prototype.hasOwnProperty.call(RAZED, k)) cur[k] = RAZED[k];
+      localStorage.setItem('zj3d_razed_v1', JSON.stringify(cur));
+    } catch (e) { }
+  }
 
   function rootHalf(root) {
     var bb = new T.Box3().setFromObject(root);
@@ -4337,7 +4368,10 @@
     edictSave();
   }
   Z.applyEdict = function (spec, key) {
-    if (!Z.ready || Z.mode !== 'city' || !Z.cityKey || !spec) return;
+    /* 面板收起满 90 秒场景会被拆掉（Z.scene=null），但 ready/mode/cityKey 都还在。
+       原来的守卫查不到这一点，一路走到 spawn 的 Z.scene.add(g) 抛 TypeError；
+       而记录是「先入档再 spawn」，于是档案里留下一条只有记录没有实体的重影建筑。 */
+    if (!Z.ready || !Z.scene || Z.mode !== 'city' || !Z.cityKey || !spec) return;
     if (EDICT.key === key) return; // 本轮已应用
     if (EDICT.key && EDICT.key.split('@')[0] === String(key).split('@')[0]) edictUndo(); // 重演此幕：先撤上一版
     var made = [], razedKeys = [], razedRecs = [];
@@ -4555,7 +4589,7 @@
   Z.command = function (raw) {
     raw = String(raw || '').trim();
     if (!raw) return { ok: false, report: '敕令为空' };
-    if (!Z.ready || Z.mode !== 'city' || !Z.cityKey) return { ok: false, report: '三维天下尚未就绪，请展开上方三维画面待城池加载完毕' };
+    if (!Z.ready || !Z.scene || Z.mode !== 'city' || !Z.cityKey) return { ok: false, report: '三维天下尚未就绪，请展开上方三维画面待城池加载完毕' };
     var m;
     m = /(?:攻打|攻击|讨伐|兵发|^攻|^伐)\s*(.+)$/.exec(raw); if (m) return cmdAttack(m[1]);
     m = /(?:拆除|拆掉|拆了|平毁|撤去|清除|^拆)\s*(.+)$/.exec(raw); if (m) return cmdRaze(m[1]);
@@ -4573,7 +4607,80 @@
     if (window.ZJ3D_onExpand) window.ZJ3D_onExpand();
     updateHud(); if (bHud.wrap) updateBuildHud();
   };
+  Z.sleep = function () { if (Z.asleep) return; Z.asleep = true; Z._sleptAt = performance.now(); };
+  Z.wake = function () {
+    if (!Z.asleep) return;
+    Z.asleep = false;
+    if (Z._torn) {
+      Z._torn = false; Z.cityKey = null;
+      if (Z.mode === 'interior') {
+        Z.mode = 'city'; Z.intKey = null; Z.intPlan = false;
+        Z.interiorFrom = null; Z.exitDoor = null;
+      }
+    }
+  };
   Z.setLow = function (on) { PERF.low = !!on; perfSave(); applyPerf(); if (Z._lowBtn) Z._lowBtn(); };
+  /* ---------------- 三维 → prompt 的三个入口 ----------------
+     环海侧一直有这三个函数，中原侧从来没有：于是玩周纪时 GENIVS.brief() 的第一行
+     `var s=snap(); if(!s||!s.city)return ''` 恒为空——系统提示里整段【三维实况】缺失，
+     AI 不知道玩家在哪座城、造了什么、身边站着谁、国库多少，也拿不到 <sec_deed> 的
+     回执格式说明，于是永远不会输出回执，正文再也驱动不了三维。 */
+  Z.vocab = function () {                       /* 可建之物的一级名，给 AI 当选词表 */
+    var seen = {}, list = [];
+    try {
+      catalog().forEach(function (c) {
+        if (c.tab === '家具') return;
+        (c.items || []).forEach(function (it) {
+          var d = String(it.disp || '').replace(/·.+$/, '');
+          if (d && !seen[d]) { seen[d] = 1; list.push(d); }
+        });
+      });
+    } catch (e) { }
+    return list;
+  };
+  Z.resolve = function (w) {                    /* 把 AI 写的词对到真实可建之物 */
+    try {
+      var it = edictResolve(w);
+      return it ? { name: it.name, disp: it.disp, kind: it.kind, price: it.price } : null;
+    } catch (e) { return null; }
+  };
+  Z.snapshot = function () {
+    if (!Z.owns() || !Z.cityKey) return null;
+    var px = Z.player ? Z.player.position.x : 0, pz = Z.player ? Z.player.position.z : 0;
+    var s = {
+      city: Z.cityKey, mode: Z.mode, interior: Z.intKey || '', night: !!Z.night,
+      escortN: Z.escortN || 0, captive: !!Z.captive,
+      gold: 0, rate: 0, playerPos: '', builds: [], pawns: [],
+      ledger: { built: [], razed: [] }, vocab: []
+    };
+    try { s.gold = ECON.gold; s.rate = ECON.RATE; } catch (e) { }
+    try { s.playerPos = posName(Math.round(px / CELL), Math.round(pz / CELL)); } catch (e) { }
+    try {
+      var agg = {};
+      (buildsOf(Z.cityKey).items || []).forEach(function (it) {
+        var k = it.disp || it.name;
+        if (!agg[k]) { agg[k] = { disp: k, pos: posName(it.cx, it.cz), n: 0, ai: it.ai ? 1 : 0 }; s.builds.push(agg[k]); }
+        agg[k].n++;
+      });
+    } catch (e) { }
+    try {
+      (Z.pawns || []).forEach(function (p) {
+        if (!p || !p.root || !p.root.parent || !p.name) return;
+        var d = Math.abs(p.root.position.x - px) + Math.abs(p.root.position.z - pz);
+        if (d > 40) return;
+        s.pawns.push({
+          name: p.name, cat: p.cat || '', desc: p.desc || '', tag: p.tag || '',
+          own: p.own ? 1 : 0, d: d,
+          pos: posName(Math.round(p.root.position.x / CELL), Math.round(p.root.position.z / CELL))
+        });
+      });
+      s.pawns.sort(function (a, b) { return a.d - b.d; });
+    } catch (e) { }
+    try { s.ledger.built = LEDGER.built.slice(); s.ledger.razed = LEDGER.razed.slice(); } catch (e) { }
+    try { s.vocab = Z.vocab(); } catch (e) { }
+    return s;
+  };
+
   Z.isLow = function () { return PERF.low; };
   Z.paneH = function (mob) {
     if (!Z.owns()) return mob ? 140 : 186;
