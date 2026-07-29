@@ -259,9 +259,13 @@ canvas{display:block}
 #game .gNarr .me{color:#9fb4c8}
 #game .gEot{text-align:center;font-size:9px;letter-spacing:.4em;color:#4a4a44;margin:28px 0 8px}
 /* 输入区浮于正文之上（Ghost 式）：正文滚到底下透出，阅读面拉满；渐隐底幕保字可读 */
-#game .gInput{position:absolute;left:0;right:0;bottom:0;z-index:6;pointer-events:none;padding-top:14px;
+/* z-index 必须高过三维面板(25)：这一层是层叠上下文，里面的模式行／四策／输入框
+   写多大的 z 都被整块一起压在面板底下——放到最大档时控件就点不着了。 */
+#game .gInput{position:absolute;left:0;right:0;bottom:0;z-index:27;pointer-events:none;padding-top:14px;
       background:linear-gradient(0deg,rgba(6,6,6,.88) 0%,rgba(6,6,6,.66) 55%,rgba(6,6,6,0) 100%)}
-#game .gModes,#game .gLine{pointer-events:auto}
+/* 三维面板是 z-index:25 的绝对定位层；放到最大档时它会压住下面这一组控件。
+   把输入这一组抬到面板之上——画面可以被盖一点，控件不能点不着。 */
+#game .gModes,#game .gLine,#game .gSugRow{pointer-events:auto}
 #game .gModes{display:flex;gap:2px;padding:10px 14px 0;flex-wrap:wrap}
 #game .gm{font-size:9px;letter-spacing:.2em;color:var(--mut);padding:6px 12px 5px;cursor:pointer;
       border:1px solid transparent;white-space:nowrap;background:rgba(6,6,6,.6)} /* 页签自带底色：浮层下正文透字不糊眼 */
@@ -277,6 +281,7 @@ canvas{display:block}
 /* 四策：两列两行，点一条即照它发出去 */
 #game .gSugRow{display:none;grid-template-columns:1fr 1fr;gap:5px;padding:8px 14px 0}
 #game .gSugRow.on{display:grid}
+#game.txBig .gSugRow.on{display:none}   /* 三维放到最大时，下方空间不够，四策先让位 */
 #game .gSugRow .sg{font-size:10.5px;line-height:1.5;letter-spacing:.04em;padding:7px 11px;cursor:pointer;
       color:var(--gold-hi);border:1px solid rgba(201,155,63,.3);background:rgba(6,6,6,.55);
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .18s,border-color .18s}
@@ -284,6 +289,7 @@ canvas{display:block}
 #game .gSugRow .sg i{font-style:normal;color:var(--mut);font-size:8.5px;letter-spacing:.16em;margin-right:6px}
 #game .gSugRow .sg.risk{border-color:rgba(200,80,60,.55)}
 #game .gSugRow .sg.risk i{color:#c8503c}
+.zjNoBar::-webkit-scrollbar{display:none}   /* 三维营造页签行：能滑但不显滚动条 */
 #game .gSugRow .sg.wait{color:var(--mut);border-style:dashed;cursor:default;grid-column:1/-1;text-align:center}
 #game .gLine{display:flex;align-items:center;gap:12px;padding:10px 14px 14px}
 #game .gLine input{flex:1;background:transparent;border:0;border-bottom:1px solid rgba(236,236,232,.25);
@@ -647,21 +653,30 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 /* ══ 天下三维 · 顶部停靠（RitusZhou zj3d）══ */
 /* 展开／收起拆成两个钮：原来一个钮循环「关→小→中→大→关」四态，
    点过头就得再绕一圈，谁也记不住自己现在在第几档。 */
-#arrTx{position:absolute;top:46px;left:calc((100% - 322px)/2);transform:translateX(-50%);height:26px;padding:0;z-index:26;border:1px solid rgba(236,236,232,.16);border-top:0;background:rgba(6,6,6,.88);display:flex;align-items:stretch;color:var(--mut);transition:top .45s cubic-bezier(.2,.85,.25,1),border-color .2s}
+/* 贴三维框右缘、竖排、垂直居中：原来横在画面下沿吊着，白占一条横向空间，
+   而右缘这一条是空的（底部已被 DICTVM 指令栏与建造清单／执行占满）。 */
+/* 贴死在三维框的右边缘，做成抽屉把手：不再吊在画面下沿白占一条横向空间，
+   也不在场景正中漂着。右边框去掉，看起来是从框边伸出来的。 */
+#arrTx{position:absolute;top:calc(46px + min(24vh,215px)/2);right:calc(322px*var(--ui));left:auto;
+      transform:translateY(-50%);width:26px;padding:0;z-index:26;
+      border:1px solid rgba(236,236,232,.16);border-right:0;
+      background:rgba(6,6,6,.9);display:flex;flex-direction:column;align-items:stretch;color:var(--mut);
+      transition:top .45s cubic-bezier(.2,.85,.25,1),border-color .2s}
 #arrTx:hover{border-color:var(--gold)}
-#arrTx .ax{display:flex;align-items:center;gap:7px;padding:0 15px;cursor:pointer;color:var(--mut);transition:color .2s,opacity .2s;-webkit-tap-highlight-color:transparent}
+#arrTx .ax{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+      padding:7px 0;cursor:pointer;color:var(--mut);transition:color .2s,opacity .2s;-webkit-tap-highlight-color:transparent}
 #arrTx .ax:hover{color:var(--gold-hi)}
-#arrTx .ax+.ax{border-left:1px solid rgba(236,236,232,.16)}
+#arrTx .ax+.ax{border-top:1px solid rgba(236,236,232,.16)}
 #arrTx .ax.off{opacity:.28;cursor:default;color:var(--mut)}   /* 到顶／到底：变灰且不可点 */
 #arrTx .a{font-size:11px}
-#arrTx .t{font-size:8px;letter-spacing:.3em;white-space:nowrap}
+#arrTx .t{font-size:7.5px;letter-spacing:.02em;line-height:1.15;writing-mode:vertical-rl;white-space:nowrap}
 #pnTx{position:absolute;left:0;right:calc(322px*var(--ui));top:calc(46px*var(--ui));height:min(24vh,215px);z-index:25;background:#0b0906;border-bottom:1px solid rgba(236,236,232,.14);visibility:hidden;transform:translateY(-103%) translateZ(0);transition:transform .45s cubic-bezier(.2,.85,.25,1),height .3s,visibility .45s;overflow:hidden;font-family:var(--mono)}
 #game.tx2 #pnTx{height:min(58vh,540px)}
 #game.txBig #pnTx{height:min(84vh,760px)}
 #game.txOpen #pnTx{visibility:visible;transform:translateZ(0)}
-#game.txOpen #arrTx{top:calc(46px + min(24vh,215px))}
-#game.txOpen.tx2 #arrTx{top:calc(46px + min(58vh,540px))}
-#game.txOpen.txBig #arrTx{top:calc(46px + min(84vh,760px))}
+#game.txOpen #arrTx{top:calc(46px + min(24vh,215px)/2)}
+#game.txOpen.tx2 #arrTx{top:calc(46px + min(58vh,540px)/2)}
+#game.txOpen.txBig #arrTx{top:calc(46px + min(84vh,760px)/2)}
 /* 箭头恒朝下：此钮语义=向下逐级展开游戏画面 */
 #txBar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:8px;padding:8px 10px;background:linear-gradient(0deg,rgba(6,6,6,.92),rgba(6,6,6,.55) 70%,transparent);align-items:center}
 #txIn{flex:1;background:rgba(6,6,6,.6);border:1px solid rgba(236,236,232,.22);color:#e8d9b0;font-size:10.5px;padding:7px 10px;font-family:inherit;outline:none}
@@ -672,11 +687,11 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 @media(max-width:760px){ /* 手机版三维照常可用：全宽三档，TERRA 拉手居中 */
   #pnTx{right:0;height:min(23vh,205px)}
   #game.tx2 #pnTx{height:min(52vh,460px)}
-  #game.txBig #pnTx{height:min(78vh,640px)}
-  #arrTx{left:50%}
-  #game.txOpen #arrTx{top:calc(46px + min(23vh,205px))}
-  #game.txOpen.tx2 #arrTx{top:calc(46px + min(52vh,460px))}
-  #game.txOpen.txBig #arrTx{top:calc(46px + min(78vh,640px))}
+  #game.txBig #pnTx{height:min(70vh,560px)}   /* 再高就会和下方模式行／输入行叠在一起 */
+  #arrTx{right:0;left:auto}
+  #game.txOpen #arrTx{top:calc(46px + min(23vh,205px)/2)}
+  #game.txOpen.tx2 #arrTx{top:calc(46px + min(52vh,460px)/2)}
+  #game.txOpen.txBig #arrTx{top:calc(46px + min(70vh,560px)/2)}
   #game .gTop{overflow-x:auto;scrollbar-width:none}
   #game .gNarr{padding-bottom:158px}
 }
@@ -1258,7 +1273,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.8.3';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
+  var ZJ3D_VER='1.8.5';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -7529,7 +7544,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.8.3';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.8.5';}catch(_){}
 })();
 </script>
 </body>

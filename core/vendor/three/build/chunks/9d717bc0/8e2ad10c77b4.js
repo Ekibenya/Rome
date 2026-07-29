@@ -4674,10 +4674,15 @@
     var tray = document.createElement('div');
     tray.style.cssText = 'position:absolute;left:6px;right:6px;bottom:' + (mob ? '38px' : '44px') + ';height:' + (mob ? '96px' : '132px') + ';background:rgba(6,6,6,.7);-webkit-backdrop-filter:blur(6px) saturate(140%);backdrop-filter:blur(6px) saturate(140%);border:1px solid rgba(236,236,232,.22);border-radius:0;pointer-events:auto;display:none;backdrop-filter:blur(3px)';
     var tabs = document.createElement('div');
-    tabs.style.cssText = 'display:flex;gap:2px;padding:' + (mob ? '2px 4px 0' : '4px 6px 0');
+    /* 八个页签的总宽（约 660px）远超托盘可见宽（手机上约 360px），而这里原本
+       没有任何 overflow 设置——后四类「道路／草木／人物／军旅」整个落在框外，
+       既看不见也滑不到。给它横向滚动，并把滚动条藏掉。 */
+    tabs.style.cssText = 'display:flex;gap:2px;padding:' + (mob ? '2px 4px 0' : '4px 6px 0') +
+      ';overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:none';
+    tabs.className = 'zjNoBar';
     tray.appendChild(tabs); bHud.tabsEl = tabs;
     var list = document.createElement('div');
-    list.style.cssText = 'display:flex;gap:' + (mob ? '4px' : '6px') + ';overflow-x:auto;overflow-y:hidden;padding:' + (mob ? '4px' : '6px') + ';height:' + (mob ? '66px' : '96px') + ';scrollbar-width:thin';
+    list.style.cssText = 'display:flex;gap:' + (mob ? '4px' : '6px') + ';overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:' + (mob ? '4px' : '6px') + ';height:' + (mob ? '66px' : '96px') + ';scrollbar-width:thin';
     tray.appendChild(list); bHud.listEl = list;
     w.appendChild(tray); bHud.tray = tray;
     // 幽灵操作条
@@ -4711,7 +4716,8 @@
     cats.forEach(function (c, i) {
       var t = document.createElement('div');
       t.textContent = c.lab || c.tab;
-      t.style.cssText = 'padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '9.5px' : '10.5px') + ';letter-spacing:.16em;border-radius:0;' +
+      /* flex:none + nowrap：页签横向滚动时不许被压扁或折行，否则挤成一团照样点不着 */
+      t.style.cssText = 'flex:none;white-space:nowrap;padding:' + (isTouch() ? '2px 9px' : '3px 14px') + ';cursor:pointer;font-size:' + (isTouch() ? '9.5px' : '10.5px') + ';letter-spacing:.16em;border-radius:0;' +
         (i === bHud.tab ? 'background:transparent;color:#ecc878;border:1px solid rgba(201,155,63,.6);border-bottom:none' : 'color:#6b6b66;border:1px solid transparent');
       t.onclick = function () { bHud.tab = i; fillTray(); };
       bHud.tabsEl.appendChild(t);
@@ -4836,7 +4842,19 @@
     /* 建造清单默认收起：一进来先让人看见三维场景本身，清单按钮就在顶排，想盖房子再点开。
        （旧行为是首次进营造即自动弹出，整幅画面被物品格挡住，看不到城。）
        离开营造(on=false)一律收起并复位。 */
-    if (!on) { bHud._openedSession = false; bHud.tray.style.display = 'none'; }
+    if (!on) { bHud._openedSession = false; bHud.tray.style.display = 'none'; bHud._autoTier = -1; }
+    /* 一档（小）只让人先看清城，不弹清单；放大到二档／三档就自动把清单摆出来——
+       那两档的画面本来就够高，清单不会把场景压没。同一档只自动弹一次，
+       玩家手动收起后不再违逆他。 */
+    if (on && Z.tier >= 1 && bHud._autoTier !== Z.tier) {
+      bHud._autoTier = Z.tier;
+      if (bHud.tray.style.display === 'none') {
+        bHud.tray.style.display = 'block';
+        bHud._openedSession = true;
+        try { fillTray(); } catch (e) { }
+      }
+    }
+    if (on && Z.tier < 1) bHud._autoTier = -1;   /* 缩回一档：下次再放大还要自动弹 */
     if (bHud.trayBtn && bHud.trayBtn._hi)
       bHud.trayBtn._hi(trayReachable && !bHud._openedSession);
     /* 室内即便没开陈设规划，也要留这个出口钮；否则进屋后营造 UI 全灭、无路可退 */
