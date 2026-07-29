@@ -3566,10 +3566,22 @@ invRender();
 (function(){
   var tabs=gEl.querySelectorAll('.gNav span');
   var ORDER=['map','narr','mfd'];
+  var _paneWas=false;                 /* 切到情报台前三维是开着的第几档；false＝本来就关着 */
   function setPg(pg){
     for(var j=0;j<tabs.length;j++)tabs[j].classList.toggle('on',tabs[j].getAttribute('data-pg')===pg);
     gEl.setAttribute('data-pg',pg);
     if(pg==='map'){setTimeout(gmapSize,60);try{invRender();}catch(_){}}
+    /* 情报台的 z-index 是 20，三维画面是 25——不收起来的话它整块压在状态栏上，
+       这一页从头到 70vh 全被挡住，玩家看到的就是「切过去也读不了」。
+       离开这一页时再把它按原来的档位还原，玩家不会觉得自己的三维被谁关掉了。 */
+    try{
+      if(pg==='mfd'){
+        if(window.__paneStash)_paneWas=window.__paneStash();
+      }else if(_paneWas!==false){
+        if(window.__paneRestore)window.__paneRestore(_paneWas);
+        _paneWas=false;
+      }
+    }catch(_){}
   }
   for(var i=0;i<tabs.length;i++)(function(tb){
     tb.addEventListener('click',function(){setPg(tb.getAttribute('data-pg'));});
@@ -7679,6 +7691,26 @@ function medEdictSync(){ /* 环海侧 sec_deed 敕令：同 edictSync，落到 M
     if(upEl)upEl.addEventListener('click',shrink);
     paint();
     window.__arrPaint=paint;   /* 别处改了档位（如营造清单自抬层级）后可让钮态跟上 */
+    /* 整块收起／还原。手机上切到情报台那一页时要用：三维画面 z-index 25、
+       情报台只有 20，画面直接盖在状态栏上，那一页根本没法读。
+       只在「是我们自己收起来的」时候才还原，玩家自己关掉的不去动它。 */
+    window.__paneStash=function(){
+      if(!GAME.txOpen)return false;
+      var t=tierNow();
+      GAME.txOpen=false;setTier(0);
+      try{if(window.MED3D&&MED3D.sleep)MED3D.sleep();}catch(_){}
+      try{if(window.ZJ3D&&ZJ3D.sleep)ZJ3D.sleep();}catch(_){}
+      paint();
+      return t;                                  /* 记住原来是哪一档 */
+    };
+    window.__paneRestore=function(t){
+      if(GAME.txOpen||t===false||t==null)return;
+      var E=eng();
+      GAME.txOpen=true;setTier(t);
+      if(E&&E.wake)E.wake();
+      paint();
+      try{setTimeout(zj3dTick,60);}catch(_){}
+    };
   }
   /* 面板内的 DICTVM 指令栏已移除：它和主输入栏的 EDICTVM·敕令 同名却做两件事，
      玩家分不清；而三维该跟着剧情走——换城由 ◇时地 经 medLoc→onRender 驱动，
