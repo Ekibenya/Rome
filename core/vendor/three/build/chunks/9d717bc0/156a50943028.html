@@ -4092,14 +4092,19 @@ function oracleCall(messages,cb,err,opt){
     /* 输入框的 placeholder 写着 4096，玩家很容易照着填「8k」「4096 tokens」；
        +'8k' 是 NaN，JSON 序列化成 "max_tokens":null，多数端点直接 400 或返回空回复，
        而空回复还会触发一次完整的非流式重发——整份几万字提示词白发两遍。 */
-    function _fin(v,d){var n=(typeof SET!=='undefined')?parseFloat(v):NaN;return isFinite(n)?n:d;}
-    var _mt=(typeof SET!=='undefined')?parseInt(SET.samp.maxt,10):NaN;
+    /* parseInt 不够：玩家照着 placeholder 写「8k」「4096 tokens」时 parseInt 得到 8，
+       接口老老实实只回八个 token —— 正文变成一两个字，比报错还难查。
+       必须整串都是数字才认，并给一个下限，免得填个 5 把每一回都掐死。 */
+    function _num(v,d){var t=String(v==null?'':v).trim();
+      return /^\d+(\.\d+)?$/.test(t)?parseFloat(t):d;}
+    var _mt=_num((typeof SET!=='undefined')?SET.samp.maxt:'',0);
     var body={model:API.model,messages:msgs,
-      temperature:_fin(SET&&SET.samp&&SET.samp.temp,.9),
-      max_tokens:(isFinite(_mt)&&_mt>0)?_mt:4096};
+      temperature:_num((typeof SET!=='undefined')?SET.samp.temp:'',.9),
+      max_tokens:(_mt>=64)?Math.round(_mt):4096};
     for(var ok in opt)body[ok]=opt[ok];
     if(typeof SET!=='undefined'){
-      if(SET.samp.topp!==''&&isFinite(parseFloat(SET.samp.topp)))body.top_p=parseFloat(SET.samp.topp);
+      var _tp=_num(SET.samp.topp,-1);
+      if(_tp>0&&_tp<=1)body.top_p=_tp;
       if(SET.samp.reason)body.reasoning_effort=['','low','medium','high'][SET.samp.reason];
     }
     if(stream)body.stream=true;
@@ -5521,7 +5526,16 @@ $('#apOpen').addEventListener('click',function(){apiOpen();});
 });
 ['apTemp','apTopP','apMaxT','apMinC'].forEach(function(id,ix){
   var k=['temp','topp','maxt','minc'][ix];
-  $('#'+id).addEventListener('input',function(){SET.samp[k]=this.value.trim();setStore();});
+  /* 这四栏一律只收数字。placeholder 写着 4096，玩家很容易照着写「8k」「4096 tokens」，
+     而 parseInt('8k') 是 8 —— 接口老老实实只回八个 token，正文变成一两个字。
+     整数栏（tokens / 篇幅下限）连小数点也不收。 */
+  var intOnly=(k==='maxt'||k==='minc');
+  $('#'+id).addEventListener('input',function(){
+    var v=this.value.replace(intOnly?/[^0-9]/g:/[^0-9.]/g,'');
+    if(!intOnly){var p=v.split('.');if(p.length>2)v=p[0]+'.'+p.slice(1).join('');}
+    if(this.value!==v)this.value=v;
+    SET.samp[k]=v;setStore();
+  });
 });
 function subReady(){return !!(SET.sub.base&&SET.sub.model);}
 function subCall(messages,cb,err){
