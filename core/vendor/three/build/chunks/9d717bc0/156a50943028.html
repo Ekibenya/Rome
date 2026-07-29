@@ -627,10 +627,16 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
  .fd-win{width:100%;max-width:none;max-height:78vh;border-left:none;border-right:none;border-bottom:none;padding:24px 22px 20px}
 }
 /* ══ 天下三维 · 顶部停靠（RitusZhou zj3d）══ */
-#arrTx{position:absolute;top:46px;left:calc((100% - 322px)/2);transform:translateX(-50%);height:26px;padding:0 16px;z-index:26;cursor:pointer;border:1px solid rgba(236,236,232,.16);border-top:0;background:rgba(6,6,6,.88);display:flex;align-items:center;gap:10px;color:var(--mut);transition:top .45s cubic-bezier(.2,.85,.25,1),color .2s,border-color .2s}
-#arrTx:hover{color:var(--gold-hi);border-color:var(--gold)}
-#arrTx .a{font-size:11px;transition:transform .35s}
-#arrTx .t{font-size:8px;letter-spacing:.3em}
+/* 展开／收起拆成两个钮：原来一个钮循环「关→小→中→大→关」四态，
+   点过头就得再绕一圈，谁也记不住自己现在在第几档。 */
+#arrTx{position:absolute;top:46px;left:calc((100% - 322px)/2);transform:translateX(-50%);height:26px;padding:0;z-index:26;border:1px solid rgba(236,236,232,.16);border-top:0;background:rgba(6,6,6,.88);display:flex;align-items:stretch;color:var(--mut);transition:top .45s cubic-bezier(.2,.85,.25,1),border-color .2s}
+#arrTx:hover{border-color:var(--gold)}
+#arrTx .ax{display:flex;align-items:center;gap:7px;padding:0 15px;cursor:pointer;color:var(--mut);transition:color .2s,opacity .2s;-webkit-tap-highlight-color:transparent}
+#arrTx .ax:hover{color:var(--gold-hi)}
+#arrTx .ax+.ax{border-left:1px solid rgba(236,236,232,.16)}
+#arrTx .ax.off{opacity:.28;cursor:default;color:var(--mut)}   /* 到顶／到底：变灰且不可点 */
+#arrTx .a{font-size:11px}
+#arrTx .t{font-size:8px;letter-spacing:.3em;white-space:nowrap}
 #pnTx{position:absolute;left:0;right:calc(322px*var(--ui));top:calc(46px*var(--ui));height:min(24vh,215px);z-index:25;background:#0b0906;border-bottom:1px solid rgba(236,236,232,.14);visibility:hidden;transform:translateY(-103%) translateZ(0);transition:transform .45s cubic-bezier(.2,.85,.25,1),height .3s,visibility .45s;overflow:hidden;font-family:var(--mono)}
 #game.tx2 #pnTx{height:min(58vh,540px)}
 #game.txBig #pnTx{height:min(84vh,760px)}
@@ -784,7 +790,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
     <div id="txHint"></div>
     <div id="txBar"><input id="txIn" placeholder="EDICTVM 指令：建造／拆除／传送……（如：修一座望楼 · 前往罗马）" autocomplete="off"><button id="txGo">执 行</button></div>
   </div>
-  <div id="arrTx" title="游戏展开：逐级放大三维画面，最大后再点收起"><span class="t">游&nbsp;戏&nbsp;展&nbsp;开</span><span class="a">▾</span></div>
+  <div id="arrTx"><span class="ax" id="arrUp" title="收起：逐级缩小三维画面，最小后再点即关闭"><span class="a">▴</span><span class="t">收&nbsp;起</span></span><span class="ax" id="arrDn" title="展开：逐级放大三维画面"><span class="t">展&nbsp;开</span><span class="a">▾</span></span></div>
   <div class="gPanel" id="pnMap">
     <canvas id="gmapCv"></canvas>
     <div class="pnTitle"><i>◆</i>&nbsp;TABVLA&nbsp;·&nbsp;地图&nbsp;&nbsp;—&nbsp;&nbsp;拖动旋转</div>
@@ -1232,7 +1238,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='1.8.1';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
+  var ZJ3D_VER='1.8.2';   /* 棋子系统抽成共用模块＋资材包重分：引擎代码必须整体刷新，旧代码配新包会取不到 pawn.glb */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -2792,6 +2798,9 @@ function gameShow(){
   GAME.on=true;gEl.classList.add('show');gEl.setAttribute('data-pg','narr');
   /* 桌面端进入游戏默认展开天下面板（默认条档） */
   if(!GAME.txOpen){GAME.txOpen=true;gEl.classList.add('txOpen');gEl.classList.remove('tx2','txBig');try{localStorage.setItem('med3d_tier','0');}catch(_){}setTimeout(zj3dTick,600);} /* 手机亦默认开三维（默认条档，LOD 自动降耗） */
+  /* 这里直接改了 txOpen 与 class，绕过了展开／收起两钮的重绘——不补这一脚，
+     钮的灰态会一直停在「脚本刚解析时」的样子。 */
+  try{if(window.__arrPaint)window.__arrPaint();}catch(_){}
   var gb=$('#game .gBrand');if(gb&&gb.textContent.indexOf('·B')<0)gb.textContent+='  ·B'+BUILD;
   /* 进局即乐起（首曲 Fons Vitae）；被浏览器拦截则首次点按时补放。玩家手动暂停过则不再自作主张 */
   try{if(typeof BGM!=='undefined'&&!BGM.a)bgmPlay(0);}catch(_){}
@@ -6596,6 +6605,8 @@ window.ZJ3D_onExpand=function(){
     var tr=E?(E.tier!=null?E.tier:(E.expanded?1:0)):0;
     g.classList.toggle('tx2',tr===1);
     g.classList.toggle('txBig',tr===2);
+    /* 层级是引擎那边改的（例如建造清单钮自己抬档），展开／收起两个钮的灰态要跟上 */
+    try{if(window.__arrPaint)window.__arrPaint();}catch(_){}
     setTimeout(zj3dTick,330);
   }catch(e){}
 };
@@ -6745,22 +6756,52 @@ function medEdictSync(){ /* 环海侧 sec_deed 敕令：同 edictSync，落到 M
 (function(){
   var ar=document.getElementById('arrTx');
   if(ar){
-    ar.addEventListener('click',function(){
-      var g=document.getElementById('game');
-      var E=(ACTIVE==='roma')?window.MED3D:window.ZJ3D;
-      function setTier(tt){if(E){E.tier=tt;E.expanded=tt>0;}try{localStorage.setItem('med3d_tier',String(tt));}catch(_){}}
-      if(!GAME.txOpen){ GAME.txOpen=true; setTier(0); if(E&&E.wake)E.wake(); }
-      else{
-        var tt=E&&E.tier!=null?E.tier:0;
-        if(tt<2){ setTier(tt+1); }
-        else{ GAME.txOpen=false; setTier(0); if(window.MED3D&&MED3D.sleep)MED3D.sleep(); if(window.ZJ3D&&ZJ3D.sleep)ZJ3D.sleep(); }
-      }
-      var tr=E&&E.tier!=null?E.tier:0;
+    /* 三维画面共四档：关闭 → 小 → 中 → 大。
+       展开钮只往大走、收起钮只往小走，各自到头就变灰，不再循环。 */
+    function eng(){return (ACTIVE==='roma')?window.MED3D:window.ZJ3D;}
+    function tierNow(){var E=eng();return (E&&E.tier!=null)?E.tier:0;}
+    function setTier(tt){
+      var E=eng();
+      if(E){E.tier=tt;E.expanded=tt>0;}
+      try{localStorage.setItem('med3d_tier',String(tt));
+          localStorage.setItem('med3d_expand',tt>0?'1':'0');}catch(_){}
+    }
+    function paint(){
+      var g=document.getElementById('game'),tr=tierNow();
       g.classList.toggle('txOpen',GAME.txOpen);
       g.classList.toggle('tx2',GAME.txOpen&&tr===1);
       g.classList.toggle('txBig',GAME.txOpen&&tr===2);
+      var up=document.getElementById('arrUp'),dn=document.getElementById('arrDn');
+      if(up)up.classList.toggle('off',!GAME.txOpen);              /* 已关闭：收不动了 */
+      if(dn)dn.classList.toggle('off',GAME.txOpen&&tr>=2);        /* 已最大：展不动了 */
       if(GAME.txOpen)setTimeout(zj3dTick,480);
-    });
+    }
+    /* 「变灰」只是外观提示，绝不拿它当行为开关：
+       它由一次性的初始化 paint 决定，而面板是之后才打开的，class 一旦算错，
+       两个钮就会互相锁死、点了毫无反应。行为一律现查真实状态。 */
+    function grow(){
+      var E=eng();
+      if(!GAME.txOpen){ GAME.txOpen=true; setTier(0); if(E&&E.wake)E.wake(); }
+      else if(tierNow()<2){ setTier(tierNow()+1); }
+      else return;                                   /* 已最大 */
+      paint();
+    }
+    function shrink(){
+      if(!GAME.txOpen)return;
+      var tr=tierNow();
+      if(tr>0){ setTier(tr-1); }
+      else{                                                       /* 已经最小：再点即关闭 */
+        GAME.txOpen=false; setTier(0);
+        try{if(window.MED3D&&MED3D.sleep)MED3D.sleep();}catch(_){}
+        try{if(window.ZJ3D&&ZJ3D.sleep)ZJ3D.sleep();}catch(_){}
+      }
+      paint();
+    }
+    var dnEl=document.getElementById('arrDn'),upEl=document.getElementById('arrUp');
+    if(dnEl)dnEl.addEventListener('click',grow);
+    if(upEl)upEl.addEventListener('click',shrink);
+    paint();
+    window.__arrPaint=paint;   /* 别处改了档位（如营造清单自抬层级）后可让钮态跟上 */
   }
   var ti=document.getElementById('txIn'),tg=document.getElementById('txGo');
   function zjTxGo(){
@@ -7218,7 +7259,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.8.1';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 1.8.2';}catch(_){}
 })();
 </script>
 </body>
