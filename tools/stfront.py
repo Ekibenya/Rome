@@ -151,12 +151,18 @@ def main():
     ext['regex_scripts'] = [
         rx('罗马纪 · 前端界面', FIND, block, 'ui.v3',
            placement=[2], markdownOnly=True),
+        # 手动入口：玩家在输入框里打这个标记也能把游戏叫出来。
+        # 开场白那条路依赖「已存在的对话会不会重渲染」等一堆状态，
+        # 这条不依赖任何东西——发一句话就出来，同时也是最好的排障手段。
+        rx('罗马纪 · 手动唤出', FIND, block, 'ui.user.v3',
+           placement=[1], markdownOnly=True),
         rx('罗马纪 · 清理标记', FIND, '', 'strip.v3',
            placement=[1, 2], promptOnly=True),
     ]
 
     io.open(card_fn, 'w', encoding='utf-8').write(json.dumps(card, ensure_ascii=False, indent=1))
-    print('卡内正则      2 条已写入 data.extensions.regex_scripts（加载器 %.1f KB）' % (len(loader.encode('utf-8')) / 1024.0))
+    print('卡内正则      %d 条已写入 data.extensions.regex_scripts（加载器 %.1f KB）'
+          % (len(ext['regex_scripts']), len(loader.encode('utf-8')) / 1024.0))
 
     # 自证：把插进去的那一段抠掉，必须与源文档逐字节相同
     back = out.replace(inject, anchor, 1)
