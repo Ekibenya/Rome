@@ -4357,30 +4357,36 @@ function suggWait(){
   var r=$('#gSugRow');if(!r||!suggOn())return;
   r.innerHTML='<span class="sg wait">参谋正在拟策……</span>';r.classList.add('on');
 }
-/* 没接 AI 时也要有四条可点的——本地按局势拼，宁可朴素也不留空。
-   每档备几句轮着用，免得每一幕都是一模一样的四条，看着像坏了。 */
-var SUGG_LOCAL_N=0;
-function suggLocal(){
-  var s=null;try{s=GENIVS._snap();}catch(_){}
-  var pw=(s&&s.pawns)||[];
-  var who=(pw[0]&&pw[0].name)||'近旁的人';
-  var who2=(pw[1]&&pw[1].name)||who;
-  var city=(s&&s.city)||'此地';
-  var spot=(s&&s.playerPos)||'原地';
-  var bd=(s&&s.builds&&s.builds[0]&&s.builds[0].disp)||'';
-  var k=SUGG_LOCAL_N++;
-  function pick(a){return a[k%a.length];}
-  return [
-    {label:'话',risk:0,text:pick(['向'+who+'探一句口风','叫住'+who2+'，问个明白','当众说一句，看谁先接话'])},
-    {label:'动',risk:0,text:pick(['起身四下走看','往'+spot+'外头去一趟',(bd?('去'+bd+'那边看看'):'折回方才来的路')])},
-    {label:'谋',risk:0,text:pick(['避开众人，另作打算','私下会一会'+who2,'留一手，先不摊牌'])},
-    {label:'令',risk:1,text:pick(['当众下一道令，赌'+city+'的人心','不留退路，就在此地摊牌','把话说死，看谁敢应'])}
-  ];
+/* 参谋四策一律由 AI 现拟。以前这里有一套本地规则拼的「假四策」，
+   在没接口／解析失败／请求出错时顶上——玩家看不出真假，等于程序在乱出主意。
+   现在不再伪造：没接口就直说，出错就给一枚「重拟」。 */
+function suggNote(txt,retry){
+  var r=$('#gSugRow');if(!r||!suggOn())return;
+  r.innerHTML='<span class="sg wait"'+(retry?' data-sgretry="1" style="cursor:pointer"':'')+'>'+esc2(txt)+'</span>';
+  r.classList.add('on');
+}
+/* 模型没照 JSON 格式回话时，从它自己写的那几行里宽松地捞——
+   捞出来的仍是 AI 的原话，只是格式不规整，不是我们替它编的。 */
+function suggLoose(t){
+  var out=[];
+  String(t||'').split(/\n+/).forEach(function(ln){
+    ln=ln.replace(/^[\s>*\-•]+/,'').replace(/^\d+[.、)]\s*/,'').trim();
+    ln=ln.replace(/^["'「『\[]+|["'」』\],]+$/g,'').trim();
+    if(!ln||ln.length>40)return;
+    if(!/[|｜]/.test(ln)&&ln.length<4)return;
+    out.push(ln);
+  });
+  return out.slice(0,4);
 }
 function suggGen(){
   suggClear();
   if(!suggOn()||!GAME.on)return;
-  if(typeof zjAuxReady!=='function'||!zjAuxReady()){SUGG.list=suggLocal();suggPaint();return;}
+  /* 正在出文时不求策：进游戏会先落一版程序化底稿开局、再由神谕铸写正式开局，
+     两次都会走到这里——底稿那次纯属白烧一次接口调用。铸局期间 BUSY 为真，跳过即可，
+     正式开局落定后自然会再叫一次。 */
+  if(BUSY)return;
+  if(typeof zjAuxReady!=='function'||!zjAuxReady()){
+    suggNote('参谋四策需接入 AI（顶栏 ORACVLVM）');return;}
   var seq=++SUGG.seq;
   var last='';
   for(var i=TURNS.length-1;i>=0;i--){if(TURNS[i].role==='assistant'){last=stripMvu(TURNS[i].content);break;}}
@@ -4403,16 +4409,17 @@ function suggGen(){
     if(seq!==SUGG.seq)return;
     var arr=null;
     try{var mm=/\[[\s\S]*\]/.exec(String(t));arr=mm?JSON.parse(mm[0]):null;}catch(_){}
-    if(!Array.isArray(arr)||!arr.length){SUGG.list=suggLocal();suggPaint();return;}
+    if(!Array.isArray(arr)||!arr.length)arr=suggLoose(t);
+    if(!arr.length){suggNote('参谋一时无策 · 点此重拟',1);return;}
     SUGG.list=arr.slice(0,4).map(function(x){
       var raw=String(x).replace(/^["'「『]+|["'」』]+$/g,'').trim();
       var m=/^([^\s|｜!！]{1,2})\s*(!|！)?\s*[|｜]\s*(.+)$/.exec(raw);
       if(!m)return {label:'话',text:raw.slice(0,30),risk:0};
       return {label:m[1],text:String(m[3]).trim().slice(0,30),risk:m[2]?1:0};
     }).filter(function(o){return o.text;});
-    if(!SUGG.list.length)SUGG.list=suggLocal();
+    if(!SUGG.list.length){suggNote('参谋一时无策 · 点此重拟',1);return;}
     suggPaint();
-  },function(){if(seq===SUGG.seq){SUGG.list=suggLocal();suggPaint();}});
+  },function(e){if(seq===SUGG.seq)suggNote('参谋失联：'+String(e&&e.message||e||'').slice(0,24)+' · 点此重拟',1);});
 }
 (function(){
   var gms=gEl.querySelectorAll('.gm'),gIn=$('#gIn');
@@ -4456,6 +4463,8 @@ function suggGen(){
   window.__sugSync=sugSync;sugSync();
   /* 点一条策：切到它对应的模式，填进输入框，直接发 */
   $('#gSugRow').addEventListener('click',function(e){
+    var rt=e.target;while(rt&&rt!==this&&!rt.getAttribute('data-sgretry'))rt=rt.parentNode;
+    if(rt&&rt!==this){if(!BUSY)suggGen();return;}          /* 「点此重拟」 */
     var el=e.target;while(el&&el!==this&&!el.getAttribute('data-sg'))el=el.parentNode;
     if(!el||el===this)return;
     if(BUSY)return;
