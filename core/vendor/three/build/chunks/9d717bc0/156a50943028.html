@@ -5802,6 +5802,28 @@ function renderMvu(panel){
   });
   var aiMind='';
   panel.ch.forEach(function(kv){if(/^心声|^心声/.test(kv[0]||''))aiMind=kv.slice(1).join('|');});
+  /* 卡里的 panelSpec.textOrder 声明了这几栏「本卡必有、且按此顺序」，reserved 声明了
+     「属于叙述性的长文，排在数值之后」。这两个字段此前从没被任何代码读过——
+     于是行序全看模型当轮的心情，声明过却一次没写过的栏位干脆永不出现。
+     这里据其重排并补位：缺的栏留一个占位行，让人看得见「这一栏存在，只是这轮没写」。 */
+  (function(){
+    var want=(spec&&spec.textOrder)||[],rsv=(spec&&spec.reserved)||[];
+    if(!want.length&&!rsv.length)return;
+    var byK={},extra=[],tail=[];
+    panel.ch.forEach(function(kv){
+      var k=kv[0]||'';
+      if(/^心声/.test(k))return;
+      if(byK[k])return;
+      byK[k]=kv;
+      if(want.indexOf(k)<0&&rsv.indexOf(k)<0)extra.push(kv);
+      else if(rsv.indexOf(k)>=0)tail.push(kv);
+    });
+    var out=[];
+    want.forEach(function(k){out.push(byK[k]||[k,'']);});      /* 缺了也占位 */
+    out=out.concat(extra,tail);
+    panel.ch.forEach(function(kv){if(/^心声/.test(kv[0]||''))out.push(kv);});
+    panel.ch=out;
+  })();
   panel.ch.forEach(function(kv){
     var k=kv[0],v=kv.slice(1).join('|');
     if(/^心声|^心声/.test(k))return;              /* 心声另起引言块，不混在资料列里 */
@@ -5819,6 +5841,9 @@ function renderMvu(panel){
     }else if(isNum){
       var n2=Math.max(0,Math.min(100,parseInt(v,10)||0));
       h+='<div class="mRow"><span>'+esc2(k)+'</span><b>'+n2+'</b></div><div class="mBar"><i style="width:'+n2+'%"></i></div>';
+    }else if(!String(v).trim()){
+      /* 声明过但本轮没写：留个灰位，胜过整栏凭空消失 */
+      h+='<div class="mRow"><span>'+esc2(k)+'</span></div><div class="mLead mute">—</div>';
     }else{
       h+='<div class="mRow"><span>'+esc2(k)+'</span></div><div class="mLead">'+esc2(v)+'</div>';
     }
