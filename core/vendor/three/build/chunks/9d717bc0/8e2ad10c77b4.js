@@ -4683,6 +4683,8 @@
     if (!el || el._dragBound) return;
     el._dragBound = 1;
     var down = false, moved = false, sx = 0, sl = 0, pid = null;
+    var vx = 0, lastX = 0, lastT = 0, glide = 0;          /* 惯性：松手后按末速滑行 */
+    function stopGlide() { if (glide) { cancelAnimationFrame(glide); glide = 0; } }
     el.style.touchAction = 'pan-x';   /* 触摸交给浏览器原生横向 pan（带惯性），别跟它抢 */
     el.style.cursor = 'grab';
     el.addEventListener('pointerdown', function (e) {
@@ -4690,7 +4692,9 @@
       if (e.button != null && e.button !== 0) return;
       if (el.scrollWidth <= el.clientWidth + 1) return;   /* 装得下就不劫持 */
       el._eatClick = 0;                                   /* 新一次交互开始，清掉上次拖动留下的吃点标志 */
+      stopGlide();
       down = true; moved = false; sx = e.clientX; sl = el.scrollLeft; pid = e.pointerId;
+      vx = 0; lastX = e.clientX; lastT = performance.now();
       try { el.setPointerCapture(pid); } catch (_) { }
     });
     el.addEventListener('pointermove', function (e) {
@@ -4700,6 +4704,15 @@
       moved = true;
       el.scrollLeft = sl - dx;
       el.style.cursor = 'grabbing';
+      var now = performance.now(), dt = now - lastT;
+      /* dt 太小就跳过：两次事件挤在同一毫秒（或掉了一帧）时 dx/dt 会算出离谱的速度，
+         松手后能一路滑到底。取样间隔至少 4ms，并把末速钳在 ±2.2px/ms 以内。 */
+      if (dt >= 4) {
+        var v = (e.clientX - lastX) / dt;
+        if (v > 2.2) v = 2.2; else if (v < -2.2) v = -2.2;
+        vx = vx * 0.7 + v * 0.3;                          /* 指数平滑，免得被最后一帧的抖动带偏 */
+        lastX = e.clientX; lastT = now;
+      }
       e.preventDefault();
     });
     function up(e) {
@@ -4709,6 +4722,18 @@
       /* 这次是拖不是点：吃掉随之而来的那一次 click。
          标志在下一次 pointerdown 时清，不靠定时器——定时器在连续操作里来不及生效。 */
       if (moved) el._eatClick = 1;
+      /* 松手不硬停：按末速滑行并逐帧衰减，碰到两端就收住 */
+      if (moved && Math.abs(vx) > 0.05) {
+        var vv = vx;
+        (function run() {
+          vv *= 0.94;
+          if (Math.abs(vv) < 0.02) { glide = 0; return; }
+          var before = el.scrollLeft;
+          el.scrollLeft -= vv * 16;
+          if (Math.abs(el.scrollLeft - before) < 0.5) { glide = 0; return; }
+          glide = requestAnimationFrame(run);
+        })();
+      }
     }
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
@@ -4789,7 +4814,7 @@
     tabs.className = 'zjNoBar';
     tray.appendChild(tabs); bHud.tabsEl = tabs;
     var list = document.createElement('div');
-    list.style.cssText = 'display:flex;gap:' + (mob ? '4px' : '6px') + ';overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:' + (mob ? '4px' : '6px') + ';height:' + (mob ? '66px' : '96px') + ';scrollbar-width:thin';
+    list.style.cssText = 'display:flex;gap:' + (mob ? '4px' : '6px') + ';overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;contain:paint;will-change:scroll-position;padding:' + (mob ? '4px' : '6px') + ';height:' + (mob ? '66px' : '96px') + ';scrollbar-width:thin';
     tray.appendChild(list); bHud.listEl = list;
     dragScroll(tabs); dragScroll(list);   /* 光有 overflow-x 是拖不动的，见下 */
     w.appendChild(tray); bHud.tray = tray;
@@ -4836,7 +4861,10 @@
     var cw = mob ? 56 : 76, chh = mob ? 62 : 92, tw = mob ? 42 : 60, th = mob ? 32 : 52;
     cats[bHud.tab].items.forEach(function (item) {
       var card = document.createElement('div');
-      card.style.cssText = 'flex:none;width:' + cw + 'px;height:' + chh + 'px;background:rgba(6,6,6,.6);-webkit-backdrop-filter:blur(3px) saturate(140%);backdrop-filter:blur(3px) saturate(140%);border:1px solid rgba(236,236,232,.18);border-radius:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:2px;gap:1px';
+      /* 卡片一律不要 backdrop-filter：一屏 45 张，每张都是一个独立的毛玻璃层，
+         底下还是实时渲染的三维画布——每滚一帧合成器要把 45 块背景重新模糊一遍，
+         拖起来就黏。托盘本身已经有一层毛玻璃了，卡片用不透明底色即可，观感几乎没差别。 */
+      card.style.cssText = 'flex:none;width:' + cw + 'px;height:' + chh + 'px;background:rgba(10,10,10,.82);border:1px solid rgba(236,236,232,.18);border-radius:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:2px;gap:1px';
       var im = document.createElement('div');
       im.style.cssText = 'width:' + tw + 'px;height:' + th + 'px;background:#101010 center/cover;border-radius:0';
       im.dataset.pack = item.pack || ''; im.dataset.name = item.name; im.dataset.kind = item.kind;
