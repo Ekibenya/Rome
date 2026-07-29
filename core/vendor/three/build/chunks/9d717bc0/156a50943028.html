@@ -5569,11 +5569,34 @@ $('#preFile').addEventListener('change',function(){
     var ok=0;
     try{
       var j=JSON.parse(rd.result);
-      var arr=j.prompts||j.prompt_order||[];
+      /* 酒馆预设的启用开关不在 prompts[] 里，而在 prompt_order[].order[].enabled。
+         原来判的是 p.enabled!==false —— prompts[] 条目根本没有这个字段，undefined!==false
+         恒为真，于是作者明确关掉的段落（越狱、NSFW、实验性指令）全部以「启用中」进来，
+         每回合注入 system。同时 prompt_order 算出来的 arr 一次也没用过，真实顺序被忽略。 */
       if(j.prompts){
-        j.prompts.forEach(function(p){
-          if(p&&p.content&&!p.marker){SET.presets.push({name:p.name||'预设',pos:0,text:p.content,on:p.enabled!==false});ok++;}
+        var ords=(j.prompt_order&&j.prompt_order.length)
+          ?((j.prompt_order[j.prompt_order.length-1]||{}).order||[]):[];
+        var em={},px={};
+        ords.forEach(function(o2,oi){
+          if(!o2||o2.identifier==null)return;
+          em[o2.identifier]=(o2.enabled!==false);px[o2.identifier]=oi;
         });
+        var rows=[];
+        j.prompts.forEach(function(p,pi){
+          if(!p||!p.content||p.marker)return;
+          var id=p.identifier;
+          var on=ords.length?(id!=null&&!!em[id]):(p.enabled!==false);
+          if(ords.length&&id!=null&&!(id in em))on=false;   /* 不在 order 里＝这一版预设没用它 */
+          rows.push({
+            name:p.name||'预设',
+            /* ST 的 injection_position 1＝落在历史之后 */
+            pos:(p.injection_position===1?1:0),
+            text:p.content,on:on,
+            _k:(id!=null&&px[id]!=null)?px[id]:(1000+pi)
+          });
+        });
+        rows.sort(function(a,b){return a._k-b._k;});
+        rows.forEach(function(r){delete r._k;SET.presets.push(r);ok++;});
       }
     }catch(_){
       SET.presets.push({name:f.name,pos:0,text:rd.result,on:true});ok=1;
