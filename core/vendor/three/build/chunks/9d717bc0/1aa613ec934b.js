@@ -3715,8 +3715,13 @@
   Z.cast = [];
   Z.setCast = function (list) {
     if (!Z.ready || !Z.scene || Z.mode !== 'city') return;
-    /* 换城会整个换 scene，旧的 meta 还挂在数组里但已无父节点，先自愈 */
-    Z.cast = Z.cast.filter(function (m) { return m.root && m.root.parent; });
+    /* 换城会整个换 scene（newScene 同时把 Z.pawns 清空）。只判 root.parent 不够——
+       旧棋子的父节点仍指着那个已被丢弃的旧 scene，非空却早已不在画面里。
+       必须同时确认「父节点就是当前 scene」且「仍登记在 Z.pawns 里」，否则换城后
+       Z.cast 会留着一批幽灵，剧情人物从此不再重新落地。 */
+    Z.cast = Z.cast.filter(function (m) {
+      return m.root && m.root.parent === Z.scene && Z.pawns.indexOf(m) >= 0;
+    });
     list = (list || []).filter(function (c) { return c && c.name; }).slice(0, 6);
     var sig = list.map(function (c) { return c.name; }).join('|');
     if (sig === Z._castSig && Z.cast.length === list.length) return;
