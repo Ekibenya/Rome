@@ -6414,7 +6414,28 @@ document.querySelector('#game .gMfd').addEventListener('click',function(e){
   else if(a==='memExport'){try{var gn=(CARDS[ACTIVE]&&CARDS[ACTIVE].name)||'saga';var mb=new Blob([JSON.stringify({__app:gn,__type:'mem-scroll',entries:S.mem},null,1)],{type:'application/json'});var mu=URL.createObjectURL(mb);var ma=document.createElement('a');ma.href=mu;ma.download=gn+'编年长卷.json';document.body.appendChild(ma);ma.click();document.body.removeChild(ma);setTimeout(function(){URL.revokeObjectURL(mu);},4000);}catch(e2){}}
 });
 /* ═══════════ 天下三维 · 八城游历（RitusZhou zj3d 引擎+资材+敕令管线 原件搬运）═══════════ */
-function currentPanel(){zjSyncHist();for(var i=S.history.length-1;i>=0;i--){if(S.history[i].role==='world'&&S.history[i].panel)return S.history[i].panel;}return null;}
+/* 三维侧取面板：从开局起逐幕累积，而不是只认最后一幕。
+   正文侧已有 mvuMerge/completeMvu 把漏写的栏位补齐，但那份补全结果只进了 GAME.lastPanel；
+   三维走的是 zjPanel(原始回合文本) 这条独立管线，拿到的仍是模型当轮实际写出的那点东西。
+   于是只要哪一轮漏了 ◇时地，三维当场失去地点、退回默认罗马——看着就像画面和剧情各说各话。
+   逐幕累积之后，未被覆盖的字段一直有效。 */
+function currentPanel(){
+  zjSyncHist();
+  var acc=null;
+  for(var i=0;i<S.history.length;i++){
+    var h=S.history[i];
+    if(h.role!=='world'||!h.panel)continue;
+    if(!acc)acc={npcs:(h.panel.npcs||[]).slice(),world:{}};
+    else if(h.panel.npcs&&h.panel.npcs.length)acc.npcs=h.panel.npcs.slice();
+    var w=h.panel.world||{};
+    for(var k in w){
+      if(!Object.prototype.hasOwnProperty.call(w,k))continue;
+      var v=w[k];
+      if(v!=null&&String(v).trim()!=='')acc.world[k]=v;   /* 空值不许覆盖旧值 */
+    }
+  }
+  return acc;
+}
 var ZJ_LOCS=[
   {name:'洛邑',ch:'周',kind:'cap',x:430,y:322,note:'周王城 · 天下之中'},
   {name:'咸阳',ch:'秦',kind:'cap',x:148,y:295,note:'秦都 · 据崤函之固'},
