@@ -298,7 +298,9 @@ canvas{display:block}
 .zjNoBar::-webkit-scrollbar{display:none}   /* 三维营造页签行：能滑但不显滚动条 */
 #game .gSugRow .sg.wait{color:var(--mut);border-style:dashed;cursor:default;grid-column:1/-1;text-align:center}
 #game .gLine{display:flex;align-items:center;gap:12px;padding:10px 14px 14px}
-#game .gLine input{flex:1;background:transparent;border:0;border-bottom:1px solid rgba(236,236,232,.25);
+/* min-width:0 —— flex 子项默认 min-width:auto，输入框的 min-content 是按 size 属性
+   算出来的一大截固定宽度，字号一大就把后面几颗钮整排顶出屏幕外。 */
+#game .gLine input{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid rgba(236,236,232,.25);
       padding:8px 2px;color:var(--txt);font-size:12px;letter-spacing:.08em;outline:none;font-family:inherit}
 #game .gLine input:focus{border-color:var(--gold)}
 #game .gAux{width:30px;height:30px;flex:none;border:1px solid rgba(236,236,232,.2);color:var(--mut);
@@ -602,6 +604,34 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
   .ghost .num{font-size:15vw}
   #brand{left:18px;top:18px}#glyphs{right:18px;top:18px}
   #foot{padding:0 16px}
+}
+/* iOS Safari 有一条硬规则：聚焦的输入框字号小于 16px，就自动把整个画面放大一截，
+   而且失焦之后不会自己缩回去——手机上点一下输入栏，整个界面就歪了。
+   本作的输入框为了排版一律 9～12px，正中这条规则。
+   解法不是加 user-scalable=no（iOS 10 起为了无障碍已经不认它，双指缩放照样能用），
+   而是老老实实把手机端的输入字号提到 16px。顺带也更好按、更好读。
+   只管真正会唤起键盘的那几类，滑杆与勾选框不动。 */
+@media (max-width:760px){
+  input[type=text],input[type=search],input[type=url],input[type=email],
+  input[type=password],input[type=number],input[type=tel],input:not([type]),
+  textarea,select{font-size:16px !important}
+  /* #dlgCfg textarea 那条带 ID 的 !important 比上面这条更specific，会赢；
+     这里用同样的 ID 层级把它压回去。 */
+  #dlgCfg textarea,#dlgCfg select,#dlgCfg input:not([type=range]):not([type=checkbox]):not([type=radio]),
+  #dlgApi textarea,#dlgApi select,#dlgApi input:not([type=range]):not([type=checkbox]):not([type=radio]),
+  #dlgBook textarea,#dlgBook select,#dlgBook input:not([type=range]):not([type=checkbox]):not([type=radio]),
+  #dlgSave textarea,#dlgSave input,#dlgVoc textarea,#dlgVoc input,
+  #dlgOpen textarea,#dlgOpen input,#dlgIter input,#dlgBgm input:not([type=range]){font-size:16px !important}
+  /* 上面这条把设置页里那批 9～11px 的窄输入框一起放大了，
+     原来按桌面字号定死的宽度会装不下，改成跟着容器走。 */
+  #dlgCfg input.aIn,#dlgApi input.aIn{width:100% !important;min-width:0}
+  #dlgCfg .sRow{flex-wrap:wrap;row-gap:6px}
+  #dlgCfg .sRow>span:first-child{flex:none}
+  /* 手机端这一排：输入框 16px（iOS 不再自动放大），字距收紧、钮之间的空隙压小，
+     免得六颗钮加输入框排不下。 */
+  #game .gLine{gap:6px;padding:8px 10px 12px}
+  #game .gLine input{font-size:16px;letter-spacing:0}
+  #game .gAux{width:28px;height:28px;flex:none}
 }
 @media (prefers-reduced-motion:reduce){ body{--motion:0} }
 /* ══ 人物图谱 × 长程记忆（ROME 本地化皮肤：纸白线框×鎏金，直角铁则）══ */
