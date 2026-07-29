@@ -592,18 +592,16 @@ canvas{display:block}
   .gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}
   /* 舆·备一页：地图上、装备下（Ghost 式上下布局省空间） */
   #game[data-pg=map] #pnMap{display:block;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52)}
-  #game[data-pg=map] #pnArm{display:block;top:calc(46px + (100dvh - 80px)*.52);bottom:0;padding-bottom:52px;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}
-  /* 装备栏往上滑时，内容到底边是硬切，看着像被生生盖掉一块。
-     贴一条渐变毛玻璃收边：sticky 伪元素跟着滚动容器底部走，负 margin 让它压在
-     内容之上而不额外占高；再给模糊本身加一层遮罩，使玻璃自上而下淡出——
-     否则会出现一条边界分明的「毛玻璃砖」，比硬切更难看。 */
-  #game[data-pg=map] #pnArm::after{
-    content:'';display:block;position:sticky;bottom:0;left:0;right:0;
-    height:66px;margin-top:-66px;pointer-events:none;
-    background:linear-gradient(0deg,rgba(6,6,6,.92) 0%,rgba(6,6,6,.58) 52%,rgba(6,6,6,0) 100%);
+  #game[data-pg=map] #pnArm{display:block;top:calc(46px + (100dvh - 80px)*.52);bottom:0;padding-bottom:40px;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}
+  /* ARMA·装备 这行标题原本只是浮在内容上的一行字，行囊图标滑到它下面时两者糊在一起。
+     在标题这一带铺一条渐变毛玻璃：上沿实、往下化开，内容从底下穿过去而不是被硬挡住。
+     z-index 夹在内容(1)与标题(3)之间，所以糊的是内容、不糊标题本身。 */
+  #game[data-pg=map] #pnArm::before{
+    content:'';position:absolute;left:0;right:0;top:0;height:62px;z-index:2;pointer-events:none;
+    background:linear-gradient(180deg,rgba(6,6,6,.92) 0%,rgba(6,6,6,.62) 46%,rgba(6,6,6,0) 100%);
     -webkit-backdrop-filter:blur(10px) saturate(140%);backdrop-filter:blur(10px) saturate(140%);
-    -webkit-mask-image:linear-gradient(0deg,#000 34%,transparent 100%);
-            mask-image:linear-gradient(0deg,#000 34%,transparent 100%)}
+    -webkit-mask-image:linear-gradient(180deg,#000 44%,transparent 100%);
+            mask-image:linear-gradient(180deg,#000 44%,transparent 100%)}
   #game[data-pg=mfd] .gMfd{display:block}
   #game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}
   /* Ghost 式小岛切换条：底部居中小胶囊，点选或左右滑切页 */
@@ -1493,7 +1491,7 @@ window.__GAME_ROMA__ = {"panelSpec":{"textOrder":["戎装","持物","神躯","�
     s.onerror=function(){window.__THREE_OK__=false;};
     document.head.appendChild(s);
   }
-  var ZJ3D_VER='2.2.4';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
+  var ZJ3D_VER='2.2.5';   /* 两侧引擎大修：剧情感知补放、拆场景后的守卫、营造名录分键、中原侧补齐 snapshot/vocab/resolve 与休眠 */
   var b=document.createElement('script');
   b.src='core/three-bundle.min.js?v=1';
   b.onload=function(){
@@ -5095,7 +5093,7 @@ $('#cfgGlass').addEventListener('input',function(){SET.glass=+this.value;
 var formaCss=document.createElement('style');document.head.appendChild(formaCss);
 function applyForma(){
   if(SET.forma===1)formaCss.textContent='@media(max-width:760px){#game .gMain{left:64px;right:322px;bottom:0}#game .gMfd{display:block}.gArr{display:flex}.gNav{display:none}}';
-  else if(SET.forma===2)formaCss.textContent='#game .gMain{left:0;right:0;bottom:0}#game .gMfd{display:none;left:0;right:0;width:auto;bottom:0;padding-bottom:40px;border-left:0}.gArr{display:none}.gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}.gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.72);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);touch-action:pan-x}.gNav span{display:flex;align-items:center;padding:0 15px;color:var(--mut);cursor:pointer}.gNav span b{display:none}.gNav span svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}.gNav span.on{color:#0a0a0a;background:var(--gold)}#game[data-pg=map] #pnMap{display:block;transform:none;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52);width:100%}#game[data-pg=map] #pnArm{display:block;transform:none;top:calc(46px + (100dvh - 80px)*.52);bottom:0;padding-bottom:52px;width:100%;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}#game[data-pg=map] #pnArm::after{content:\'\';display:block;position:sticky;bottom:0;left:0;right:0;height:66px;margin-top:-66px;pointer-events:none;background:linear-gradient(0deg,rgba(6,6,6,.92) 0%,rgba(6,6,6,.58) 52%,rgba(6,6,6,0) 100%);-webkit-backdrop-filter:blur(10px) saturate(140%);backdrop-filter:blur(10px) saturate(140%);-webkit-mask-image:linear-gradient(0deg,#000 34%,transparent 100%);mask-image:linear-gradient(0deg,#000 34%,transparent 100%)}#game[data-pg=mfd] .gMfd{display:block;top:46px;bottom:0;padding-bottom:40px}#game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}';
+  else if(SET.forma===2)formaCss.textContent='#game .gMain{left:0;right:0;bottom:0}#game .gMfd{display:none;left:0;right:0;width:auto;bottom:0;padding-bottom:40px;border-left:0}.gArr{display:none}.gPanel{display:none;transform:none;transition:none;width:auto;left:0;right:0;border-right:0}.gNav{display:flex;position:absolute;left:50%;transform:translateX(-50%);bottom:5px;height:24px;z-index:40;border:1px solid rgba(236,236,232,.22);background:rgba(6,6,6,.72);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);touch-action:pan-x}.gNav span{display:flex;align-items:center;padding:0 15px;color:var(--mut);cursor:pointer}.gNav span b{display:none}.gNav span svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:block}.gNav span.on{color:#0a0a0a;background:var(--gold)}#game[data-pg=map] #pnMap{display:block;transform:none;top:46px;bottom:auto;height:calc((100dvh - 80px)*.52);width:100%}#game[data-pg=map] #pnArm{display:block;transform:none;top:calc(46px + (100dvh - 80px)*.52);bottom:0;padding-bottom:40px;width:100%;border-top:1px solid rgba(236,236,232,.16);overflow-y:auto}#game[data-pg=map] #pnArm::before{content:\'\';position:absolute;left:0;right:0;top:0;height:62px;z-index:2;pointer-events:none;background:linear-gradient(180deg,rgba(6,6,6,.92) 0%,rgba(6,6,6,.62) 46%,rgba(6,6,6,0) 100%);-webkit-backdrop-filter:blur(10px) saturate(140%);backdrop-filter:blur(10px) saturate(140%);-webkit-mask-image:linear-gradient(180deg,#000 44%,transparent 100%);mask-image:linear-gradient(180deg,#000 44%,transparent 100%)}#game[data-pg=mfd] .gMfd{display:block;top:46px;bottom:0;padding-bottom:40px}#game[data-pg=map] .gMain,#game[data-pg=mfd] .gMain{display:none}';
   else formaCss.textContent='';
 }
 applyForma();setSeg('#sgForma',SET.forma);
@@ -8356,7 +8354,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.4';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.2.5';}catch(_){}
 })();
 </script>
 </body>
