@@ -3656,8 +3656,11 @@ var GENIVS=(function(){
 
   /* ---------------- 二 · AI 正文 → 意图 → 三维 ---------------- */
   var RX={
-    build:/(?:新?[起立筑建修盖营兴](?:造|建|作|了)?|落成|竣工|拔地而起)\s*[了着]?\s*([一二三四五六七八九十两\d]*)\s*[座间栋处所株棵条段]?\s*([^\s，。、；：！？的「」（）]{1,6})/g,
-    raze :/(?:拆|毁|焚|烧|夷|平|推倒|坍塌?|付之一炬)\s*[了掉去]?\s*([^\s，。、；：！？的「」（）]{1,6})/g,
+    build:/(?:新?[起筑建修盖营兴](?:造|建|作|了)?|立起|竖起|竖立|落成|竣工|拔地而起)\s*[了着]?\s*([一二三四五六七八九十两\d]*)\s*[座间栋处所株棵条段]?\s*([^\s，。、；：！？的「」（）]{1,6})/g,
+    /* 原来的 夷|平|烧 三个单字太松：「平和」「太平」「平原」「平旦」「烧饭」全被判成
+       拆毁意图，安稳每回白掉 3 点，absorb 还会拿「和无事」之类的碎词去查可拆之物。
+       一律改成必须成词——单字只留语义唯一的 拆／焚／毁。 */
+    raze :/(?:付之一炬|夷为平地|夷平|铲平|削平|荡平|推倒|坍塌|拆除|拆毁|拆掉|焚毁|焚烧|烧毁|毁去|毁掉|拆|焚|毁)\s*[了掉去]?\s*([^\s，。、；：！？的「」（）]{1,6})/g,
     come :/([^\s，。、；：！？「」（）]{2,8})(?:入城|抵达|来到|求见|踏入|现身)/g,
     go   :/([^\s，。、；：！？「」（）]{2,8})(?:离去|退下|告退|出城|扬长而去|不见踪影)/g
   };
@@ -3712,7 +3715,10 @@ var GENIVS=(function(){
 
   function get(rows,k){for(var i=0;i<rows.length;i++)if(rows[i][0]===k)return rows[i].slice(1).join('|');return null;}
   function set(rows,k,v){for(var i=0;i<rows.length;i++)if(rows[i][0]===k){rows[i]=[k,v];return;}rows.push([k,v]);}
-  function num(v,d){var n=parseInt(v,10);return isNaN(n)?d:Math.max(0,Math.min(100,n));}
+  function num(v,d){
+    /* 全角数字（模型常写「４２」）先转半角，否则 parseInt 直接 NaN、整栏被判成没写 */
+    var t=String(v==null?'':v).replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);});
+    var n=parseInt(t,10);return isNaN(n)?d:Math.max(0,Math.min(100,n));}
   function bumpEra(era,d){
     if(!d)return era;
     return String(era||'').replace(/前(\d+)年/,function(_,y){
@@ -3720,7 +3726,10 @@ var GENIVS=(function(){
   }
 
   function completeMvu(panel,rawText){
-    var s=snap(),txt=String(rawText||'');
+    /* 一切启发式都必须在剥掉状态栏之后的正文上跑。rawText 是 AI 的完整原文，面板本身
+       就带着「◆血兴」的血、「◆持物|短剑」的剑、「◇纪年|前48年」的年份、以及一整套
+       会被 intents() 误判成建/拆意图的字眼——在它上面数字符，等于让面板自己驱动自己。 */
+    var s=snap(),txt=(function(t){try{return stripMvu(t);}catch(_){return t;}})(String(rawText||''));
     var p=panel||{ch:[],npc:[],wd:[]};
     var prev=PREV||{ch:[],npc:[],wd:[]};
     p.ch=p.ch||[];p.npc=p.npc||[];p.wd=p.wd||[];
@@ -3737,13 +3746,25 @@ var GENIVS=(function(){
       if(td.indexOf(s.city)<0)
         set(p.wd,'时地',((td.split('·')[0]||(s.night?'夜':'白日')).trim())+' · '+s.city);
     }
+    /* 只有 AI 完全没写这一栏时才兜底。原来「不含 晴阴雨雪风雾 六字之一」就整段丢弃、
+       换成 WX 里的随机一条，于是「沙尘扑面，天色昏黄」被换成「雪落石阶」，而且每回合
+       重新随机——面板天气与正文彻底无关，还带着三维画面在沙尘天里下雪。
+       实在认不出关键词时，保留原文、在后面补一个可识别的词供取景用。 */
     var wq=get(p.wd,'天气');
-    if(wq==null||!/[晴阴雨雪风雾]/.test(wq))
-      set(p.wd,'天气',WX[(Math.random()*WX.length)|0]);
-    var base=num(get(prev.wd,'安稳'),60),cur=num(get(p.wd,'安稳'),base),dn=0;
+    if(wq==null||!String(wq).trim())set(p.wd,'天气',WX[(Math.random()*WX.length)|0]);
+    else if(!/[晴阴雨雪风雾]/.test(wq)){
+      var _wg=/沙尘|扬尘|昏黄|土雾|霾/.test(wq)?'风':/星|月|皎|晴朗|无云|烈日|暑|炎/.test(wq)?'晴'
+        :/云|阴沉|沉沉|压/.test(wq)?'阴':/霜|寒|冻/.test(wq)?'雪':/潮|湿|水汽/.test(wq)?'雨':'晴';
+      set(p.wd,'天气',String(wq).trim()+'（'+_wg+'）');
+    }
+    /* 基线原来在 PREV 为空时硬取 60，且把 AI 写的值限幅到 ±8/回：开局面板写 35、
+       AI 也写 35，面板却显示 52，要六七回合才爬到位，城破遇刺当回合纹丝不动。
+       正确的分工是——AI 明确写出的数值原样采纳，限幅只管本地启发式算出来的那点增量。 */
+    var _pv=num(get(prev.wd,'安稳'),null),_cv=num(get(p.wd,'安稳'),null),dn=0;
     intents(txt).forEach(function(i){if(i.op==='raze')dn-=3;});
     if(/凯旋|赈|庆典|大典|万众/.test(txt))dn+=2;
-    set(p.wd,'安稳',String(Math.max(0,Math.min(100,base+Math.max(-8,Math.min(8,(cur-base)+dn))))));
+    var _sb=(_cv==null?(_pv==null?60:_pv):_cv);
+    set(p.wd,'安稳',String(Math.max(0,Math.min(100,_sb+Math.max(-8,Math.min(8,dn))))));
     if(get(p.wd,'大势')==null)set(p.wd,'大势','尚未分明');
     if(get(p.wd,'将临')==null)set(p.wd,'将临','尚未分明');
 
@@ -3753,10 +3774,15 @@ var GENIVS=(function(){
       if(get(p.ch,k)==null){var pv=get(prev.ch,k);if(pv!=null)set(p.ch,k,pv);}
     });
     if(get(p.ch,'心声')==null){var pm=get(prev.ch,'心声');set(p.ch,'心声',pm!=null?pm:'——');}
+    /* 取样必须在剥掉状态栏之后：rawText 是 AI 的完整原文，面板里那行「◆血兴」自带一个
+       「血」字、「◆持物|短剑」自带一个「剑」字，hits 于是恒 ≥1，永远走递增支——一个
+       完全平和的宫廷场景也会 44→48→52 一路单调爬到 100 并锁死在「战争化身」。
+       另外 AI 明确写出来的值应当是主值，本地启发式只在它周围小幅修正，
+       否则玩家会看到「血兴这一栏根本不跟剧情走、也改不动」。 */
     var bl=num(get(prev.ch,'血兴'),40),nb=num(get(p.ch,'血兴'),bl);
     var hits=(txt.match(/[攻斩血剑矛盾杀刺]/g)||[]).length;
     if(ACTIVE==='roma')
-      set(p.ch,'血兴',String(Math.max(0,Math.min(100,hits?Math.max(nb,bl+Math.min(12,hits*4)):Math.min(nb,bl-2)))));
+      set(p.ch,'血兴',String(Math.max(0,Math.min(100,nb+(hits?Math.min(8,hits*2):-2)))));
     if(get(p.ch,'史笔')==null)
       set(p.ch,'史笔','（本地补记）'+((s&&s.city)||'此地')+'：'+(txt.replace(/\s+/g,'').slice(0,40)||'诸事如常'));
 
@@ -3848,9 +3874,12 @@ var GENIVS=(function(){
   }
 
   function reset(){PREV=null;RING.length=0;APPLIED={};}
+  /* 回退／读档之后，本地 carry-forward 的底必须跟被保留下来的历史对齐，
+     否则被玩家丢弃那一回合引入的人物与数值会继续从 PREV 里渗回面板。 */
+  function setPrev(p){PREV=p||null;}
 
   return {brief:brief,absorb:absorb,completeMvu:completeMvu,offlineTurn:offlineTurn,
-          intents:intents,reset:reset,_snap:snap};
+          intents:intents,reset:reset,setPrev:setPrev,_snap:snap};
 })();
 /* 状态栏硬清单：模型唯一的格式锚。
    卡里的 mes_example 全文没有任何一处被读取，开局正文也不进 TURNS，
@@ -3944,10 +3973,20 @@ function oracleCall(messages,cb,err,opt){
   var onDelta=opt.onDelta;delete opt.onDelta;
   var noStream=opt.noStream;delete opt.noStream;
   var maxCont=(opt.maxCont==null?2:opt.maxCont);delete opt.maxCont;   /* 截断后最多自动续写几轮 */
+  var wantTag=opt.wantTag||'';delete opt.wantTag;                    /* 正常收尾必然出现的标记 */
+  var sawDone=false;                                                 /* 收到过 SSE 的 [DONE] */
   var url=API.base.replace(/\/+$/,'')+'/chat/completions';
   var hdr={'Content-Type':'application/json','Authorization':'Bearer '+API.key};
   var streamOn=(!noStream)&&(typeof SET==='undefined'||SET.stream!==0)&&!!window.ReadableStream;
   var acc='',round=0;                                    /* acc＝跨续写累积的完整正文 */
+  /* 回调只准进一次。cb 整个跑在 .then 里，renderReply 一路下去（completeMvu/rxApply/
+     typeParas/drawScene/renderMvu）任何一处抛错都会冒泡到下面那个 .catch，而 catch 见
+     got 为真又调一次 cb —— 同一段神谕被 push 进 TURNS 两遍，正文重复渲染，下一轮模型
+     看见自己刚写的东西出现两次，判定「要接着复读」。gBack 的 drop 计数也会跟着错位。 */
+  var _fired=false,_cb0=cb,_err0=err;
+  cb=function(t){if(_fired)return;_fired=true;
+    try{_cb0(t);}catch(e){setTimeout(function(){throw e;},0);}};
+  err=function(m){if(_fired)return;_fired=true;try{_err0(m);}catch(_){}};
   function mkBody(msgs,stream){
     var body={model:API.model,messages:msgs,
       temperature:(typeof SET!=='undefined'&&SET.samp.temp!=='')?+SET.samp.temp:.9,
@@ -3970,6 +4009,13 @@ function oracleCall(messages,cb,err,opt){
   }
   function finish(msgs,text,fr){
     var full=acc+text;
+    /* 代理中途断 TCP、服务端 write 一半就 res.end()、上游报错后关流——这几种收流
+       都既没有 [DONE] 也没有 finish_reason，原来一律走 cb(半截正文)：玩家看到文章
+       写到一半停住、没有任何报错，残文还进了存档、下一轮被当既定事实回喂给模型。
+       三个条件同时成立才判定截断（没收到 [DONE]、没拿到 finish_reason、约定的收尾
+       标记也没出现），交给既有的自动续写机制接着写完。wantTag 只有讲故事那一路会传，
+       摘要/配图/字幕那些短调用不受影响。 */
+    if(!fr&&!sawDone&&wantTag&&String(text||'').trim()&&full.indexOf(wantTag)<0)fr='length';
     if(fr==='length'&&round<maxCont&&String(text||'').trim()){
       round++;acc=full;
       /* 续写必须始终从「最初那份 messages」接续。原来传的是本轮实际发出去的数组，
@@ -3990,6 +4036,7 @@ function oracleCall(messages,cb,err,opt){
       var ch=d.choices&&d.choices[0];
       var c=ch&&ch.message&&ch.message.content;
       if(!c&&!acc)throw new Error('神谕沉默（空回复）');
+      sawDone=true;                                    /* 整包 JSON 到手＝正常收尾 */
       bump(c||'');finish(msgs,c||'',ch&&ch.finish_reason);
     }).catch(function(e){if(to)clearTimeout(to);
       if(acc){cb(acc);return;}
@@ -4010,7 +4057,8 @@ function oracleCall(messages,cb,err,opt){
          否则整条 delta 被丢掉——表现就是正文莫名其妙缺最后一段。 */
       function feed(ln){
         ln=ln.replace(/^data:\s?/,'').trim();
-        if(!ln||ln==='[DONE]')return;
+        if(ln==='[DONE]'){sawDone=true;return;}
+        if(!ln)return;
         try{
           var j=JSON.parse(ln),ch=j.choices&&j.choices[0];
           if(ch&&ch.finish_reason)fr=ch.finish_reason;
@@ -4035,7 +4083,16 @@ function oracleCall(messages,cb,err,opt){
           /* 只在尾部 400 字上验：模式最长 12 字 ×30 次＝360 字，400 字足够覆盖。
              原来每收一片就拿带反向引用的正则跑整段全文，长回复下是隐形的 O(n²)，
              直接抢流式所在的主线程。 */
-          if(text.length>200&&/([\s\S]{1,12}?)\1{29,}$/.test(text.slice(-400))){try{rd.cancel();}catch(_){}fr='repeat';return text;}
+          /* 重复单元必须是真实词句：一条 30 个以上字符的水平分隔线（------ ／ ───── ／
+             ＝＝＝ ／ ……）本来就是「≤12 字的单元连刷 ≥30 次」，tokenizer 天然把它切成
+             多个以分隔符结尾的分片，必然命中。原来命中即 rd.cancel()，其后所有正文连同
+             整份 <mvu_panel> 全部丢失，还走的是成功路径——界面上一句提示都没有。 */
+          if(text.length>200){
+            var _m4=/([\s\S]{1,12}?)\1{29,}$/.exec(text.slice(-400));
+            if(_m4&&!/^[\s\-—－—─━═＝=.．·・。、,，:：;；*#~_·…‥●○◆◇■□▪▫\u2500-\u257f]+$/.test(_m4[1])){
+              try{rd.cancel();}catch(_){}fr='repeat';return text;
+            }
+          }
           return pump();
         });
       }
@@ -4125,7 +4182,7 @@ function askOracle(){
     genClose();BUSY=false;
     if(live){try{live.remove();}catch(_){}live=null;}
     narrAdd('sys','⚠&nbsp;神谕断连：'+esc2(msg)+'&nbsp;——&nbsp;检查&nbsp;ORACVLVM&nbsp;配置',null);
-  },{onDelta:onDelta});
+  },{onDelta:onDelta,wantTag:'</mvu_panel>'});
 }
 /* ── CONSILIVM · 参谋四策 ──────────────────────────────────────────────
    参谋不是一种「输入模式」——你不该为了看看能怎么办而先切个页签、再打一行字。
@@ -4295,6 +4352,7 @@ function suggGen(){
       if(GAME.lastPanel)break;
     }
     if(!GAME.lastPanel&&GAME.opText)GAME.lastPanel=parseMvu(GAME.opText)||null;
+    try{GENIVS.setPrev(GAME.lastPanel);}catch(_){}   /* 不对齐的话，被丢弃那一幕的人与数值会从 PREV 渗回来 */
     if(GAME.lastPanel)renderMvu(GAME.lastPanel);
   });
 })();
@@ -6904,10 +6962,21 @@ function medLoc(td){ /* 时地 → 引擎地点键（繁简同收，村庄/港�
   }catch(_){}
   if(/村|乡|乡|庄|庄|农|农|田舍/.test(td))return '田舍村';
   /* 未入典：从时地提取地名 token，交给引擎种子化生成同名城（真·定位） */
-  var tk=String(td||'');
-  var seg=tk.split('·');tk=(seg[seg.length-1]||tk);
-  tk=(tk.split(/[，,。；;]/)[0]||'').trim();
-  tk=tk.replace(/^(前?\d+年|[一二三四五六七八九十]+月|黄昏|拂晓前?|夜半|夜|清晨|上午|正午|午后|日暮前?|日昃|晚[间上]?[一二三四五六七八九十]*时?)\s*/g,'');
+  /* 原来取的是最后一个「·」分段，那通常是房间／细部：
+     「午后 · 色萨利，法萨卢斯平原」得「色萨利」，下一回 AI 写成
+     「夜 · 色萨利·法萨卢斯营地」就得「法萨卢斯营地」——剧情明明没挪窝，
+     三维却见 cityKey 变了就整场重建，玩家在该城造的东西成批「消失」。
+     改成从左往右取第一个「不是时辰」的分段，细部段一概不参与城名。 */
+  var TIMEP=/^(前?\d+年|[一二三四五六七八九十百]+月|[一二三四五六七八九十]+日|黄昏|拂晓前?|夜半|入夜|夜|清晨|凌晨|平旦|上午|正午|午后|下午|傍晚|日暮前?|日昃|晨|暮|晚[间上]?[一二三四五六七八九十]*时?)\s*/;
+  var tk=String(td||''),_segs=tk.split(/[·・]/),_pick='';
+  for(var _si=0;_si<_segs.length;_si++){
+    var _sg=String(_segs[_si]||'').trim();
+    _sg=(_sg.split(/[，,。；;]/)[0]||'').trim();
+    while(TIMEP.test(_sg))_sg=_sg.replace(TIMEP,'').trim();
+    if(_sg.length>=2){_pick=_sg;break;}
+  }
+  tk=_pick||(tk.split(/[，,。；;]/)[0]||'').trim();
+  tk=tk.replace(TIMEP,'');
   tk=tk.replace(/(家宅门外|门外|门前|寝殿|宴厅|王帐|山脊背面|背面|一侧河岸|下游滩涂|滩涂|坡地|山脊|营中人质帐|人质帐|营中|近河口盐场|盐场|西岸|东岸|南岸|北岸)$/,'');
   tk=tk.replace(/^.*河(东岸|西岸|南岸|北岸)(?=.)/,'');
   tk=tk.replace(/[0-9０-９]+号?.*$/,'').trim();
@@ -6915,6 +6984,9 @@ function medLoc(td){ /* 时地 → 引擎地点键（繁简同收，村庄/港�
   if(tk2.length>=2)tk=tk2;
   if(tk.length>8)tk=tk.slice(0,8);
   if(tk.length>=2)return tk;
+  /* 剥后缀剥过头（「门外」「营中」剥完只剩一个字）时，回到剥离前的分段，
+     而不是一路掉到「罗马」——那等于把玩家凭空传送回首都。 */
+  if(_pick&&_pick.length>=2)return _pick.length>8?_pick.slice(0,8):_pick;
   return '罗马';
 }
 function medEdictSync(){ /* 环海侧 sec_deed 敕令：同 edictSync，落到 MED3D */
@@ -7009,6 +7081,11 @@ zjLoadPref();
 function loadOpening(side,op,locOverride){
   ACTIVE=side;
   TYPE_GEN++;TURNS=[];TURNI=0;BUSY=false;
+  /* GENIVS 的 PREV 是「上一轮补全后的面板」，一直没人清过：换卡换开局之后，
+     上一局的人物（罗马的军医昆图斯、百人队长马尔库斯）会被 completeMvu 原样合并进
+     周纪的「在场诸人 · 洛邑明堂」，而且赖着不走；两卡共有的键（持物/观瞻/神格/史笔）
+     若本回 AI 漏写，也会从上一局继承过来。 */
+  try{GENIVS.reset();}catch(_){}
   GAME.op=op;GAME.opText=op.text;
   /* 开局可指定三维落点：像「东方尽头」这种在中原一侧的场景，时地里没有任何中原城名，
      medLoc 只能按字面派生出一座地中海式的城，画面就仍旧是罗马。这里直接把落点交给中原引擎。 */
@@ -7099,11 +7176,19 @@ function svSnap(){
     inv:JSON.parse(JSON.stringify(INV)),place:GAME.place,
     ts:Date.now(),                                     /* when 是本地化字符串排不了序，另存真时间戳 */
     op:GAME.op,opText:GAME.opText,dest3d:GAME.dest3d,   /* 开局锚点：不存则读档后 AI 与三维都不知本局年代场景 */
+    /* 面板本体也要存。只存 mfd 那段 HTML 的话，读档后 80ms 的重绘会拿「从原文重新
+       parse 出来的」降级面板把它盖掉——AI 那一轮偷懒少写几栏，读档后就永久少几栏。 */
+    lastPanel:(function(){try{return JSON.parse(JSON.stringify(GAME.lastPanel||null));}catch(_){return null;}})(),
     zj:{mem:S.mem,memN:S.memN,memOn:S.memOn,npcMeta:S.npcMeta,graphHidden:S.graphHidden},
-    turns:TURNS.slice(-40)};
+    /* turns 原来只存最后 40 条，memN 却存全量：读档后 memSync 数出来的 world 条数远小于
+       memN，命中「历史被重开/回退」分支，把最近的全部纪要删掉并立刻 savePref 落盘——
+       重开也回不来。而 sysPrompt 每回把编年长卷当「本局全部既定事实」注入，
+       于是 AI 被告知故事停在第 20 回、正文却已演到第 30 回，它把 21～30 回重演一遍。 */
+    turns:TURNS.slice(-200)};
 }
 function svLoad(v){
   TYPE_GEN++;BUSY=false;
+  try{GENIVS.reset();}catch(_){}      /* 换局＝换底：先把上一局的 carry-forward 清干净 */
   ACTIVE=v.active||'roma';ERA.year=(v.year==null?117:v.year);
   ERA.act=buildActs(ERA.year);ERA.sel=null;
   $('#gLoc').innerHTML=v.loc||'';
@@ -7116,12 +7201,16 @@ function svLoad(v){
      「最后一个写了面板的回合」。只取最后一幕的话，那一幕漏写的栏位读档后就永久消失，
      玩家会看到存档一读进来状态栏当场缩水。 */
   GAME.lastPanel=null;
-  try{if(v.opText){var _op=parseMvu(v.opText);if(_op)GAME.lastPanel=_op;}}catch(_){}
-  for(var li=0;li<TURNS.length;li++){
-    if(TURNS[li].role!=='assistant')continue;
-    var _tp=null;try{_tp=parseMvu(TURNS[li].content);}catch(_){}
-    if(_tp)GAME.lastPanel=mvuMerge(GAME.lastPanel,_tp);
+  if(v.lastPanel&&v.lastPanel.ch)GAME.lastPanel=v.lastPanel;   /* 新档：存的就是补全后的那一份 */
+  else{                                                        /* 老档兜底：从开局起逐幕合并 */
+    try{if(v.opText){var _op=parseMvu(v.opText);if(_op)GAME.lastPanel=_op;}}catch(_){}
+    for(var li=0;li<TURNS.length;li++){
+      if(TURNS[li].role!=='assistant')continue;
+      var _tp=null;try{_tp=parseMvu(TURNS[li].content);}catch(_){}
+      if(_tp)GAME.lastPanel=mvuMerge(GAME.lastPanel,_tp);
+    }
   }
+  try{GENIVS.setPrev(GAME.lastPanel);}catch(_){}
   try{zjLoadPref();}catch(_){}
   /* zjLoadPref 读的是「按卡」的全局偏好，会把最新一局的长卷盖上来。
      槽位里若存了本局的开局锚点与记忆，一律以槽位为准。老存档没有这些字段，
@@ -7130,6 +7219,10 @@ function svLoad(v){
   if(v.dest3d!==undefined)GAME.dest3d=v.dest3d||null;
   if(v.zj){
     S.mem=v.zj.mem||[];S.memN=(v.zj.memN==null?S.mem.length:v.zj.memN);
+    /* 老存档的 turns 是截断过的，memN 照旧会超出可数出的 world 条数——夹一下，
+       让 memSync 既不误判回退、也不会去删本来就还在的纪要。 */
+    try{var _wn=1;for(var _wi=0;_wi<TURNS.length;_wi++)if(TURNS[_wi].role==='assistant')_wn++;
+        if(S.memN>_wn)S.memN=_wn;}catch(_){}
     if(v.zj.memOn!==undefined)S.memOn=v.zj.memOn!==false;
     S.npcMeta=v.zj.npcMeta||{};S.graphHidden=v.zj.graphHidden||[];
     try{savePref();}catch(_){}
