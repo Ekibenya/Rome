@@ -3895,7 +3895,10 @@ var GENIVS=(function(){
     });
     /* AI 漏写时不要塞占位符：塞了 '——' 之后，renderMvu 里那句「以 ~ 开头发言，即记于此」
        的引导语就永远不会出现，玩家根本不知道这一栏怎么用。 */
-    if(get(p.ch,'心声')==null){var pm=get(prev.ch,'心声');if(pm!=null&&String(pm).trim()!=='——')set(p.ch,'心声',pm);}
+    if(get(p.ch,'心声')==null){
+      var pm=get(prev.ch,'心声');
+      if(pm!=null&&typeof mindBlank==='function'&&!mindBlank(pm))set(p.ch,'心声',pm);
+    }
     /* 取样必须在剥掉状态栏之后：rawText 是 AI 的完整原文，面板里那行「◆血兴」自带一个
        「血」字、「◆持物|短剑」自带一个「剑」字，hits 于是恒 ≥1，永远走递增支——一个
        完全平和的宫廷场景也会 44→48→52 一路单调爬到 100 并锁死在「战争化身」。
@@ -6375,6 +6378,18 @@ function heroMind(within){
   }
   return '';
 }
+/* 心声的占位符集合。卡里的开局面板本身就写着 ◆心声|—— ，而状态栏协议又要求模型
+   「玩家没写就把上一幕的 ◆心声 原样抄下来」——于是这个破折号被一幕一幕抄下去，
+   永远占着这一栏，玩家写过的独白反而回落不到。一律按「没写」处理。 */
+function mindBlank(v){
+  var t=String(v==null?'':v).replace(/[\s　]/g,'');
+  /* 先剥掉包在外面的括号与引号：模型很爱写「（无）」「『——』」这种。 */
+  for(var i=0;i<3;i++)t=t.replace(/^[「『（(【\["']+|[」』）)】\]"']+$/g,'');
+  if(!t)return true;
+  if(/^[—–\-－ーｰ_~〜～…·．.、,，:：;；]+$/.test(t))return true;
+  /* 「沉默」「无言」是真实的内心状态，不算占位——只挑没有信息量的那几个词。 */
+  return /^(无|無|空|略|未定|未写|未寫|不详|不詳|待定|同上|同前|无变化|無變化|无内容|暂无|暫無|N\/?A|null|none)$/i.test(t);
+}
 function capFor(caps,v){var lab='';if(!caps)return lab;
   for(var i=0;i<caps.length;i++)if(v>=caps[i][0])lab=caps[i][1];return lab;}
 /* 数值容错：模型常写成 72/100、７２、72（微升）这几种。角色段与世界段共用一套，
@@ -6395,8 +6410,14 @@ function renderMvu(panel){
   });
   var aiMind='';
   /* 原来这个正则的两个分支字面完全一样（本该是 心声|心聲）：模型写成繁体的 ◆心聲 时
-     既认不出是心声，又会作为普通资料行混进列表，于是「心聲 / 哼」和『——』同时出现。 */
-  panel.ch.forEach(function(kv){if(/^(心声|心聲)/.test(kv[0]||''))aiMind=kv.slice(1).join('|');});
+     既认不出是心声，又会作为普通资料行混进列表，于是「心聲 / 哼」和『——』同时出现。
+     另外「——」这类占位符不算内容：它一旦被当成真值，下面那条回落链就在这里断了，
+     玩家明明写过独白也回落不到，心声这一栏从此永远停在一个破折号上。 */
+  panel.ch.forEach(function(kv){
+    if(!/^(心声|心聲)/.test(kv[0]||''))return;
+    var mv=kv.slice(1).join('|');
+    if(!mindBlank(mv))aiMind=mv;
+  });
   /* 卡里的 panelSpec.textOrder 声明了这几栏「本卡必有、且按此顺序」，reserved 声明了
      「属于叙述性的长文，排在数值之后」。这两个字段此前从没被任何代码读过——
      于是行序全看模型当轮的心情，声明过却一次没写过的栏位干脆永不出现。
