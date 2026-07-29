@@ -3974,21 +3974,31 @@ function oracleCall(messages,cb,err,opt){
       if(!r.ok)throw new Error('HTTP '+r.status);
       if(!r.body||!r.body.getReader)throw new Error('流式不可用');
       var rd=r.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
+      /* 一行 SSE 的处理抽出来：流末尾那条没有换行结尾的残行也要走同一套，
+         否则整条 delta 被丢掉——表现就是正文莫名其妙缺最后一段。 */
+      function feed(ln){
+        ln=ln.replace(/^data:\s?/,'').trim();
+        if(!ln||ln==='[DONE]')return;
+        try{
+          var j=JSON.parse(ln),ch=j.choices&&j.choices[0];
+          if(ch&&ch.finish_reason)fr=ch.finish_reason;
+          var d2=(ch&&ch.delta&&ch.delta.content)||'';
+          if(d2){got=true;text+=d2;bump(text);}
+        }catch(_){}
+      }
       function pump(){
         return rd.read().then(function(x){
-          if(x.done)return text;
+          if(x.done){
+            /* 收尾：冲掉解码器里压着的半个多字节字符，再把 buf 里最后那条
+               没有换行结尾的 data 行补喂进去。少了这一步，回复的末尾会被截断。 */
+            buf+=dec.decode();
+            if(buf.trim())feed(buf);
+            buf='';
+            return text;
+          }
           buf+=dec.decode(x.value,{stream:true});
           var parts=buf.split('\n');buf=parts.pop();
-          parts.forEach(function(ln){
-            ln=ln.replace(/^data:\s?/,'').trim();
-            if(!ln||ln==='[DONE]')return;
-            try{
-              var j=JSON.parse(ln),ch=j.choices&&j.choices[0];
-              if(ch&&ch.finish_reason)fr=ch.finish_reason;
-              var d2=(ch&&ch.delta&&ch.delta.content)||'';
-              if(d2){got=true;text+=d2;bump(text);}
-            }catch(_){}
-          });
+          parts.forEach(feed);
           /* 复读掐断：末尾 1-12 字模式连刷 ≥30 次即停拉流，止损 token */
           /* 只在尾部 400 字上验：模式最长 12 字 ×30 次＝360 字，400 字足够覆盖。
              原来每收一片就拿带反向引用的正则跑整段全文，长回复下是隐形的 O(n²)，
