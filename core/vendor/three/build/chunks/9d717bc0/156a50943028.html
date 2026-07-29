@@ -4338,6 +4338,29 @@ var SET={glass:80,forma:0,face:0,loreBud:5000,
   profs:{},presets:[],mems:[],rx:[],js:[],cards:[]};
 try{var _s=JSON.parse(localStorage.getItem('rome_set')||'{}');
   Object.keys(_s).forEach(function(k){SET[k]=_s[k];});}catch(_){}
+/* 补全缺失的设置键。两条路都会缺：① 上面这行是整个子对象直接替换，存量用户存下来的
+   img 是旧版本那六个键，count/cam/disp/auto 全是 undefined；② 字面量本身也没写全。
+   后果都很实在——drawScene 里 n=g.count+1 得 NaN，而 Array(NaN) 抛 RangeError，
+   「绘此幕」点了整个函数当场中断、毫无反应；cam/disp 为 undefined 则查表得 undefined，
+   提示词里混进字面量「undefined」、图片显示宽度失效。这就是「设置里某些项目不作用」。 */
+(function(){
+  var D={glass:80,forma:0,face:0,loreBud:5000,
+    tts:{src:0,base:'',key:'',model:'tts-1',voice:'',rate:105,scope:0,auto:0},
+    img:{on:0,auto:0,count:0,cam:0,disp:2,base:'',key:'',model:'',size:0,style:0,
+         steps:'',cfg:'',w:'',h:'',seed:'',workflow:''},
+    sub:{base:'',key:'',model:''},
+    samp:{temp:'',topp:'',maxt:'',minc:'',reason:0}};
+  Object.keys(D).forEach(function(k){
+    var d=D[k];
+    if(d&&typeof d==='object'){
+      if(!SET[k]||typeof SET[k]!=='object')SET[k]={};
+      Object.keys(d).forEach(function(k2){if(SET[k][k2]===undefined)SET[k][k2]=d[k2];});
+    }else if(SET[k]===undefined)SET[k]=d;
+  });
+  ['presets','mems','rx','js','cards'].forEach(function(k){if(!Array.isArray(SET[k]))SET[k]=[];});
+  if(!Array.isArray(SET.img.ilore))SET.img.ilore=[];
+  if(!SET.profs||typeof SET.profs!=='object')SET.profs={};
+})();
 function setStore(){try{localStorage.setItem('rome_set',JSON.stringify(SET));}catch(_){}}
 /* 页签切换 */
 (function(){
