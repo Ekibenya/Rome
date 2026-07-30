@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <base href="https://cdn.jsdelivr.net/gh/ekibenya/rome@main/">
 <style id="roma-only">#lineTg{display:none!important}#pcZhou{display:none!important}#gtSnd{display:none!important}#dlgBgm{display:none!important}.sRow:has(#cfgBgm){display:none!important}#persona .psFixed{display:block}#persona .psCard#pcRoma{width:100%}</style>
-<script>window.__ROMA_ST__={"base": "https://cdn.jsdelivr.net/gh/ekibenya/rome@main/", "key": "ZhouJiQianNianTianXia", "packs": {"dir": "core/res/data/st/v1/", "chunks": {"core": {"file": "core.dat"}, "ancient": {"file": "ancient.dat"}, "historic": {"file": "historic.dat"}, "interior": {"file": "interior.dat"}, "pawn": {"file": "pawn.dat"}}, "map": {"idx/v1/cdcf9bb63a.dat": {"chunks": ["ancient", "historic", "interior", "core"], "order": ["ancient.glb", "historic.glb", "interior.glb", "tex/Ancient_Tex_Wei.png", "tex/Ancient_Tex_Zhao.png", "tex/LowpolyChineseBuilding_Texture_01.png", "tex/LowpolyChineseBuilding_Texture_02.png", "tex/LowpolyChineseBuilding_Texture_03.png", "tex/LowpolyChineseBuilding_Texture_04.png", "tex/LowpolyChineseBuilding_Texture_05.png", "tex/LowpolyHistoricInterior_Texture_01.png", "tex/LowpolyHistoricInterior_Texture_02.png", "tex/LowpolyHistoricInterior_Texture_03.png", "tex/LowpolyHistoricInterior_Texture_04.png", "tex/LowpolyHistoricInterior_Texture_05.png", "tex/LowpolyHistoric_Sculpture_01.png", "tex/LowpolyHistoric_Sculpture_02.png", "tex/LowpolyHistoric_Sculpture_03.png", "tex/LowpolyHistoric_Sculpture_04.png", "tex/LowpolyHistoric_Sculpture_05.png", "tex/LowpolyHistoric_Texture_01.png", "tex/LowpolyHistoric_Texture_02.png", "tex/LowpolyHistoric_Texture_03.png", "tex/LowpolyHistoric_Texture_04.png", "tex/LowpolyHistoric_Texture_05.png", "nature.glb", "tex/T_Trees_temp_climate.png", "tex/T_Tree_tropical.png", "tex/T_Mountains_temperate_climate_32.png"]}, "idx/v1/ceb0dfcfec.dat": {"chunks": ["pawn"], "order": ["pawn.glb", "pawn.json", "tex/pawnpal.png"]}}}};</script>
+<script>window.__ROMA_ST__={"base": "https://cdn.jsdelivr.net/gh/ekibenya/rome@main/", "key": "ZhouJiQianNianTianXia", "packs": {"dir": "core/res/data/st/v1/", "chunks": {"core": {"file": "core.dat"}, "ancient": {"file": "ancient.dat"}, "historic": {"file": "historic.dat"}, "interior": {"file": "interior.dat"}, "pawn": {"file": "pawn.dat"}, "zhou": {"file": "zhou.dat"}}, "map": {"idx/v1/cdcf9bb63a.dat": {"chunks": ["ancient", "historic", "interior", "core"], "order": ["ancient.glb", "historic.glb", "interior.glb", "tex/Ancient_Tex_Wei.png", "tex/Ancient_Tex_Zhao.png", "tex/LowpolyChineseBuilding_Texture_01.png", "tex/LowpolyChineseBuilding_Texture_02.png", "tex/LowpolyChineseBuilding_Texture_03.png", "tex/LowpolyChineseBuilding_Texture_04.png", "tex/LowpolyChineseBuilding_Texture_05.png", "tex/LowpolyHistoricInterior_Texture_01.png", "tex/LowpolyHistoricInterior_Texture_02.png", "tex/LowpolyHistoricInterior_Texture_03.png", "tex/LowpolyHistoricInterior_Texture_04.png", "tex/LowpolyHistoricInterior_Texture_05.png", "tex/LowpolyHistoric_Sculpture_01.png", "tex/LowpolyHistoric_Sculpture_02.png", "tex/LowpolyHistoric_Sculpture_03.png", "tex/LowpolyHistoric_Sculpture_04.png", "tex/LowpolyHistoric_Sculpture_05.png", "tex/LowpolyHistoric_Texture_01.png", "tex/LowpolyHistoric_Texture_02.png", "tex/LowpolyHistoric_Texture_03.png", "tex/LowpolyHistoric_Texture_04.png", "tex/LowpolyHistoric_Texture_05.png", "nature.glb", "tex/T_Trees_temp_climate.png", "tex/T_Tree_tropical.png", "tex/T_Mountains_temperate_climate_32.png"]}, "idx/v1/ceb0dfcfec.dat": {"chunks": ["pawn"], "order": ["pawn.glb", "pawn.json", "tex/pawnpal.png"]}, "idx/v1/df6d172d82.dat": {"chunks": ["zhou"], "order": ["ancient.glb", "historic.glb", "interior.glb", "tex/Ancient_Tex_Wei.png", "tex/Ancient_Tex_Zhao.png", "tex/LowpolyChineseBuilding_Texture_01.png", "tex/LowpolyChineseBuilding_Texture_02.png", "tex/LowpolyChineseBuilding_Texture_03.png", "tex/LowpolyChineseBuilding_Texture_04.png", "tex/LowpolyChineseBuilding_Texture_05.png", "tex/LowpolyHistoricInterior_Texture_01.png", "tex/LowpolyHistoricInterior_Texture_02.png", "tex/LowpolyHistoricInterior_Texture_03.png", "tex/LowpolyHistoricInterior_Texture_04.png", "tex/LowpolyHistoricInterior_Texture_05.png", "tex/LowpolyHistoric_Sculpture_01.png", "tex/LowpolyHistoric_Sculpture_02.png", "tex/LowpolyHistoric_Sculpture_03.png", "tex/LowpolyHistoric_Sculpture_04.png", "tex/LowpolyHistoric_Sculpture_05.png", "tex/LowpolyHistoric_Texture_01.png", "tex/LowpolyHistoric_Texture_02.png", "tex/LowpolyHistoric_Texture_03.png", "tex/LowpolyHistoric_Texture_04.png", "tex/LowpolyHistoric_Texture_05.png"]}}}};</script>
 <script>
 /* ============================================================================
    罗马纪 · 酒馆前端垫片
@@ -128,12 +128,26 @@
   function takeChunk(name) {
     var file = PACKS.chunks[name].file;
     var e = embed();
-    var got = (e && e.packs && e.packs[file])
-      ? b64bytes(e.packs[file])
-      : fetch(BASE + PACKS.dir + file).then(function (r) {
+    var got;
+    if (e && e.packs && e.packs[file]) {
+      got = b64bytes(e.packs[file]);
+    } else {
+      /* 网络兜底要限时：墙内对 jsDelivr 常常是「连上了不回包」，
+         不设超时就永远转圈，玩家只看到三维加载不动。15 秒放弃并报清楚。 */
+      var ac = window.AbortController ? new AbortController() : null;
+      var tm = ac ? setTimeout(function () { ac.abort(); }, 15000) : null;
+      got = fetch(BASE + PACKS.dir + file, ac ? { signal: ac.signal } : {})
+        .then(function (r) {
+          if (tm) clearTimeout(tm);
           if (!r.ok) throw new Error('chunk ' + name + ' HTTP ' + r.status);
           return r.arrayBuffer();
+        }, function (err) {
+          if (tm) clearTimeout(tm);
+          throw new Error('资材 ' + file + ' 网络取数失败（' +
+            (err && err.name === 'AbortError' ? '15 秒超时，可能被墙' : String(err && err.message || err)) +
+            '）。此部分三维需要能访问 cdn.jsdelivr.net，或改用完全版角色卡。');
         });
+    }
     return got.then(function (ab) {
       var plain = xor(new Uint8Array(ab));
       return new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
@@ -315,7 +329,9 @@
        bgmSrc 走的就是这里的 fetch，凡 idx/v1 下不属于三维资材映射的 .dat
        一律就地 404，一个字节也不上网。中原城池包（东征幕用）不在映射里，放行走网络。 */
     var mBgm = url.match(/core\/res\/data\/idx\/v1\/([0-9a-f]+\.dat)/);
-    if (mBgm && PACKS && !PACKS.map[mBgm[1]] && mBgm[1] !== 'df6d172d82.dat') {
+    /* 映射键带 idx/v1/ 前缀，这里拿到的是裸文件名——必须两种形态都查。
+       之前只查裸名，查不到就把三维资材包也当 BGM 给 404 了：三维全灭。 */
+    if (mBgm && PACKS && !PACKS.map[mBgm[1]] && !PACKS.map['idx/v1/' + mBgm[1]]) {
       return Promise.resolve(new Response(null, { status: 404, statusText: 'bgm absent in card' }));
     }
 
@@ -1241,6 +1257,11 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 
 /* —— 情报台：整块重绘时分区依次落位（错开 55ms） —— */
 .gMfd .mSec{animation:mvRiseSm 260ms var(--e-out) backwards}
+/* 手机切到情报台那一下：display:none→block 会让上面这条从 opacity:0 重播。
+   若浏览器动画时钟恰好停摆（后台标签、省电模式、切页瞬间主线程被三维唤醒占死），
+   整页就停在透明起点——玩家看到的是纯黑一片，报「纪要栏卡死」。
+   切页后短暂掐掉入场动画，内容立即可见；常规逐轮渲染的动效不受影响。 */
+.gMfd.pgJump .mSec,.gMfd.pgJump .mSec *{animation:none!important}
 /* 错开量由 JS 按文档顺序派发：有几个 .mSec 嵌在 .zjP 里，
    nth-of-type 会在嵌套层重新计数，排出来是 0/55/0/55。 */
 .gMfd .mBar i{transition:width 420ms var(--e-io)}   /* 数值条走过去，不是跳过去 */
@@ -4314,6 +4335,12 @@ invRender();
     try{
       if(pg==='mfd'){
         if(window.__paneStash)_paneWas=window.__paneStash();
+        /* 滚动位随渲染跨页残留：上次在别处把面板滚到很深，这次切进来内容高度又变了，
+           视口可能正停在整段内容之下——同样是一片黑。进页一律回到面板顶。 */
+        var _mf=gEl.querySelector('.gMfd');
+        if(_mf){_mf.scrollTop=0;_mf.classList.add('pgJump');
+          clearTimeout(window.__pgJumpT);
+          window.__pgJumpT=setTimeout(function(){_mf.classList.remove('pgJump');},520);}
       }else if(_paneWas!==false){
         if(window.__paneRestore)window.__paneRestore(_paneWas);
         _paneWas=false;

@@ -892,6 +892,11 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
 
 /* —— 情报台：整块重绘时分区依次落位（错开 55ms） —— */
 .gMfd .mSec{animation:mvRiseSm 260ms var(--e-out) backwards}
+/* 手机切到情报台那一下：display:none→block 会让上面这条从 opacity:0 重播。
+   若浏览器动画时钟恰好停摆（后台标签、省电模式、切页瞬间主线程被三维唤醒占死），
+   整页就停在透明起点——玩家看到的是纯黑一片，报「纪要栏卡死」。
+   切页后短暂掐掉入场动画，内容立即可见；常规逐轮渲染的动效不受影响。 */
+.gMfd.pgJump .mSec,.gMfd.pgJump .mSec *{animation:none!important}
 /* 错开量由 JS 按文档顺序派发：有几个 .mSec 嵌在 .zjP 里，
    nth-of-type 会在嵌套层重新计数，排出来是 0/55/0/55。 */
 .gMfd .mBar i{transition:width 420ms var(--e-io)}   /* 数值条走过去，不是跳过去 */
@@ -3965,6 +3970,12 @@ invRender();
     try{
       if(pg==='mfd'){
         if(window.__paneStash)_paneWas=window.__paneStash();
+        /* 滚动位随渲染跨页残留：上次在别处把面板滚到很深，这次切进来内容高度又变了，
+           视口可能正停在整段内容之下——同样是一片黑。进页一律回到面板顶。 */
+        var _mf=gEl.querySelector('.gMfd');
+        if(_mf){_mf.scrollTop=0;_mf.classList.add('pgJump');
+          clearTimeout(window.__pgJumpT);
+          window.__pgJumpT=setTimeout(function(){_mf.classList.remove('pgJump');},520);}
       }else if(_paneWas!==false){
         if(window.__paneRestore)window.__paneRestore(_paneWas);
         _paneWas=false;
