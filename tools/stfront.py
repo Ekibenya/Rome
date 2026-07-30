@@ -233,6 +233,32 @@ def main():
            placement=[1, 2], markdownOnly=True, promptOnly=True, minDepth=6),
     ]
 
+    # ---- 自包含：资材与引擎嵌进卡（ROMA_EMBED=0 关闭）----
+    # 42MB 是按原始资材算的旧账；重打包产物（拼包→gzip→异或）只有 5.17MB，
+    # 引擎 gzip 后约 0.4MB。都以 base64 放进 data.extensions.roma_assets——
+    # ST 对不认识的 extensions 字段原样保留、不入提示词。boot.js 嵌入优先、CDN 兜底。
+    if os.environ.get('ROMA_EMBED', '1') != '0':
+        import base64, gzip as _gz
+        eng_files = ['core/three-bundle.min.js',
+                     'core/vendor/three/build/chunks/9d717bc0/36411d0a880f.js',
+                     'core/vendor/three/build/chunks/9d717bc0/1aa613ec934b.js',
+                     'core/vendor/three/build/chunks/9d717bc0/8e2ad10c77b4.js']
+        engines = {}
+        for f in eng_files:
+            raw = io.open(os.path.join(ROOT, f), 'rb').read()
+            engines[os.path.basename(f)] = base64.b64encode(
+                _gz.compress(raw, 9, mtime=0)).decode('ascii')
+        packs = {}
+        pdir = os.path.join(ROOT, 'core/res/data/st/v1')
+        for fn2 in sorted(os.listdir(pdir)):
+            if fn2.endswith('.dat'):
+                packs[fn2] = base64.b64encode(
+                    io.open(os.path.join(pdir, fn2), 'rb').read()).decode('ascii')
+        ext['roma_assets'] = {'v': 1, 'engines': engines, 'packs': packs}
+        _t = sum(len(v) for v in engines.values()) + sum(len(v) for v in packs.values())
+        print('卡内嵌入      引擎 %d 支 + 资材 %d 包，base64 共 %.2f MB（自包含，无 CDN 也出三维）'
+              % (len(engines), len(packs), _t / 1048576.0))
+
     io.open(card_fn, 'w', encoding='utf-8').write(json.dumps(card, ensure_ascii=False, indent=1))
     print('卡内正则      %d 条（整个前端已内联进 replaceString，%.2f MB）'
           % (len(ext['regex_scripts']), len(block.encode('utf-8')) / 1048576.0))

@@ -57,6 +57,35 @@
   }
   var PACKS = CFG.packs || null;                   /* 压缩块清单，没有就走原档 */
   var KEY = CFG.key || '';                         /* 资材异或密钥 */
+
+  /* ------------------------------------------------- 卡内嵌入资材（自包含） ---
+     资材与三维引擎以 base64 存在角色卡 data.extensions.roma_assets 里
+     （ST 对不认识的 extensions 字段原样保留、也不入提示词）。
+     取数路径：先嵌入、后网络——墙内玩家没有 jsDelivr 也能出三维。 */
+  var EMB = null;
+  function embed() {
+    if (EMB !== null) return EMB;
+    EMB = false;
+    try {
+      var top = window, i = 0;
+      for (; i < 8 && top.parent && top.parent !== top; i++) top = top.parent;
+      var ctx = top.SillyTavern && top.SillyTavern.getContext && top.SillyTavern.getContext();
+      if (!ctx || !ctx.characters) return EMB;
+      var byId = ctx.characterId != null ? ctx.characters[ctx.characterId] : null;
+      var cand = [byId].concat(ctx.characters).filter(Boolean);
+      for (var j = 0; j < cand.length; j++) {
+        var d = cand[j] && cand[j].data;
+        if (d && d.extensions && d.extensions.roma_assets) { EMB = d.extensions.roma_assets; break; }
+      }
+    } catch (_) { }
+    if (EMB) log('卡内嵌入资材已接上', Object.keys(EMB.packs || {}).length + ' 包 / '
+                 + Object.keys(EMB.engines || {}).length + ' 引擎');
+    return EMB;
+  }
+  function b64bytes(b64) {
+    return fetch('data:application/octet-stream;base64,' + b64)
+      .then(function (r) { return r.arrayBuffer(); });
+  }
   var log = function () { try { console.log.apply(console, ['[roma·st]'].concat([].slice.call(arguments))); } catch (_) { } };
 
   /* ---------------------------------------------------------------- 资材 --- */
@@ -97,10 +126,15 @@
   }
   /* 一块压缩包 → 明文条目。去异或 → gunzip → unpack */
   function takeChunk(name) {
-    return fetch(BASE + PACKS.dir + PACKS.chunks[name].file).then(function (r) {
-      if (!r.ok) throw new Error('chunk ' + name + ' HTTP ' + r.status);
-      return r.arrayBuffer();
-    }).then(function (ab) {
+    var file = PACKS.chunks[name].file;
+    var e = embed();
+    var got = (e && e.packs && e.packs[file])
+      ? b64bytes(e.packs[file])
+      : fetch(BASE + PACKS.dir + file).then(function (r) {
+          if (!r.ok) throw new Error('chunk ' + name + ' HTTP ' + r.status);
+          return r.arrayBuffer();
+        });
+    return got.then(function (ab) {
       var plain = xor(new Uint8Array(ab));
       return new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
     }).then(function (buf) { return unpack(new Uint8Array(buf)); });
@@ -117,6 +151,63 @@
       return xor(repack(pairs));
     });
   }
+
+  /* ------------------------------------------------- 引擎脚本 · 卡内直供 ---
+     游戏用 <script src> 动态加载 three 与两个三维引擎，标签一插入就开始网络请求，
+     fetch 拦截够不着。做法：包一层 appendChild/insertBefore——命中清单的脚本先扣下，
+     等嵌入内容 gunzip 成 blob URL 再放行（按扣下顺序放行，加载次序不变）。
+     嵌入缺席时原样放行走 CDN，两条路都通。 */
+  (function () {
+    var MAP = {};        /* basename -> blob URL（就绪后填入） */
+    var READY = false, QUEUE = [];
+    function base(u) { return String(u || '').split('?')[0].split('/').pop(); }
+    function prep() {
+      var e = embed();
+      if (!e || !e.engines || !Object.keys(e.engines).length) { READY = true; flush(); return; }
+      var names = Object.keys(e.engines);
+      Promise.all(names.map(function (n) {
+        return b64bytes(e.engines[n]).then(function (ab) {
+          return new Response(new Blob([ab]).stream()
+            .pipeThrough(new DecompressionStream('gzip'))).blob();
+        }).then(function (bl) {
+          MAP[n] = URL.createObjectURL(new Blob([bl], { type: 'text/javascript' }));
+        });
+      })).then(function () { READY = true; log('引擎已从卡内就位', names); flush(); })
+        .catch(function (err) { log('嵌入引擎解压失败，回退 CDN', String(err)); READY = true; flush(); });
+    }
+    function flush() {
+      while (QUEUE.length) {
+        var q = QUEUE.shift();
+        var b = base(q.node.src);
+        if (MAP[b]) q.node.src = MAP[b];
+        q.insert();
+      }
+    }
+    function wrap(proto, fn) {
+      var orig = proto[fn];
+      proto[fn] = function (node) {
+        var args = arguments;
+        try {
+          if (node && node.tagName === 'SCRIPT' && node.src) {
+            var b = base(node.src);
+            var e = embed();
+            if (e && e.engines && (b in e.engines)) {
+              if (!READY) {
+                var self = this;
+                QUEUE.push({ node: node, insert: function () { orig.apply(self, args); } });
+                return node;
+              }
+              if (MAP[b]) node.src = MAP[b];
+            }
+          }
+        } catch (_) { }
+        return orig.apply(this, args);
+      };
+    }
+    wrap(Node.prototype, 'appendChild');
+    wrap(Node.prototype, 'insertBefore');
+    prep();
+  })();
 
   /* ---------------------------------------------------------------- 神谕 --- */
   var seq = 0;
