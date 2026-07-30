@@ -5,8 +5,8 @@
  "chunks": {
   "core": {
    "file": "core.dat",
-   "raw": 1919788,
-   "size": 614357,
+   "raw": 479420,
+   "size": 380348,
    "entries": [
     "nature.glb",
     "tex/Ancient_Tex_Wei.png",
@@ -35,34 +35,34 @@
     "tex/T_Tree_tropical.png",
     "tex/T_Trees_temp_climate.png"
    ],
-   "sha": "1e5a473846934b9b"
+   "sha": "45313918e2b8fe80"
   },
   "ancient": {
    "file": "ancient.dat",
-   "raw": 12634433,
-   "size": 1775117,
+   "raw": 1490969,
+   "size": 979753,
    "entries": [
     "ancient.glb"
    ],
-   "sha": "9d9ab14938525c23"
+   "sha": "67070c1209d92b38"
   },
   "historic": {
    "file": "historic.dat",
-   "raw": 11502570,
-   "size": 1810985,
+   "raw": 1295370,
+   "size": 915457,
    "entries": [
     "historic.glb"
    ],
-   "sha": "51a20f280c65c675"
+   "sha": "fd0dae45564ccbfa"
   },
   "interior": {
    "file": "interior.dat",
-   "raw": 4636670,
-   "size": 721385,
+   "raw": 457130,
+   "size": 349552,
    "entries": [
     "interior.glb"
    ],
-   "sha": "595862ca6bed189c"
+   "sha": "ea23dd0587ef98b5"
   },
   "pawn": {
    "file": "pawn.dat",
@@ -73,7 +73,7 @@
     "pawn.json",
     "tex/pawnpal.png"
    ],
-   "sha": "8959b5ba6464546b"
+   "sha": "4cfc892c0da18340"
   },
   "zhou": {
    "file": "zhou.dat",
@@ -106,7 +106,7 @@
     "tex/LowpolyHistoric_Texture_04.png",
     "tex/LowpolyHistoric_Texture_05.png"
    ],
-   "sha": "a36868694d15b0da"
+   "sha": "0ab355f992ffaad9"
   }
  }
 }

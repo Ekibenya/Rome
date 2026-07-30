@@ -98,6 +98,18 @@ def main():
     src = unpack(xor(raw, K))
     print('源包 %s  %.2f MB  %d 项' % (MED_PACK, len(raw) / 1048576.0, len(src)))
 
+    # ROMA_GLB_DIR：同名条目用该目录下的文件替换（meshopt 压缩版 GLB 从这里进来）。
+    # 只影响 st/v1 卡用产物；idx/v1 与线上照旧不动。
+    sub = os.environ.get('ROMA_GLB_DIR')
+    if sub:
+        for n in list(src):
+            p = os.path.join(sub, n)
+            if os.path.isfile(p):
+                nb = open(p, 'rb').read()
+                print('  替换 %-14s %6.2f MB → %5.2f MB' % (
+                    n, len(src[n]) / 1048576.0, len(nb) / 1048576.0))
+                src[n] = nb
+
     claimed = set()
     for _, names, _ in GROUPS:
         claimed |= set(names)
