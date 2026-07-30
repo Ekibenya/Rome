@@ -106,7 +106,7 @@ def build(line, src):
             'alternate_greetings': [o.get('text', '') for o in ops[1:]],
             'group_only_greetings': [],
             'tags': [],
-            'creator': '',
+            'creator': 'ekibenya',
             'character_version': '',
             'character_book': {
                 'name': src.get('name', '') + ' · 世界书',
