@@ -87,6 +87,10 @@ def main():
     nozhou = ('<style id="roma-only">'
               '#lineTg{display:none!important}'
               '#pcZhou{display:none!important}'
+              # 卡版无 BGM：藏播放器入口、播放器弹窗、设置里的配乐拉杆
+              '#gtSnd{display:none!important}'
+              '#dlgBgm{display:none!important}'
+              '.sRow:has(#cfgBgm){display:none!important}'
               '#persona .psFixed{display:block}'
               '#persona .psCard#pcRoma{width:100%}'
               '</style>\n')
@@ -223,14 +227,17 @@ def main():
     ALL = '/.+/s'
     ext['regex_scripts'] = [
         # 显示层：整条 AI 消息 → 内联的整个前端。不认标记，所以 AI 写什么都照样出界面。
+        # maxDepth=1：任一时刻只有最新的 AI 楼层渲染游戏。没有这一条，
+        # 玩家若在酒馆输入框发过话，每条 AI 回复都会孵化一个完整的 three.js
+        # 游戏实例，两三个就把手机拖死。
         rx('罗马纪 · 前端界面', ALL, block, 'ui.v4',
-           placement=[2], markdownOnly=True),
+           placement=[2], markdownOnly=True, maxDepth=1),
         # 远楼层收纳：只作用于第 6 层以外的旧楼层（minDepth=6），把它们清空——
         # 既省提示词，也免得每条旧消息都重渲一份 1.5MB 的前端。
         # 关键是**带深度限制**，所以碰不到当前这条；我一开始误以为它是「抹提示词」，
         # 写成无深度限制的 promptOnly，那会把界面自己也抹掉。
         rx('罗马纪 · 远楼层不渲染', '/.*/s', '', 'strip.v5',
-           placement=[1, 2], markdownOnly=True, promptOnly=True, minDepth=6),
+           placement=[1, 2], markdownOnly=True, promptOnly=True, minDepth=2),
     ]
 
     # ---- 自包含：资材与引擎嵌进卡（ROMA_EMBED=0 关闭）----

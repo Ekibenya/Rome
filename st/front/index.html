@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <base href="https://cdn.jsdelivr.net/gh/ekibenya/rome@main/">
-<style id="roma-only">#lineTg{display:none!important}#pcZhou{display:none!important}#persona .psFixed{display:block}#persona .psCard#pcRoma{width:100%}</style>
+<style id="roma-only">#lineTg{display:none!important}#pcZhou{display:none!important}#gtSnd{display:none!important}#dlgBgm{display:none!important}.sRow:has(#cfgBgm){display:none!important}#persona .psFixed{display:block}#persona .psCard#pcRoma{width:100%}</style>
 <script>window.__ROMA_ST__={"base": "https://cdn.jsdelivr.net/gh/ekibenya/rome@main/", "key": "ZhouJiQianNianTianXia", "packs": {"dir": "core/res/data/st/v1/", "chunks": {"core": {"file": "core.dat"}, "ancient": {"file": "ancient.dat"}, "historic": {"file": "historic.dat"}, "interior": {"file": "interior.dat"}, "pawn": {"file": "pawn.dat"}}, "map": {"idx/v1/cdcf9bb63a.dat": {"chunks": ["ancient", "historic", "interior", "core"], "order": ["ancient.glb", "historic.glb", "interior.glb", "tex/Ancient_Tex_Wei.png", "tex/Ancient_Tex_Zhao.png", "tex/LowpolyChineseBuilding_Texture_01.png", "tex/LowpolyChineseBuilding_Texture_02.png", "tex/LowpolyChineseBuilding_Texture_03.png", "tex/LowpolyChineseBuilding_Texture_04.png", "tex/LowpolyChineseBuilding_Texture_05.png", "tex/LowpolyHistoricInterior_Texture_01.png", "tex/LowpolyHistoricInterior_Texture_02.png", "tex/LowpolyHistoricInterior_Texture_03.png", "tex/LowpolyHistoricInterior_Texture_04.png", "tex/LowpolyHistoricInterior_Texture_05.png", "tex/LowpolyHistoric_Sculpture_01.png", "tex/LowpolyHistoric_Sculpture_02.png", "tex/LowpolyHistoric_Sculpture_03.png", "tex/LowpolyHistoric_Sculpture_04.png", "tex/LowpolyHistoric_Sculpture_05.png", "tex/LowpolyHistoric_Texture_01.png", "tex/LowpolyHistoric_Texture_02.png", "tex/LowpolyHistoric_Texture_03.png", "tex/LowpolyHistoric_Texture_04.png", "tex/LowpolyHistoric_Texture_05.png", "nature.glb", "tex/T_Trees_temp_climate.png", "tex/T_Tree_tropical.png", "tex/T_Mountains_temperate_climate_32.png"]}, "idx/v1/ceb0dfcfec.dat": {"chunks": ["pawn"], "order": ["pawn.glb", "pawn.json", "tex/pawnpal.png"]}}}};</script>
 <script>
 /* ============================================================================
@@ -309,6 +309,14 @@
       try { job = oracle(body, signal); } catch (e) { return Promise.reject(e); }
       try { return body.stream ? Promise.resolve(streamResponse(job)) : wholeResponse(job); }
       catch (e) { return Promise.reject(e); }
+    }
+
+    /* 1.5) BGM：卡版不带音乐。47 首 138MB 既进不了卡，墙内取 CDN 又必挂——
+       bgmSrc 走的就是这里的 fetch，凡 idx/v1 下不属于三维资材映射的 .dat
+       一律就地 404，一个字节也不上网。中原城池包（东征幕用）不在映射里，放行走网络。 */
+    var mBgm = url.match(/core\/res\/data\/idx\/v1\/([0-9a-f]+\.dat)/);
+    if (mBgm && PACKS && !PACKS.map[mBgm[1]] && mBgm[1] !== 'df6d172d82.dat') {
+      return Promise.resolve(new Response(null, { status: 404, statusText: 'bgm absent in card' }));
     }
 
     /* 2) 资材整包 → 压缩块拼回 */

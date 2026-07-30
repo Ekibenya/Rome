@@ -303,6 +303,14 @@
       catch (e) { return Promise.reject(e); }
     }
 
+    /* 1.5) BGM：卡版不带音乐。47 首 138MB 既进不了卡，墙内取 CDN 又必挂——
+       bgmSrc 走的就是这里的 fetch，凡 idx/v1 下不属于三维资材映射的 .dat
+       一律就地 404，一个字节也不上网。中原城池包（东征幕用）不在映射里，放行走网络。 */
+    var mBgm = url.match(/core\/res\/data\/idx\/v1\/([0-9a-f]+\.dat)/);
+    if (mBgm && PACKS && !PACKS.map[mBgm[1]] && mBgm[1] !== 'df6d172d82.dat') {
+      return Promise.resolve(new Response(null, { status: 404, statusText: 'bgm absent in card' }));
+    }
+
     /* 2) 资材整包 → 压缩块拼回 */
     if (PACKS) {
       var hit = null;
