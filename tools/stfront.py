@@ -101,77 +101,54 @@ def main():
     fn = os.path.join(OUT, 'index.html')
     io.open(fn, 'w', encoding='utf-8').write(out)
 
-    # ---- 把 UI 写进卡的正则（重前端卡的标准机制）----
-    # 重前端卡的 UI 不是靠脚本库，是靠「正则」：一条显示层正则把开场白里的
-    # <ROMASTAGE> 标记替换成一个含 <body> 的代码块，酒馆助手据此渲染成 iframe，
-    # 加载器在里面把全屏游戏挂起来。导入后在「正则」列表里就能看到这两条。
-    #   A 显示正则  markdownOnly + AI 输出位：只改显示，不动发给模型的提示词
-    #   B 提示词正则 promptOnly：把标记从模型看到的文本里抹掉
-    # markdownOnly/promptOnly 各管一边，模型看到的开场白与线上完全一致。
+    # ---- 把 UI 写进卡的正则 ----
+    # 机制照抄现成能跑的重前端卡（FF7 回响 3.0）实测出来的做法：
+    #   A「html」  placement=AI输出, markdownOnly, findRegex=/.+/s
+    #              —— 匹配整条消息的**全部内容**，替换成内联了整个前端的代码块。
+    #              不认任何标记：不依赖 AI 写出什么、也不依赖开场白长什么样。
+    #   B「不发送」 placement=[用户输入,AI输出], promptOnly, findRegex=/.*/s → ''
+    #              —— 把这坨 HTML 从模型看到的文本里整个抹掉。
+    # 两条各管一边：显示层是游戏，提示词层干净。
+    #
+    # 之前那版用 ⟦ROMA·STAGE⟧ 标记 + 一个小 loader 运行时去 CDN 取 1.5MB 本体，
+    # 错在两处：① 标记没被替换就原样显示成纯文字（玩家看到的就是这个）；
+    # ② 多一层运行时网络依赖，CDN 一慢一挂就整个白屏。现在整份内联，无此二患。
     import uuid
-    # 标记故意用「⟦⟧」而不是尖括号：尖括号会被 DOMPurify 当标签吃掉，
-    # 于是正则没生效时玩家看到的是一片空白，连线索都没有。
-    # 现在正则没生效就明明白白显示出下面这行提示，玩家一眼知道要去勾什么。
-    MARK = '⟦ROMA·STAGE⟧'
-    HINT = '没看到游戏界面？请打开酒馆的「正则」面板，勾选 **Scoped Scripts**（允许本角色卡的正则），然后刷新页面。'
-    HEAD = MARK + '\n' + HINT + '\n'
 
-    loader = io.open(os.path.join(OUT, 'loader.js'), encoding='utf-8').read().replace('__CDN__', CDN)
-    # 代码块里先放一块「可见的」面板，再放脚本。
-    # 只要酒馆助手把 iframe 渲出来了，这块面板就一定看得见——万一脚本哪一步失败，
-    # 玩家看到的是写明原因的一行字，而不是一片空白。这是排障的关键。
-    # isFrontend 判定看文本是否含 <body>：用一句 HTML 注释满足它，不产生嵌套 body。
-    panel = (
-        '<!--<body>-->\n'
-        '<div id="romaBox" style="font:13px/1.7 -apple-system,\'PingFang SC\',system-ui,sans-serif;'
-        'color:#e6e6e2;background:#0b0b0c;border:1px solid #26262b;padding:16px 18px">'
-        '<div style="font-size:11px;letter-spacing:.28em;color:#c99b3f;margin-bottom:10px">'
-        'SPQR&nbsp;·&nbsp;罗马纪</div>'
-        '<div id="romaGo" style="display:inline-block;border:1px solid #c99b3f;color:#e0bd6e;'
-        'padding:9px 22px;letter-spacing:.2em;cursor:pointer;user-select:none;font-size:12px">'
-        'INTRARE&nbsp;·&nbsp;进入罗马</div>'
-        '<div id="romaMsg" style="font-size:11px;color:#8b8b93;margin-top:11px">'
-        '脚本未执行——若一直是这行字，说明酒馆助手没有把本块渲染成 iframe。</div>'
-        '</div>\n'
-    )
-    # 代码块之外再放一段「保底告示」：走 ST 自己的消息渲染，不经酒馆助手。
-    # 酒馆助手在 iframe 的 <head> 里挂的是**阻塞式**外部脚本（其中一个来自
-    # testingcf.jsdelivr.net）。任何一个卡住，<body> 就永远不解析——连块里那个
-    # 纯 HTML 面板都不会出现，玩家看到的就是「啥也没有」，连线索都没有。
-    # 这一段不含 <script>、只用 div/a/style，DOMPurify 不会剥掉；
-    # loader 真正跑起来之后会把它隐藏（说明富路径是活的）。
-    notice = (
-        '<div class="roma-fallback" id="romaFallback" '
-        'style="font:12px/1.75 -apple-system,\'PingFang SC\',system-ui,sans-serif;'
-        'color:#8b8b93;background:#0b0b0c;border:1px solid #26262b;padding:13px 15px;'
-        'margin:0 0 8px">'
-        '<span style="letter-spacing:.26em;color:#c99b3f">SPQR&nbsp;·&nbsp;罗马纪</span>'
-        '<br>下面若没有出现金色的「INTRARE·进入罗马」按钮，请依次检查：'
-        '<br>① 酒馆助手扩展已启用，且其「渲染」开关是开的；'
-        '<br>② 「正则」面板里勾上 Scoped Scripts（允许本卡的正则）；'
-        '<br>③ 导入新卡后要<b style="color:#c9c9c4">开一段新对话</b>'
-        '——旧对话的开场白存在聊天文件里，不会重新渲染。'
-        '<br><a href="' + CDN + 'st/front/index.html" target="_blank" rel="noopener" '
-        'style="color:#e0bd6e">单独打开网页版</a>'
-        '<span style="color:#5f5f66">（可玩，但用不到酒馆的模型）</span>'
-        '</div>'
-    )
-    block = notice + '\n\n```html\n' + panel + '<script>\n' + loader + '\n</script>\n```' 
+    body_doc = out                      # 刚写出的派生文档，已内联 base/boot/配置
+    # 剥掉 <!doctype> 与 <html> 外壳：酒馆助手会把内容塞进它自己构造的文档的 <body>，
+    # 再嵌一层 <html> 是非法的。保留 <head>…</head><body>…</body> 两段就够，
+    # 里面的 <style>/<script> 照样执行（FF7 那张卡也正是这么写的）。
+    m = re.search(r'<head[^>]*>', body_doc)
+    inner = body_doc[m.start():]
+    inner = re.sub(r'</html>\s*$', '', inner).rstrip()
+
+    # 酒馆助手按 body.scrollHeight 推 iframe 高度，而本游戏整屏都是
+    # position:fixed/inset:0 —— 不给一个真实高度，scrollHeight 会是 0，iframe 塌掉、
+    # 画面一点都看不见。这一句是内联版能不能显示出来的关键。
+    fit = ('<style id="roma-fit">html,body{margin:0;padding:0;height:100dvh;'
+           'min-height:100dvh;overflow:hidden;background:#060606}</style>\n')
+    inner = inner.replace(m.group(0), m.group(0) + '\n' + fit, 1)
+
+    block = '```html\n' + inner + '\n```'
 
     card_fn = os.path.join(ROOT, 'st/roma.card.json')
     card = json.load(io.open(card_fn, encoding='utf-8'))
     d = card['data']
 
-    # 每个开场白前面插「标记 + 提示」两行。正则生效时这两行整段变成游戏；
-    # 正则没生效时它们照原样显示，就是一句人能读懂的排障指引。
+    # 开场白回归干净：整条消息都会被 /.+/s 换掉，不需要任何标记。
+    # 只留一行落地词，供正则未被允许时玩家仍看得懂发生了什么。
+    MARK = '⟦ROMA·STAGE⟧'
     def strip_old(g):
-        for m in ('<ROMASTAGE>\n', '<ROMASTAGE>', MARK + '\n' + HINT + '\n', MARK + '\n'):
-            if g.startswith(m):
-                g = g[len(m):]
+        for m2 in ('<ROMASTAGE>\n', '<ROMASTAGE>', MARK + '\n'):
+            while g.startswith(m2):
+                g = g[len(m2):]
+        # 旧版塞在标记后面那行排障提示也一并清掉
+        g = re.sub(r'^没看到游戏界面？[^\n]*\n', '', g)
         return g
 
-    d['first_mes'] = HEAD + strip_old(d['first_mes'])
-    d['alternate_greetings'] = [HEAD + strip_old(g) for g in d['alternate_greetings']]
+    d['first_mes'] = strip_old(d['first_mes'])
+    d['alternate_greetings'] = [strip_old(g) for g in d['alternate_greetings']]
 
     def rx(name, find, repl, salt, **kw):
         return {'id': str(uuid.uuid5(uuid.NAMESPACE_URL, 'roma.rx.' + salt)),
@@ -179,28 +156,29 @@ def main():
                 'trimStrings': [], 'placement': kw.get('placement', [2]),
                 'disabled': False, 'markdownOnly': kw.get('markdownOnly', False),
                 'promptOnly': kw.get('promptOnly', False), 'runOnEdit': True,
-                'substituteRegex': 0, 'minDepth': None, 'maxDepth': None}
+                'substituteRegex': 0, 'minDepth': kw.get('minDepth'), 'maxDepth': kw.get('maxDepth')}
 
     ext = d.setdefault('extensions', {})
     ext.pop('tavern_helper', None)          # 撤掉旧的脚本库那条路
-    # 一条正则吃掉「标记 + 提示行」整段。提示行可能被玩家编辑过，所以只锚定标记，
-    # 后面那一行用 [^\n]* 宽松匹配。
-    FIND = '/⟦ROMA·STAGE⟧\\n?[^\\n]*\\n?/'
+    # 匹配整条消息的全部内容。/.+/s 里 s 让 . 也吃换行——这是 FF7 那张卡的做法，
+    # 好处是**不依赖任何标记**：AI 写什么、开场白长什么样，都照样出界面。
+    # 旧版锚定 ⟦ROMA·STAGE⟧，标记没被替换就原样显示成纯文字，正是玩家看到的症状。
+    ALL = '/.+/s'
     ext['regex_scripts'] = [
-        rx('罗马纪 · 前端界面', FIND, block, 'ui.v3',
+        # 显示层：整条 AI 消息 → 内联的整个前端。不认标记，所以 AI 写什么都照样出界面。
+        rx('罗马纪 · 前端界面', ALL, block, 'ui.v4',
            placement=[2], markdownOnly=True),
-        # 手动入口：玩家在输入框里打这个标记也能把游戏叫出来。
-        # 开场白那条路依赖「已存在的对话会不会重渲染」等一堆状态，
-        # 这条不依赖任何东西——发一句话就出来，同时也是最好的排障手段。
-        rx('罗马纪 · 手动唤出', FIND, block, 'ui.user.v3',
-           placement=[1], markdownOnly=True),
-        rx('罗马纪 · 清理标记', FIND, '', 'strip.v3',
-           placement=[1, 2], promptOnly=True),
+        # 远楼层收纳：只作用于第 6 层以外的旧楼层（minDepth=6），把它们清空——
+        # 既省提示词，也免得每条旧消息都重渲一份 1.5MB 的前端。
+        # 关键是**带深度限制**，所以碰不到当前这条；我一开始误以为它是「抹提示词」，
+        # 写成无深度限制的 promptOnly，那会把界面自己也抹掉。
+        rx('罗马纪 · 远楼层不渲染', '/.*/s', '', 'strip.v5',
+           placement=[1, 2], markdownOnly=True, promptOnly=True, minDepth=6),
     ]
 
     io.open(card_fn, 'w', encoding='utf-8').write(json.dumps(card, ensure_ascii=False, indent=1))
-    print('卡内正则      %d 条已写入 data.extensions.regex_scripts（加载器 %.1f KB）'
-          % (len(ext['regex_scripts']), len(loader.encode('utf-8')) / 1024.0))
+    print('卡内正则      %d 条（整个前端已内联进 replaceString，%.2f MB）'
+          % (len(ext['regex_scripts']), len(block.encode('utf-8')) / 1048576.0))
 
     # 自证：把插进去的那一段抠掉，必须与源文档逐字节相同
     back = out.replace(inject, anchor, 1)
