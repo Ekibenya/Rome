@@ -189,6 +189,13 @@
         q.insert();
       }
     }
+    /* 超低配：引擎脚本一律换成空脚本——不联网、不解压、不初始化。
+       MED3D/ZJ3D 从未定义，游戏各处的判空分支自会把三维整层跳过。 */
+    var EMPTY_JS = null;
+    function emptyJs() {
+      if (!EMPTY_JS) EMPTY_JS = URL.createObjectURL(new Blob([''], { type: 'text/javascript' }));
+      return EMPTY_JS;
+    }
     function wrap(proto, fn) {
       var orig = proto[fn];
       proto[fn] = function (node) {
@@ -196,6 +203,10 @@
         try {
           if (node && node.tagName === 'SCRIPT' && node.src) {
             var b = base(node.src);
+            if (CFG.no3d && CFG.engs && CFG.engs.indexOf(b) >= 0) {
+              node.src = emptyJs();
+              return orig.apply(this, args);
+            }
             var e = embed();
             if (e && e.engines && (b in e.engines)) {
               if (!READY) {
@@ -321,6 +332,11 @@
        bgmSrc 走的就是这里的 fetch，凡 idx/v1 下不属于三维资材映射的 .dat
        一律就地 404，一个字节也不上网。中原城池包（东征幕用）不在映射里，放行走网络。 */
     var mBgm = url.match(/core\/res\/data\/idx\/v1\/([0-9a-f]+\.dat)/);
+    /* 超低配：三维资材（连同 BGM）一律就地 404——引擎本就没装，这里只是把
+       任何漏网的 .dat 请求也拦死，保证一个字节不上网、一毫秒不空等。 */
+    if (mBgm && CFG.no3d) {
+      return Promise.resolve(new Response(null, { status: 404, statusText: 'no3d build' }));
+    }
     /* 映射键带 idx/v1/ 前缀，这里拿到的是裸文件名——必须两种形态都查。
        之前只查裸名，查不到就把三维资材包也当 BGM 给 404 了：三维全灭。 */
     if (mBgm && PACKS && !PACKS.map[mBgm[1]] && !PACKS.map['idx/v1/' + mBgm[1]]) {
