@@ -35,7 +35,7 @@
     "tex/T_Tree_tropical.png",
     "tex/T_Trees_temp_climate.png"
    ],
-   "sha": "a4fb0c257b7f65cf"
+   "sha": "1e5a473846934b9b"
   },
   "ancient": {
    "file": "ancient.dat",
@@ -44,7 +44,7 @@
    "entries": [
     "ancient.glb"
    ],
-   "sha": "1fc93ec2465324b3"
+   "sha": "9d9ab14938525c23"
   },
   "historic": {
    "file": "historic.dat",
@@ -53,7 +53,7 @@
    "entries": [
     "historic.glb"
    ],
-   "sha": "65c56c1c849386ad"
+   "sha": "51a20f280c65c675"
   },
   "interior": {
    "file": "interior.dat",
@@ -62,7 +62,7 @@
    "entries": [
     "interior.glb"
    ],
-   "sha": "5707cead348f8f62"
+   "sha": "595862ca6bed189c"
   },
   "pawn": {
    "file": "pawn.dat",
@@ -73,7 +73,40 @@
     "pawn.json",
     "tex/pawnpal.png"
    ],
-   "sha": "65415a7a07a52267"
+   "sha": "8959b5ba6464546b"
+  },
+  "zhou": {
+   "file": "zhou.dat",
+   "raw": 25494860,
+   "size": 14222829,
+   "entries": [
+    "ancient.glb",
+    "historic.glb",
+    "interior.glb",
+    "tex/Ancient_Tex_Wei.png",
+    "tex/Ancient_Tex_Zhao.png",
+    "tex/LowpolyChineseBuilding_Texture_01.png",
+    "tex/LowpolyChineseBuilding_Texture_02.png",
+    "tex/LowpolyChineseBuilding_Texture_03.png",
+    "tex/LowpolyChineseBuilding_Texture_04.png",
+    "tex/LowpolyChineseBuilding_Texture_05.png",
+    "tex/LowpolyHistoricInterior_Texture_01.png",
+    "tex/LowpolyHistoricInterior_Texture_02.png",
+    "tex/LowpolyHistoricInterior_Texture_03.png",
+    "tex/LowpolyHistoricInterior_Texture_04.png",
+    "tex/LowpolyHistoricInterior_Texture_05.png",
+    "tex/LowpolyHistoric_Sculpture_01.png",
+    "tex/LowpolyHistoric_Sculpture_02.png",
+    "tex/LowpolyHistoric_Sculpture_03.png",
+    "tex/LowpolyHistoric_Sculpture_04.png",
+    "tex/LowpolyHistoric_Sculpture_05.png",
+    "tex/LowpolyHistoric_Texture_01.png",
+    "tex/LowpolyHistoric_Texture_02.png",
+    "tex/LowpolyHistoric_Texture_03.png",
+    "tex/LowpolyHistoric_Texture_04.png",
+    "tex/LowpolyHistoric_Texture_05.png"
+   ],
+   "sha": "a36868694d15b0da"
   }
  }
 }

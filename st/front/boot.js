@@ -120,12 +120,26 @@
   function takeChunk(name) {
     var file = PACKS.chunks[name].file;
     var e = embed();
-    var got = (e && e.packs && e.packs[file])
-      ? b64bytes(e.packs[file])
-      : fetch(BASE + PACKS.dir + file).then(function (r) {
+    var got;
+    if (e && e.packs && e.packs[file]) {
+      got = b64bytes(e.packs[file]);
+    } else {
+      /* 网络兜底要限时：墙内对 jsDelivr 常常是「连上了不回包」，
+         不设超时就永远转圈，玩家只看到三维加载不动。15 秒放弃并报清楚。 */
+      var ac = window.AbortController ? new AbortController() : null;
+      var tm = ac ? setTimeout(function () { ac.abort(); }, 15000) : null;
+      got = fetch(BASE + PACKS.dir + file, ac ? { signal: ac.signal } : {})
+        .then(function (r) {
+          if (tm) clearTimeout(tm);
           if (!r.ok) throw new Error('chunk ' + name + ' HTTP ' + r.status);
           return r.arrayBuffer();
+        }, function (err) {
+          if (tm) clearTimeout(tm);
+          throw new Error('资材 ' + file + ' 网络取数失败（' +
+            (err && err.name === 'AbortError' ? '15 秒超时，可能被墙' : String(err && err.message || err)) +
+            '）。此部分三维需要能访问 cdn.jsdelivr.net，或改用完全版角色卡。');
         });
+    }
     return got.then(function (ab) {
       var plain = xor(new Uint8Array(ab));
       return new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
@@ -307,7 +321,9 @@
        bgmSrc 走的就是这里的 fetch，凡 idx/v1 下不属于三维资材映射的 .dat
        一律就地 404，一个字节也不上网。中原城池包（东征幕用）不在映射里，放行走网络。 */
     var mBgm = url.match(/core\/res\/data\/idx\/v1\/([0-9a-f]+\.dat)/);
-    if (mBgm && PACKS && !PACKS.map[mBgm[1]] && mBgm[1] !== 'df6d172d82.dat') {
+    /* 映射键带 idx/v1/ 前缀，这里拿到的是裸文件名——必须两种形态都查。
+       之前只查裸名，查不到就把三维资材包也当 BGM 给 404 了：三维全灭。 */
+    if (mBgm && PACKS && !PACKS.map[mBgm[1]] && !PACKS.map['idx/v1/' + mBgm[1]]) {
       return Promise.resolve(new Response(null, { status: 404, statusText: 'bgm absent in card' }));
     }
 

@@ -22,10 +22,28 @@ def chunk(typ, data):
 def main():
     card = json.load(io.open(CARD, encoding='utf-8'))
     payload = json.dumps(card, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
-    hits = FORBID.findall(payload.decode('utf-8'))
+    # 禁字扫描要避开 roma_assets 的 base64 大块：十几 MB 的随机 base64 里
+    # 撞出 'yenwa' 这类五字母序列是必然事件（生日悖论级别），那不是痕迹。
+    # 扫描对象 = 除资产 blob 外的全部字段（含正则、开场白、世界书、启动器）。
+    import copy
+    scan_obj = copy.deepcopy(card)
+    scan_obj.get('data', {}).get('extensions', {}).pop('roma_assets', None)
+    scan_text = json.dumps(scan_obj, ensure_ascii=False)
+    hits = FORBID.findall(scan_text)
     if hits:
         raise SystemExit('卡数据含禁字 %r，拒绝打包' % sorted(set(h.lower() for h in hits)))
     b64 = base64.b64encode(payload)
+    # chara 键放一个极小的 v2 存根：新版酒馆读 ccv3（全量），旧读卡器读到的是
+    # 一句人能看懂的升级提示，而不是把 12MB 再原样塞一遍（上一版整卡因此翻倍）。
+    stub = {'spec': 'chara_card_v2', 'spec_version': '2.0', 'data': {
+        'name': card['data'].get('name', ''), 'description': '',
+        'personality': '', 'scenario': '', 'mes_example': '',
+        'first_mes': '本卡为角色卡 v3 重前端卡：请用支持 v3 的新版 SillyTavern 导入（读取 ccv3 数据）。',
+        'creator_notes': '', 'system_prompt': '', 'post_history_instructions': '',
+        'alternate_greetings': [], 'tags': [], 'creator': 'ekibenya',
+        'character_version': '', 'extensions': {}}}
+    b64_stub = base64.b64encode(json.dumps(stub, ensure_ascii=False,
+                                           separators=(',', ':')).encode('utf-8'))
 
     raw = io.open(ART, 'rb').read()
     if raw[:8] != b'\x89PNG\r\n\x1a\n':
@@ -41,7 +59,7 @@ def main():
             i += 12 + ln
             continue                       # 剥掉封面自带的一切文本/元数据块
         if typ == b'IDAT' and not inserted:
-            out.append(chunk(b'tEXt', b'chara\x00' + b64))
+            out.append(chunk(b'tEXt', b'chara\x00' + b64_stub))
             out.append(chunk(b'tEXt', b'ccv3\x00'  + b64))
             inserted = True
         out.append(raw[i:i+12+ln])
@@ -65,7 +83,7 @@ def main():
         j += 12 + ln
         if typ == b'IEND':
             break
-    ok = got.get('chara') == payload and got.get('ccv3') == payload
+    ok = got.get('ccv3') == payload and b'v3' in (got.get('chara') or b'')
     print('封面        %s (%.2f MB)' % (ART.split('/')[-1], len(raw)/1048576))
     print('卡数据      %.2f MB → base64 %.2f MB ×2 键' % (len(payload)/1048576, len(b64)/1048576))
     print('成品        %s (%.2f MB)' % (OUT, len(blob)/1048576))

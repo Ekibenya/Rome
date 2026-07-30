@@ -26,6 +26,8 @@ OUT  = os.path.join(ROOT, 'core/res/data/st/v1')
 ENG  = os.path.join(ROOT, 'core/vendor/three/build/chunks/9d717bc0/8e2ad10c77b4.js')
 
 MED_PACK  = 'cdcf9bb63a.dat'      # 地中海城池资材
+ZHOU_PACK = 'df6d172d82.dat'      # 中原城池资材（开局零·纽约 与 东征幕 都要它——
+                                  #   默认第一条开场白就会取，不嵌等于把墙内玩家挡在门外）
 PAWN_PACK = 'ceb0dfcfec.dat'      # 棋子（两引擎共用）
 
 # 拆分方案：包名 -> 收哪些条目（None = 收全部剩下的贴图）
@@ -136,6 +138,17 @@ def main():
     print('  %-9s %2d 项  %7.2f MB → %6.2f MB  (-%2.0f%%)  pawn.dat' % (
         'pawn', len(unpack(pblob)), len(pblob) / 1048576.0, len(pgz) / 1048576.0,
         100 - 100.0 * len(pgz) / len(pblob)))
+
+    zraw = open(os.path.join(SRC, ZHOU_PACK), 'rb').read()
+    zblob = xor(zraw, K)
+    zgz = xor(gzip.compress(zblob, 9), K)
+    open(os.path.join(OUT, 'zhou.dat'), 'wb').write(zgz)
+    total_raw += len(zblob); total_out += len(zgz)
+    mani['chunks']['zhou'] = {'file': 'zhou.dat', 'raw': len(zblob), 'size': len(zgz),
+                              'entries': sorted(unpack(zblob).keys()), 'sha': sha(zgz)}
+    print('  %-9s %2d 项  %7.2f MB → %6.2f MB  (-%2.0f%%)  zhou.dat' % (
+        'zhou', len(unpack(zblob)), len(zblob) / 1048576.0, len(zgz) / 1048576.0,
+        100 - 100.0 * len(zgz) / len(zblob)))
 
     io.open(os.path.join(OUT, 'manifest.json'), 'w', encoding='utf-8').write(
         json.dumps(mani, ensure_ascii=False, indent=1))

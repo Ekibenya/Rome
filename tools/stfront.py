@@ -27,6 +27,7 @@ PACKMAP = {
         'order': None,        # 运行时由本脚本按原档顺序填好
     },
     'idx/v1/ceb0dfcfec.dat': {'chunks': ['pawn'], 'order': None},
+    'idx/v1/df6d172d82.dat': {'chunks': ['zhou'], 'order': None},
 }
 
 
@@ -297,7 +298,10 @@ def main():
                 _gz.compress(raw, 9, mtime=0)).decode('ascii')
         packs = {}
         pdir = os.path.join(ROOT, 'core/res/data/st/v1')
+        embed_zhou = os.environ.get('ROMA_EMBED_ZHOU', '0') == '1'
         for fn2 in sorted(os.listdir(pdir)):
+            if fn2 == 'zhou.dat' and not embed_zhou:
+                continue          # 标准版不嵌中原包（13.56MB）；完全版 ROMA_EMBED_ZHOU=1
             if fn2.endswith('.dat'):
                 packs[fn2] = base64.b64encode(
                     io.open(os.path.join(pdir, fn2), 'rb').read()).decode('ascii')
