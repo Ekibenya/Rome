@@ -90,11 +90,14 @@ def build(line, src):
     if not ops:
         raise SystemExit('%s 没有开局' % line)
     lb = src.get('lorebook') or []
+    # ROMA_VER：写进卡名与 character_version，玩家在酒馆里一眼分清新旧版；
+    # 名字变了导入即是新角色，不会悄悄覆盖旧卡的聊天。
+    ver = os.environ.get('ROMA_VER', '').strip()
     card = {
         'spec': 'chara_card_v3',
         'spec_version': '3.0',
         'data': {
-            'name': src.get('name', ''),
+            'name': src.get('name', '') + ((' v' + ver) if ver else ''),
             'description': src.get('description', ''),
             'personality': src.get('personality', ''),
             'scenario': src.get('scenario', ''),
@@ -107,7 +110,7 @@ def build(line, src):
             'group_only_greetings': [],
             'tags': [],
             'creator': 'ekibenya',
-            'character_version': '',
+            'character_version': ver,
             'character_book': {
                 'name': src.get('name', '') + ' · 世界书',
                 'description': '',
@@ -137,9 +140,13 @@ def check(line, card, src):
     """导完对一遍，别把正文改坏了。"""
     d = card['data']; ops = src['openings']; lb = src['lorebook']
     bad = []
+    ver = os.environ.get('ROMA_VER', '').strip()
     for f in ['name', 'description', 'personality', 'scenario',
               'system_prompt', 'post_history_instructions', 'mes_example']:
-        if d[f] != src.get(f, ''):
+        want = src.get(f, '')
+        if f == 'name' and ver:
+            want = want + ' v' + ver
+        if d[f] != want:
             bad.append('字段 %s 与源不符' % f)
     if len(d['alternate_greetings']) != len(ops) - 1:
         bad.append('开局数不对')
