@@ -92,6 +92,14 @@
     });
   }
 
+  /* 本段能跑到这里，就证明酒馆助手把块渲染成 iframe 了、富路径是活的。
+     于是把块外那份「保底告示」收起来——它只为「iframe 压根没渲出来」而存在，
+     两份同时占屏反而吵。它在酒馆主窗的消息里，本 iframe 与之同源，够得到。 */
+  try {
+    var fb = doc.querySelectorAll('.roma-fallback');
+    for (var i = 0; i < fb.length; i++) fb[i].style.display = 'none';
+  } catch (_) { }
+
   if (btn) btn.onclick = mount;
   say('就绪。点上面的按钮进入。');
 

@@ -134,7 +134,29 @@ def main():
         '脚本未执行——若一直是这行字，说明酒馆助手没有把本块渲染成 iframe。</div>'
         '</div>\n'
     )
-    block = '```html\n' + panel + '<script>\n' + loader + '\n</script>\n```'
+    # 代码块之外再放一段「保底告示」：走 ST 自己的消息渲染，不经酒馆助手。
+    # 酒馆助手在 iframe 的 <head> 里挂的是**阻塞式**外部脚本（其中一个来自
+    # testingcf.jsdelivr.net）。任何一个卡住，<body> 就永远不解析——连块里那个
+    # 纯 HTML 面板都不会出现，玩家看到的就是「啥也没有」，连线索都没有。
+    # 这一段不含 <script>、只用 div/a/style，DOMPurify 不会剥掉；
+    # loader 真正跑起来之后会把它隐藏（说明富路径是活的）。
+    notice = (
+        '<div class="roma-fallback" id="romaFallback" '
+        'style="font:12px/1.75 -apple-system,\'PingFang SC\',system-ui,sans-serif;'
+        'color:#8b8b93;background:#0b0b0c;border:1px solid #26262b;padding:13px 15px;'
+        'margin:0 0 8px">'
+        '<span style="letter-spacing:.26em;color:#c99b3f">SPQR&nbsp;·&nbsp;罗马纪</span>'
+        '<br>下面若没有出现金色的「INTRARE·进入罗马」按钮，请依次检查：'
+        '<br>① 酒馆助手扩展已启用，且其「渲染」开关是开的；'
+        '<br>② 「正则」面板里勾上 Scoped Scripts（允许本卡的正则）；'
+        '<br>③ 导入新卡后要<b style="color:#c9c9c4">开一段新对话</b>'
+        '——旧对话的开场白存在聊天文件里，不会重新渲染。'
+        '<br><a href="' + CDN + 'st/front/index.html" target="_blank" rel="noopener" '
+        'style="color:#e0bd6e">单独打开网页版</a>'
+        '<span style="color:#5f5f66">（可玩，但用不到酒馆的模型）</span>'
+        '</div>'
+    )
+    block = notice + '\n\n```html\n' + panel + '<script>\n' + loader + '\n</script>\n```' 
 
     card_fn = os.path.join(ROOT, 'st/roma.card.json')
     card = json.load(io.open(card_fn, encoding='utf-8'))
