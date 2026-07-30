@@ -126,14 +126,44 @@ def main():
     # 酒馆助手按 body.scrollHeight 推 iframe 高度，而本游戏整屏都是
     # position:fixed/inset:0 —— 不给一个真实高度，scrollHeight 会是 0，iframe 塌掉、
     # 画面一点都看不见。这一句是内联版能不能显示出来的关键。
-    # 必须用**朴素的 vh**，不能用 dvh：
-    # 酒馆助手会把 `min-height:<n>vh` 改写成 var(--TH-viewport-height)，而那个变量指向
-    # **真实（父窗）视口高度**。iframe 自身的高度是由 body.scrollHeight 反推的，
-    # 若这里写 dvh/百分比，就成了「body 高看 iframe 高、iframe 高看 body 高」的循环，
-    # 结果是 0 —— 整片黑屏。写 vh 才能命中它的改写、拿到真实高度。
-    # 它的改写只认 min-height 且只认 vh，所以 min-height 这一条必须在。
-    fit = ('<style id="roma-fit">html,body{margin:0;padding:0;'
-           'min-height:100vh;height:100vh;overflow:hidden;background:#060606}</style>\n')
+    # 高度：不能依赖任何视口单位。
+    # 酒馆助手的 iframe 高度是由 body.scrollHeight 反推的，而本游戏从 #stage/#game
+    # 到所有弹窗**全是 position:fixed;inset:0** —— 脱离文档流，对 scrollHeight 贡献为 0。
+    # 上一版指望它把 min-height:100vh 改写成真实视口高度（它确实有这么一道改写），
+    # 但那道改写只认特定写法、且随版本变；一旦没命中，100vh 在零高 iframe 里就是 0 → 黑屏。
+    # 参照 COC 那张能跑的卡：它 position:fixed 出现 0 次、min-height 出现 27 次，
+    # 整个 UI 走正常文档流，所以压根不碰这个坑。我们改不动游戏的定位方式，
+    # 那就把高度变成**确定的像素值**：同源，直接问父窗要真实视口高度。
+    fit = (
+        '<style id="roma-fit">html,body{margin:0;padding:0;overflow:hidden;'
+        'background:#060606;min-height:100vh}</style>\n'
+        '<script id="roma-fit-js">(function(){\n'
+        '  function vp(){\n'
+        '    var h=0;\n'
+        '    try{ for(var w=window,i=0;w&&i<8;w=w.parent,i++){\n'
+        '      if(w.innerHeight>h)h=w.innerHeight;\n'
+        '      if(w.parent===w)break; } }catch(_){}\n'
+        '    return h||window.innerHeight||700;\n'
+        '  }\n'
+        '  function put(){\n'
+        '    var h=vp();\n'
+        '    var st=document.getElementById("roma-fit-px")||document.createElement("style");\n'
+        '    st.id="roma-fit-px";\n'
+        '    /* 必须 !important：游戏自己的样式表里有 html,body{height:100%}，且在文档顺序上\n'
+        '       排在本段之后；不加就被它压掉，而零高 iframe 里的 100% 正好是 0 —— 黑屏。 */\n'
+        '    st.textContent="html,body{height:"+h+"px!important;min-height:"+h+"px!important}";\n'
+        '    (document.head||document.documentElement).appendChild(st);\n'
+        '  }\n'
+        '  /* 定高后补一次 resize：游戏的 --fs 等尺寸按视口算，不通知它会一直停在 0 */\n'
+        '  function kick(){ put(); try{ window.dispatchEvent(new Event("resize")); }catch(_){} }\n'
+        '  put();\n'
+        '  /* 父窗尺寸变了（转屏、酒馆自己调布局）要跟上 */\n'
+        '  try{ window.addEventListener("resize",put); }catch(_){}\n'
+        '  try{ (window.top||window).addEventListener("resize",put); }catch(_){}\n'
+        '  document.addEventListener("DOMContentLoaded",kick);\n'
+        '  setTimeout(kick,60); setTimeout(kick,300); setTimeout(kick,1200);\n'
+        '})();</script>\n'
+    )
     inner = inner.replace(m.group(0), m.group(0) + '\n' + fit, 1)
 
     block = '```html\n' + inner + '\n```'
