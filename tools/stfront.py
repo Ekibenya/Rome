@@ -191,7 +191,47 @@ def main():
     )
     inner = inner.replace(m.group(0), m.group(0) + '\n' + fit, 1)
 
-    block = '```html\n' + inner + '\n```'
+    # 前端不再以明文躺在正则里（1.52MB 文本每次渲染都要过 markdown+DOMPurify 一遍，
+    # 又占体积）。改为：整份文档 gzip+base64 放进 extensions.roma_assets.doc，
+    # 正则里只留一个 2KB 启动器——同一套「爬到主窗读角色卡」的路径，资材嵌入已经验证过。
+    # document.write 必须带 doctype，否则新文档落入 quirks 模式，布局全乱。
+    full_doc = '<!doctype html>\n<html lang="zh">\n' + inner + '\n</html>'
+    boot_block = (
+        '```html\n'
+        '<!--<body>-->\n'
+        '<div id="romaBoot" style="font:12px/1.8 -apple-system,\'PingFang SC\',system-ui,sans-serif;'
+        'color:#8b8b93;background:#0b0b0c;border:1px solid #26262b;padding:12px 15px">'
+        '<span style="letter-spacing:.26em;color:#c99b3f">SPQR&nbsp;·&nbsp;罗马纪</span>'
+        '<span id="romaBootMsg">&nbsp;·&nbsp;展开中…</span></div>\n'
+        '<script>\n'
+        '(function(){\n'
+        '  function say(m){var e=document.getElementById("romaBootMsg");if(e)e.textContent=" · "+m;}\n'
+        '  function boom(m){say("启动失败：" + m);}\n'
+        '  try{\n'
+        '    var top=window;for(var i=0;i<8&&top.parent&&top.parent!==top;i++)top=top.parent;\n'
+        '    var ctx=top.SillyTavern&&top.SillyTavern.getContext&&top.SillyTavern.getContext();\n'
+        '    var A=null,cs=(ctx&&ctx.characters)||[];\n'
+        '    var by=(ctx&&ctx.characterId!=null)?cs[ctx.characterId]:null;\n'
+        '    var cand=[by].concat([].slice.call(cs)).filter(Boolean);\n'
+        '    for(var j=0;j<cand.length;j++){var d=cand[j]&&cand[j].data;\n'
+        '      if(d&&d.extensions&&d.extensions.roma_assets&&d.extensions.roma_assets.doc){A=d.extensions.roma_assets;break;}}\n'
+        '    var got=A?fetch("data:application/octet-stream;base64,"+A.doc)\n'
+        '        .then(function(r){return r.blob();})\n'
+        '        .then(function(b){return new Response(b.stream().pipeThrough(new DecompressionStream("gzip"))).text();})\n'
+        '      :fetch("' + CDN + 'st/front/index.html").then(function(r){\n'
+        '        if(!r.ok)throw new Error("HTTP "+r.status);return r.text();});\n'
+        '    if(!A)say("卡内无本体，改从网络取…");\n'
+        '    got.then(function(html){\n'
+        '      /* 同窗重写文档：window 与其全局（TavernHelper 等）都保留，\n'
+        '         脚本按文档顺序照常执行；高度自适配在文档自己的 fit 脚本里。 */\n'
+        '      document.open();document.write(html);document.close();\n'
+        '    }).catch(function(e){boom(String(e&&e.message||e));});\n'
+        '  }catch(e){boom(String(e&&e.message||e));}\n'
+        '})();\n'
+        '</script>\n'
+        '```'
+    )
+    block = boot_block
 
     card_fn = os.path.join(ROOT, 'st/roma.card.json')
     card = json.load(io.open(card_fn, encoding='utf-8'))
@@ -261,14 +301,15 @@ def main():
             if fn2.endswith('.dat'):
                 packs[fn2] = base64.b64encode(
                     io.open(os.path.join(pdir, fn2), 'rb').read()).decode('ascii')
-        ext['roma_assets'] = {'v': 1, 'engines': engines, 'packs': packs}
+        doc_b64 = base64.b64encode(_gz.compress(full_doc.encode('utf-8'), 9, mtime=0)).decode('ascii')
+        ext['roma_assets'] = {'v': 1, 'doc': doc_b64, 'engines': engines, 'packs': packs}
         _t = sum(len(v) for v in engines.values()) + sum(len(v) for v in packs.values())
         print('卡内嵌入      引擎 %d 支 + 资材 %d 包，base64 共 %.2f MB（自包含，无 CDN 也出三维）'
               % (len(engines), len(packs), _t / 1048576.0))
 
-    io.open(card_fn, 'w', encoding='utf-8').write(json.dumps(card, ensure_ascii=False, indent=1))
-    print('卡内正则      %d 条（整个前端已内联进 replaceString，%.2f MB）'
-          % (len(ext['regex_scripts']), len(block.encode('utf-8')) / 1048576.0))
+    io.open(card_fn, 'w', encoding='utf-8').write(json.dumps(card, ensure_ascii=False, separators=(',', ':')))
+    print('卡内正则      %d 条（启动器 %.1f KB；本体 gzip 进 extensions）'
+          % (len(ext['regex_scripts']), len(block.encode('utf-8')) / 1024.0))
 
     # 自证：把插进去的那一段抠掉，必须与源文档逐字节相同
     back = out.replace(inject, anchor, 1)
