@@ -123,6 +123,18 @@ def main():
     inner = body_doc[m.start():]
     inner = re.sub(r'</html>\s*$', '', inner).rstrip()
 
+    # —— 控制字节消毒（黑屏的真正根因，字节级）——
+    # 游戏源码里有 '\0'（裸 NUL 字节）当字符串分隔符用。直接嵌 iframe 没事
+    # （浏览器换成 U+FFFD，仍是合法字符串），但走 ST 的消息管线
+    # （正则替换→markdown→DOMPurify→酒馆助手取文本→srcdoc）时 NUL 会变成换行：
+    # 字符串字面量被断成两行 → 整个主 IIFE 一个 SyntaxError 全灭 → 黑屏。
+    # 换成转义序列 \x00 后语义逐字相同，且是纯 ASCII，任何管线都动不了它。
+    inner = inner.replace('\x00', '\\x00')
+    ctrl = [c for c in set(inner) if ord(c) < 0x20 and c not in '\t\n\r']
+    if ctrl:
+        raise SystemExit('内联内容仍含控制字节 %r —— 会在 ST 管线里被改写成别的字符，拒绝构建'
+                         % [hex(ord(c)) for c in ctrl])
+
     # 酒馆助手按 body.scrollHeight 推 iframe 高度，而本游戏整屏都是
     # position:fixed/inset:0 —— 不给一个真实高度，scrollHeight 会是 0，iframe 塌掉、
     # 画面一点都看不见。这一句是内联版能不能显示出来的关键。
@@ -155,7 +167,16 @@ def main():
         '    (document.head||document.documentElement).appendChild(st);\n'
         '  }\n'
         '  /* 定高后补一次 resize：游戏的 --fs 等尺寸按视口算，不通知它会一直停在 0 */\n'
-        '  function kick(){ put(); try{ window.dispatchEvent(new Event("resize")); }catch(_){} }\n'
+        '  /* 关键一步（照 FF7 卡实测出的做法）：自己把 iframe 拉到目标高度。\n'
+        '     酒馆助手自带的高度调整器在真实环境里可能根本没跑（实测 body 尺寸\n'
+        '     变了它毫无反应），iframe 会永远停在默认 150px——玩家看到的就是\n'
+        '     开局画面最上面那条黑边，即「黑屏」。同源，frameElement 直接可写。 */\n'
+        '  function fit(){\n'
+        '    try{ var fe=window.frameElement;\n'
+        '      if(fe){ var h=vp(); fe.style.height=h+"px"; fe.style.minHeight=h+"px"; }\n'
+        '    }catch(_){}\n'
+        '  }\n'
+        '  function kick(){ put(); fit(); try{ window.dispatchEvent(new Event("resize")); }catch(_){} }\n'
         '  put();\n'
         '  /* 父窗尺寸变了（转屏、酒馆自己调布局）要跟上 */\n'
         '  try{ window.addEventListener("resize",put); }catch(_){}\n'
