@@ -1848,7 +1848,7 @@
     for (var i = 0; i < n * 2; i++) {
       var a = r() * 6.28, d = Math.sqrt(r()) * rad;
       var t = NPC_TYPES[keys[Math.floor(r() * keys.length)]];
-      var root = makePawn(t.cfg);
+      var root = makePawn(pawnCfg(t, seed + 'cw' + i));
       root.position.set(cx + Math.cos(a) * d, 0, cz + Math.sin(a) * d);
       root.rotation.y = r() * 6.28;
       Z.scene.add(root);
@@ -4217,7 +4217,7 @@
       Z.scene.add(g); B.obj = g;
     } else if (item.kind === 'npc') {
       var t0 = NPC_TYPES[item.name] || HIST[item.name];
-      B.obj = makePawn(t0.cfg); Z.scene.add(B.obj);
+      B.obj = makePawn(pawnCfg(t0, 'b' + (item.bid || item.name))); Z.scene.add(B.obj);
     } else if (item.kind === 'unit') {
       B.obj = makeUnit(item.name, TROOPS[item.name].count); Z.scene.add(B.obj);
     } else {
@@ -4927,7 +4927,7 @@
       } else if (item.kind === 'npc') {
         var nt = NPC_TYPES[item.name] || HIST[item.name];
         if (!nt) { el.style.background = '#3a4a34'; THUMB.cache[key] = ''; return; }
-        obj = makePawn(nt.cfg);
+        obj = makePawn(pawnCfg(nt, 'th' + item.name));   /* 缩略图用固定种子：每次重画都换脸会闪 */
       } else if (item.kind === 'unit') {
         obj = makeUnit(item.name, TROOPS[item.name].count);
       } else {
@@ -5330,24 +5330,77 @@
     '灵寿': ['lianpo']
   };
   /* 军旅编制 */
+  /* 头面候选。第二项是一组而非一个：原来每个职业钉死一个头，满街同一张脸，
+     而其中大半又指向头顶本就是光的模型（资材里唯一盖得住头顶的男式发型只有
+     Long_Hair），于是玩家看到的是「男的全秃，而且秃得一模一样」。
+     Long_Hair 多给几个名额是有意的——它是唯一的满头，靠发色拉开区别。 */
+  var M_HAIR = ['Long_Hair', 'Long_Hair', 'Long_Hair', 'Mid_Hair'];   /* 男子日常 */
+  var M_WORK = ['Farmer_Hat', 'Farmer_Hat', 'Long_Hair'];             /* 户外劳作：多戴笠 */
+  var M_LONG = ['Long_Hair', 'Long_Hair', 'Mid_Hair'];                /* 方外之人：一律蓄发 */
+  /* 秃顶模型不再进平民池——只留给 HIST 里确实上了年纪的那几位（老聃、公输班、
+     商鞅、晏婴），在 HIST_FIT 里逐个指定。 */
   var PAWN_FIT = { /* 市井日常皆着衣：shorts/skirt（袒身装）只留给角斗与竞技场面 */
-    shi: ['siderobe', 'Half_Bald'], nong: ['fisher', 'Farmer_Hat'], gong: ['fisher', 'Mid_Hair'], shang: ['citizen', 'Mid_Hair'],
-    guan: ['normal', 'Half_Bald'], jiang: ['mcart', 'Helmet_Mohawk'], fangshi: ['siderobe', 'Bald_and_Long_Hair'],
-    yueshi: ['fshoulder', 'Hair_Bun_High'], shiguan: ['normal', 'Half_Bald'], wuzhu: ['fpriest', 'Hair_Tiara'],
-    youxia: ['mglad', 'Helmet_Face_Mask'], rusheng: ['citizen', 'Mid_Hair'], mozhe: ['siderobe', 'Bald_and_Long_Hair'],
-    shuike: ['siderobe', 'Long_Hair'], yizhe: ['normal', 'Mid_Hair'], buzhe: ['fpriest', 'Hair_Bun_Low'],
-    yufu: ['fisher', 'Farmer_Hat'], qiaofu: ['fisher', 'Mid_Hair'], muren: ['citizen', 'Mid_Hair'], paoren: ['citizen', 'Half_Bald'],
-    zhinu: ['fdress', 'Hair_Bun_Mid'], yinshi: ['siderobe', 'Bald_and_Long_Hair'], dizi: ['citizen', 'Mid_Hair'], yushou: ['fisher', 'Mid_Hair']
+    shi: ['siderobe', M_HAIR], nong: ['fisher', M_WORK], gong: ['fisher', M_HAIR], shang: ['citizen', M_HAIR],
+    guan: ['normal', M_HAIR], jiang: ['mcart', 'Helmet_Mohawk'], fangshi: ['siderobe', M_LONG],
+    yueshi: ['fshoulder', 'Hair_Bun_High'], shiguan: ['normal', M_HAIR], wuzhu: ['fpriest', 'Hair_Tiara'],
+    youxia: ['mglad', 'Helmet_Face_Mask'], rusheng: ['citizen', M_HAIR], mozhe: ['siderobe', M_HAIR],
+    shuike: ['siderobe', M_HAIR], yizhe: ['normal', M_HAIR], buzhe: ['fpriest', 'Hair_Bun_Low'],
+    yufu: ['fisher', M_WORK], qiaofu: ['fisher', M_WORK], muren: ['citizen', M_HAIR], paoren: ['citizen', M_HAIR],
+    zhinu: ['fdress', 'Hair_Bun_Mid'], yinshi: ['siderobe', M_LONG], dizi: ['citizen', M_HAIR], yushou: ['fisher', M_HAIR]
   };
-  Object.keys(PAWN_FIT).forEach(function (k) { if (NPC_TYPES[k]) { NPC_TYPES[k].cfg.outfit = PAWN_FIT[k][0]; NPC_TYPES[k].cfg.head = PAWN_FIT[k][1]; } });
+  /* 候选组存进 _heads，head 仍写一个缺省值——没改造过的调用点照旧拿得到东西。
+     第三项为真＝长者，发色走灰白。 */
+  function fitApply(tab, store) {
+    Object.keys(tab).forEach(function (k) {
+      var t = store[k]; if (!t) return;
+      var h = tab[k][1], pool = Array.isArray(h) ? h : [h];
+      t.cfg.outfit = tab[k][0];
+      t.cfg._heads = pool;
+      t.cfg.head = pool[0];
+      if (tab[k][2]) t.cfg._old = 1;
+    });
+  }
+  fitApply(PAWN_FIT, NPC_TYPES);
+  /* 发色。不给 hairC 的话 makePawn 里 dress() 会把躯干贴图刷到头发上，
+     头发与头皮同色，等于没做头发——这是「男的全秃」的另一半原因。 */
+  var HAIR_C = [0x1a1410, 0x241a12, 0x2b2118, 0x35271a, 0x43311f];   /* 黑 → 深褐 → 褐 */
+  var HAIR_OLD = [0x6e675c, 0x8a8378, 0x9c968c];                     /* 灰白，长者 */
+  /* 同职业的人不该长同一张脸：按各自的种子在候选里挑头面、挑发色。
+     必须返回浅拷贝——NPC_TYPES[k].cfg 是所有同类共享的那一份，就地改会串味。 */
+  function pawnCfg(t, seed) {
+    if (!t || !t.cfg) return null;
+    var c = {}, src = t.cfg;
+    for (var k in src) c[k] = src[k];
+    seed = String(seed == null ? '' : seed);
+    var pool = src._heads;
+    if (pool && pool.length > 1) c.head = pool[hash(seed) % pool.length];
+    if (c.head && !c.hairC && !/Helmet|Hat/.test(c.head)) {
+      var pal = src._old ? HAIR_OLD : HAIR_C;
+      c.hairC = pal[hash(seed + 'hc') % pal.length];
+    }
+    return c;
+  }
+  /* 具名人物各有其貌，不参与随机。秃顶只留给确实上了年纪的几位（老聃、公输班、
+     商鞅、晏婴），并且第三项置 1 走灰白发色——读起来是「老」，不是「没做头发」。
+     颜回三十二而卒、屈原正当盛年、蔺相如为完璧之使，原来都顶着秃头，一并改掉。 */
+  /* [服装, 头面, 执盾, 长者]。第三项一向是执盾，别挪；长者另开第四项，
+     它只影响发色（灰白），不影响别的。
+     秃顶只留给确实上了年纪的几位（老聃、公输班、商鞅、晏婴）。颜回三十二而卒、
+     屈原正当盛年、蔺相如为完璧之使、邹衍游说诸侯——原来都顶着秃头，一并改掉。 */
   var HIST_FIT = {
-    laodan: ['siderobe', 'Half_Bald'], gongshu: ['fisher', 'Half_Bald'], kongzi: ['siderobe', 'Mid_Hair'], yanhui: ['citizen', 'Bald_and_Long_Hair'],
-    zilu: ['corhop', 'Spartan_Mohawk_Helmet', 1], changhong: ['citizen', 'Long_Hair'], yinxi: ['normal', 'Mid_Hair'], shangyang: ['siderobe', 'Half_Bald'],
-    baiqi: ['mcart', 'Helmet_650_BC'], lianpo: ['athhop', 'Helmet_Mohawk', 1], linxiangru: ['normal', 'Half_Bald'], yanying: ['normal', 'Half_Bald'],
-    zouyan: ['siderobe', 'Bald_and_Long_Hair'], yueyi: ['corhop', 'Helmet_Atheniens', 1], jingke: ['normal', 'Mid_Hair'],
-    xinlingjun: ['corhop', 'Helmet_Without_Mohawk'], hanfei: ['normal', 'Mid_Hair'], quyuan: ['siderobe', 'Bald_and_Long_Hair']
+    laodan: ['siderobe', 'Bald_and_Long_Hair', 0, 1], gongshu: ['fisher', 'Half_Bald', 0, 1], kongzi: ['siderobe', 'Long_Hair', 0, 1], yanhui: ['citizen', 'Long_Hair'],
+    zilu: ['corhop', 'Spartan_Mohawk_Helmet', 1], changhong: ['citizen', 'Long_Hair'], yinxi: ['normal', 'Long_Hair'], shangyang: ['siderobe', 'Half_Bald', 0, 1],
+    baiqi: ['mcart', 'Helmet_650_BC'], lianpo: ['athhop', 'Helmet_Mohawk', 1], linxiangru: ['normal', 'Long_Hair'], yanying: ['normal', 'Bald_and_Long_Hair', 0, 1],
+    zouyan: ['siderobe', 'Long_Hair'], yueyi: ['corhop', 'Helmet_Atheniens', 1], jingke: ['normal', 'Long_Hair'],
+    xinlingjun: ['corhop', 'Helmet_Without_Mohawk'], hanfei: ['normal', 'Long_Hair'], quyuan: ['siderobe', 'Long_Hair']
   };
-  Object.keys(HIST_FIT).forEach(function (k) { if (HIST[k]) { HIST[k].cfg.outfit = HIST_FIT[k][0]; HIST[k].cfg.head = HIST_FIT[k][1]; if (HIST_FIT[k][2]) HIST[k].cfg.shield = 1; } });
+  Object.keys(HIST_FIT).forEach(function (k) {
+    if (!HIST[k]) return;
+    var f = HIST_FIT[k], c = HIST[k].cfg;
+    c.outfit = f[0]; c.head = f[1]; c._heads = [f[1]];   /* 具名人物不随机，池里就一个 */
+    if (f[2]) c.shield = 1;
+    if (f[3]) c._old = 1;
+  });
   var TROOPS = {
     zu: { disp: '军团兵', count: 1, price: 60, cols: 1 },
     wu: { disp: '一什', count: 5, price: 260, cols: 5 },
@@ -5441,7 +5494,7 @@
       var nm = String(c.name);
       if (have[nm]) return;
       var t = castType(c.role);
-      var g = null; try { g = makePawn(t.cfg); } catch (e) { return; }
+      var g = null; try { g = makePawn(pawnCfg(t, 'cast' + nm)); } catch (e) { return; }
       if (!g) return;
       var a = yaw + Math.PI + (i - (list.length - 1) / 2) * 0.44;
       var r = 3.8 + (i % 2) * 1.1;
@@ -5460,7 +5513,7 @@
        按身份词猜个外形，名字用正文写的那个。 */
     if (!t && rec.fromStory) t = castType(rec.role || rec.cat || rec.disp || '');
     if (!t) return null;
-    var root = makePawn(t.cfg);
+    var root = makePawn(pawnCfg(t, 'rec' + (rec.id || rec.disp)));
     root.position.set(rec.cx * CELL, 0, rec.cz * CELL);
     root.rotation.y = rec.ry || 0;
     Z.scene.add(root);
@@ -5487,7 +5540,7 @@
       var t = NPC_TYPES[key];
       var a = r() * 6.28, d = 12 + r() * 95;
       var x = Math.sin(a) * d, z = Math.cos(a) * d;
-      var root = makePawn(t.cfg);
+      var root = makePawn(pawnCfg(t, locName + 'amb' + i));
       root.position.set(x, 0, z); root.rotation.y = r() * 6.28;
       Z.scene.add(root);
       regPawn(root, {
@@ -5500,7 +5553,7 @@
          try/catch 会把它整个吞掉：玩家看到的是一座缺了大半的空城，控制台一声不响。 */
       var h = HIST[hk];
       if (!h) { console.warn('HIST_BY_LOC 指向不存在的条目:', hk); return; }
-      var root = makePawn(h.cfg);
+      var root = makePawn(pawnCfg(h, 'hist' + hk));
       var a = 1.2 + i * 1.5, d = 18 + i * 9;
       root.position.set(Math.sin(a) * d, 0, Math.cos(a) * d - 10);
       Z.scene.add(root);
