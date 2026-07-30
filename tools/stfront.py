@@ -126,8 +126,14 @@ def main():
     # 酒馆助手按 body.scrollHeight 推 iframe 高度，而本游戏整屏都是
     # position:fixed/inset:0 —— 不给一个真实高度，scrollHeight 会是 0，iframe 塌掉、
     # 画面一点都看不见。这一句是内联版能不能显示出来的关键。
-    fit = ('<style id="roma-fit">html,body{margin:0;padding:0;height:100dvh;'
-           'min-height:100dvh;overflow:hidden;background:#060606}</style>\n')
+    # 必须用**朴素的 vh**，不能用 dvh：
+    # 酒馆助手会把 `min-height:<n>vh` 改写成 var(--TH-viewport-height)，而那个变量指向
+    # **真实（父窗）视口高度**。iframe 自身的高度是由 body.scrollHeight 反推的，
+    # 若这里写 dvh/百分比，就成了「body 高看 iframe 高、iframe 高看 body 高」的循环，
+    # 结果是 0 —— 整片黑屏。写 vh 才能命中它的改写、拿到真实高度。
+    # 它的改写只认 min-height 且只认 vh，所以 min-height 这一条必须在。
+    fit = ('<style id="roma-fit">html,body{margin:0;padding:0;'
+           'min-height:100vh;height:100vh;overflow:hidden;background:#060606}</style>\n')
     inner = inner.replace(m.group(0), m.group(0) + '\n' + fit, 1)
 
     block = '```html\n' + inner + '\n```'
