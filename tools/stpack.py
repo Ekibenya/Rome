@@ -153,6 +153,28 @@ def main():
 
     zraw = open(os.path.join(SRC, ZHOU_PACK), 'rb').read()
     zblob = xor(zraw, K)
+    # ROMA_ZHOU_DIR：中原包条目替换（GLB 重压/贴图量化产物）。条目名里的 / 在
+    # 替换目录中写作 _；条目顺序照源包原样保留。
+    zsub = os.environ.get('ROMA_ZHOU_DIR')
+    if zsub:
+        n0 = struct.unpack_from('<I', zblob, 4)[0]
+        off0, metas0 = 8, []
+        for _ in range(n0):
+            nl0 = struct.unpack_from('<H', zblob, off0)[0]; off0 += 2
+            nm0 = zblob[off0:off0 + nl0].decode('utf-8'); off0 += nl0
+            ln0 = struct.unpack_from('<I', zblob, off0)[0]; off0 += 4
+            metas0.append((nm0, ln0))
+        files0 = []
+        for nm0, ln0 in metas0:
+            data0 = zblob[off0:off0 + ln0]; off0 += ln0
+            p0 = os.path.join(zsub, nm0.replace('/', '_'))
+            if os.path.isfile(p0):
+                nb0 = open(p0, 'rb').read()
+                print('  中原替换 %-38s %6.2f MB → %5.2f MB' % (
+                    nm0, len(data0) / 1048576.0, len(nb0) / 1048576.0))
+                data0 = nb0
+            files0.append((nm0, data0))
+        zblob = pack(files0)
     zgz = xor(gzip.compress(zblob, 9), K)
     open(os.path.join(OUT, 'zhou.dat'), 'wb').write(zgz)
     total_raw += len(zblob); total_out += len(zgz)
