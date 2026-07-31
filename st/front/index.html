@@ -5101,6 +5101,31 @@ var GENIVS=(function(){
    卡里的 mes_example 全文没有任何一处被读取，开局正文也不进 TURNS，
    于是模型此前从没见过 <mvu_panel> 长什么样，只能瞎猜字段名——猜错就少一栏，
    下一轮它又以自己上一轮那份残缺面板为范本，越写越少。这就是「每轮出不全」。 */
+/* 文风对齐：与其用形容词描述文风，不如每轮把本局开场白的节选直接摆在模型眼前——
+   开场白是全卡手写正文的最高水位，也是玩家在本局第一眼定下的预期。 */
+function styleSpec(){
+  var src='';
+  try{src=String(GAME.opText||'');}catch(_){}
+  var body=src?stripMvu(src).replace(/^【[^】]*】\s*/,'').trim():'';
+  /* 铸局/离线开场白可能只有几十字，撑不起范本——退回卡内第一条手写开场白 */
+  if(body.length<200){
+    try{
+      var _ops=(CARDS[ACTIVE]&&CARDS[ACTIVE].openings)||[];
+      if(_ops.length)body=stripMvu(String(_ops[0].text||'')).replace(/^【[^】]*】\s*/,'').trim();
+    }catch(_){}
+  }
+  if(body.length<200)return '';
+  var cut=body.slice(0,560);
+  var nl=cut.lastIndexOf('\n\n');           /* 在段落边界截，别让范本半句收尾 */
+  if(nl>280)cut=cut.slice(0,nl);
+  return '【文风基准·每轮对齐】下面是本局开场白的节选——它就是整局的文风标尺，之后每一轮正文都用这个声音写：'
+    +'同样的分节法（场景推进或转镜头时用 **壹/贰… · 小题** 起新节，短回合可不分节）；'
+    +'同样的第二人称现在时，贴着'+heroName()+'的视线走；'
+    +'同样一段一个镜头、镜头里有一件具体的东西；'
+    +'同样在把场面推到她面前时收笔，不加总结句。'
+    +'写完自问一句：把这一轮塞回开场白里违和吗？违和就照范本改。\n'
+    +'──范本节选──\n'+cut+'\n──范本节选完──';
+}
 function mvuSpec(){
   var roma=(ACTIVE==='roma');
   var chL=roma?'戎装|持物|神躯|观瞻|神格|血兴|心声|史笔':'衣冠|持物|御体|观瞻|神格|心声|史笔';
@@ -5212,6 +5237,7 @@ function sysPrompt(){
       +'\n'+loreFor(recent),
     mvuSpec(),
     modeSpec(),
+    styleSpec(),
     '【每回自查】'+heroRebind(G.post_history_instructions||''),
     minc,
     CFGS.preset?('【玩家自定义常驻指令】'+CFGS.preset):'',
