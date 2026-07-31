@@ -3158,11 +3158,14 @@ function heroName(){
 function heroIsCard(){try{return !(GAME.hero&&GAME.hero.n);}catch(_){return true;}}
 /* 卡里本尊的名字：文体铁则那类固定文案要靠它把「贝罗娜」替换成本局主角 */
 function cardHeroName(){return (ACTIVE==='roma')?'贝罗娜':'姬瑶';}
-/* 卡的 system_prompt 与 post_history_instructions 通篇在讲「你扮演贝罗娜、绝不代演贝罗娜」，
-   这是全篇关于「主角是谁」说得最重的两处。换了人来演时它们必须跟着改名，
-   否则模型一边读着「本局主角是尤利娅」、一边读着「铁则一：绝不代演贝罗娜」，
-   最后听的还是卡里那一句。世界观段落（场景、叙事者、世界书）不动——
-   那位战神在那个世界里本来就存在，罗马城里还有她的庙。 */
+/* 凡是「讲玩法、讲运镜、讲主角是谁」的段落，换人来演就必须跟着改名：
+   system_prompt、post_history_instructions、文体铁则，外加 scenario 与 personality。
+   scenario 尤其要紧——它开头就是「{{user}}第一人称扮演贝罗娜」，
+   跟【本局主角】那段正面打架，而它离正文更近，模型听的是它。
+   （原先把 scenario／叙事者 当成世界观放过了，实测 16K 提示词里「贝罗娜」
+   仍出现 35 次、新主角只 15 次——玩家的体感就是「演着演着又变回女主」。）
+   真正的世界观段落只有【世界书】不动：那位战神在那个世界里本来就存在，
+   罗马城里还有她的庙——但要加一句围栏，说清她与本局主角无关。 */
 function heroRebind(t){
   if(heroIsCard())return t||'';
   var C=cardHeroName(),H=heroName();
@@ -3182,6 +3185,30 @@ function heroSheet(){
     +'· 卡中【玩家角色档案】所述的容貌、性情、称谓、口头禅一概不适用于'+h.n
     +'；她的性格由玩家在正文里一句一句写出来，你不得预设。\n'
     +'· 铁则一照旧：'+h.n+'的台词、动作、决定，一个字都不许你写。\n';
+}
+/* 同一件事在结尾再钉一遍。【本局主角】那段排在最前，可它后面还压着一万多字
+   关于卡中本尊的档案、世界书与文体铁则；模型对结尾的权重最高，只在开头说一次
+   压不住。这一段永远放在整份系统提示的最末。 */
+/* 卡的 description 前后各有一段其实是玩法说明，不是人物档案：
+   开头【本卡玩法】第一句就是「{{user}}第一人称扮演贝罗娜」，结尾【{{char}}的职责】
+   讲的是「扮演好她之外的一切」。换了人来演时这两段直接和【本局主角】打架，
+   而中间那八段（姓名／出身／永生／外貌／性格／好恶／言语／化名史／处境）是纯传记，
+   留着有用——模型得知道这个世界里有过这么一个人。 */
+function heroDesc(t){
+  if(heroIsCard())return t||'';
+  return String(t==null?'':t).split('\n').filter(function(l){
+    return !/^\s*【(本卡玩法|\{\{char\}\}的职责)/.test(l);
+  }).join('\n');
+}
+function heroTail(){
+  var h=null;try{h=GAME.hero;}catch(_){}
+  if(!h||!h.n)return '';
+  var C=cardHeroName();
+  return '【落笔前最后一遍·本局主角】本局主角是「'+h.n+'」，不是'+C+'。'
+    +'上文一切关于'+C+'的档案、化名、口头禅、神格、专属自称（如「本座」）一概不适用于'+h.n+'；'
+    +C+'不在本局登场，也不是'+h.n+'的前身或真身。'
+    +'镜头跟着'+h.n+'走，其余人等都是这个世界里的普通人。'
+    +h.n+'的台词、动作、决定，一个字都不许你写。';
 }
 var PSNPC={list:[],sel:-1};
 function psRenderNpcs(){
@@ -3415,12 +3442,16 @@ function condereSys(line,q){
     heroRebind(G.system_prompt||''),
     heroSheet(),                       /* 换了人来演：先把「你演的是谁」摆在最前面 */
     (heroIsCard()?('【玩家角色档案】'+(G.description||''))
-                 :('【卡中原主角档案·仅供了解此世的笔调与背景，本局不适用于主角】'+(G.description||''))),
-    '【叙事者】'+(G.personality||''),
-    '【场景】'+(G.scenario||''),
-    '【世界书·激活条目】\n'+loreFor(q),
+                 :('【卡中原主角档案·仅供了解此世的笔调与背景，本局不适用于主角】'+heroDesc(G.description||''))),
+    '【叙事者】'+heroRebind(G.personality||''),
+    '【场景】'+heroRebind(G.scenario||''),
+    (heroIsCard()?'【世界书·激活条目】'
+      :('【世界书·激活条目】（以下是这个世界的既有史料与传说。其中提到的'+cardHeroName()
+        +'是这个世界里的一位人物，与本局主角无关，本局中不登场。）'))
+      +'\n'+loreFor(q),
     '【每回自查】'+heroRebind(G.post_history_instructions||''),
-    preEnd.join('\n')
+    preEnd.join('\n'),
+    heroTail()
   ].filter(Boolean).map(macroFill).join('\n\n');
 }
 /* 鑄局指令：附一則既有開局的面板作為格式範例，確保欄位與符號一字不差 */
@@ -4220,6 +4251,18 @@ function _loreKeys(v){
   if(typeof v==='string')return v.split(/[,，、|]/);
   return [];
 }
+/* 世界书里混着两种东西：一种是这个世界的史料（塔克文王朝、西班牙短剑、
+   贝罗娜神庙——提到那位战神是理所当然的，不该动）；另一种是伪装成词条的
+   玩法铁则（【铁则】玩家即贝罗娜、【铁则】文风与叙事守则、【铁则】东方之神的
+   出现方式……），它们讲的是「主角是谁、镜头钉在谁身上」。
+   有一条常驻词条标题就叫「【铁则】玩家即贝罗娜」，每回合都进提示词——
+   换了人来演时它和【本局主角】那段正面顶牛，而它数量占优（实测世界书贡献了
+   全篇 37 次「贝罗娜」里的 26 次）。所以：标题带【铁则】的按指令处理跟着改名，
+   其余史料一个字不动。 */
+function loreBind(e){
+  var t='『'+(e&&e.title||'')+'』'+(e&&e.content||'');
+  return /铁则/.test(e&&e.title||'') ? heroRebind(t) : t;
+}
 function loreFor(text){
   var lb=(CARDS[ACTIVE].lorebook||[]).slice();
   /* 玩家自写的条目最先装桶，其次才是角色卡带来的条目。
@@ -4246,7 +4289,7 @@ function loreFor(text){
   var cbud=Math.max(1200,Math.round(budget*1.5));
   for(var ci=0;ci<lb.length;ci++){var ce=lb[ci];
     if(!ce||ce.on===false||!ce.constant)continue;
-    var cs='『'+ce.title+'』'+ce.content;
+    var cs=loreBind(ce);
     if(cbud-cs.length<0){dropped++;continue;}
     out.push(cs);cbud-=cs.length;}
   /* 第二遍：关键词命中的条目，按预算装桶 */
@@ -4266,7 +4309,7 @@ function loreFor(text){
       if(!hit2)hit=false;
     }
     if(hit&&e.prob!=null&&e.prob<100&&Math.random()*100>e.prob)hit=false;
-    if(hit){var s='『'+e.title+'』'+e.content;
+    if(hit){var s=loreBind(e);
       if(budget-s.length<0){dropped++;continue;}out.push(s);budget-=s.length;}
   }
   /* 被预算挤掉的条目要有个交代，别让玩家对着「启用中」三个字瞎猜 */
@@ -4671,24 +4714,28 @@ function sysPrompt(){
        是「AI 分不清谁是谁」的直接来源。 */
     /* 这段文体铁则是给罗马线写的，里头点名「主角贝罗娜」。自定义开局换了人来演时，
        这一句会和状态栏协议、模式说明打架——模型两边都听，最后还是往贝罗娜身上写。 */
-    (ACTIVE==='roma'?(heroIsCard()?ROMA_STYLE:ROMA_STYLE.replace(/主角贝罗娜/g,'主角'+heroName())):''),
+    (ACTIVE==='roma'?heroRebind(ROMA_STYLE):''),
     heroSheet(),                       /* 换了人来演：先把「你演的是谁」摆在最前面 */
     (heroIsCard()?('【玩家角色档案】'+(G.description||''))
-                 :('【卡中原主角档案·仅供了解此世的笔调与背景，本局不适用于主角】'+(G.description||''))),
-    '【叙事者】'+(G.personality||''),
-    '【场景】'+(G.scenario||''),
+                 :('【卡中原主角档案·仅供了解此世的笔调与背景，本局不适用于主角】'+heroDesc(G.description||''))),
+    '【叙事者】'+heroRebind(G.personality||''),
+    '【场景】'+heroRebind(G.scenario||''),
     gearLine(),
     GENIVS.brief(),
     (typeof memChronicle==='function'&&typeof S!=='undefined'&&S.memOn!==false&&S.mem&&S.mem.length>1)?('【长程记忆·编年长卷】以下为本局开局至今全部既定事实的编年纪要（越靠后越接近当下）。正文历史若有缺失，以此卷为准；任何叙事不得与之矛盾：\n'+memChronicle()):'',
     (function(){if(typeof npcFavorDigest!=='function')return '';var _fd=npcFavorDigest();return _fd?('【人物好感·续记（不得健忘）】以下为曾登场人物最近一次的好感度与近况。他们即便暂时离场，好感与关系也须【延续记忆】：再次出场时自此数值起继续自然演变，严禁凭空重置、归零或大幅跳变；确有剧情推动方可增减：\n'+_fd):'';})(),
     mems.length?('【长程记忆】\n'+mems.join('\n')):'',
-    '【世界书·激活条目】\n'+loreFor(recent),
+    (heroIsCard()?'【世界书·激活条目】'
+      :('【世界书·激活条目】（以下是这个世界的既有史料与传说。其中提到的'+cardHeroName()
+        +'是这个世界里的一位人物，与本局主角无关，本局中不登场；读它只为了解这个世界，不要把主角往她身上靠。）'))
+      +'\n'+loreFor(recent),
     mvuSpec(),
     modeSpec(),
     '【每回自查】'+heroRebind(G.post_history_instructions||''),
     minc,
     CFGS.preset?('【玩家自定义常驻指令】'+CFGS.preset):'',
-    preEnd.join('\n')
+    preEnd.join('\n'),
+    heroTail()                         /* 永远压最末：结尾的权重最高 */
   /* 整份系统提示统一过一遍宏替换：卡的四个字段、预设、玩家自定义常驻指令里
      都可能带 {{user}}/{{char}}。 */
   ].filter(Boolean).map(macroFill).join('\n\n');
@@ -8733,7 +8780,7 @@ if('serviceWorker' in navigator)addEventListener('load',function(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(_){}
 });
 /* 版本印：设置面板底部常驻，一眼看出当前跑的是哪一版，省得靠猜缓存 */
-try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.3.0';}catch(_){}
+try{var _bs=document.getElementById('buildStamp');if(_bs)_bs.textContent='BUILD 2.3.1';}catch(_){}
 })();
 </script>
 </body>
