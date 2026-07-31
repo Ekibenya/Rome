@@ -76,14 +76,23 @@ def main():
     # 界面上把三维视口连同展开/收起钮一起藏掉，游戏保持在「收起」态跑纯文字。
     # 引擎脚本与资材请求由 boot.js 按 no3d 就地断掉（空脚本 / 404），零网络零等待。
     no3d = os.environ.get('ROMA_NO3D', '0') == '1'
+    # PNG 块直供（ROMA_PNG_ASSETS=1）：引擎与资材不进 JSON（省双重 base64 税），
+    # 由 stpng 作为 roMa 私有块写进 PNG 本体；boot 按 JSON→PNG块→CDN 三级取材。
+    png_assets = os.environ.get('ROMA_PNG_ASSETS', '0') == '1' and not no3d
 
     doc = io.open(DOC, encoding='utf-8').read()
     boot = io.open(os.path.join(OUT, 'boot.js'), encoding='utf-8').read()
 
+    ENG_FILES = ['core/three-bundle.min.js',
+                 'core/vendor/three/build/chunks/9d717bc0/36411d0a880f.js',
+                 'core/vendor/three/build/chunks/9d717bc0/1aa613ec934b.js',
+                 'core/vendor/three/build/chunks/9d717bc0/8e2ad10c77b4.js']
+    if no3d or png_assets:
+        cfg['engs'] = [os.path.basename(f) for f in ENG_FILES]
     if no3d:
         cfg['no3d'] = 1
-        cfg['engs'] = ['three-bundle.min.js', '36411d0a880f.js',
-                       '1aa613ec934b.js', '8e2ad10c77b4.js']
+    if png_assets:
+        cfg['pngAssets'] = 1
 
     # 插在 <meta charset> 之后、其余一切之前：base 要先于任何相对路径生效，
     # boot 要先于应用脚本跑（它得赶在 API 从 localStorage 读出来之前写好）。
@@ -312,32 +321,47 @@ def main():
     # 引擎 gzip 后约 0.4MB。都以 base64 放进 data.extensions.roma_assets——
     # ST 对不认识的 extensions 字段原样保留、不入提示词。boot.js 嵌入优先、CDN 兜底。
     if os.environ.get('ROMA_EMBED', '1') != '0':
-        import base64, gzip as _gz
+        import base64, gzip as _gz, shutil
         engines = {}
         packs = {}
+        pngdir = os.path.join(ROOT, 'st/pngassets')
+        if os.path.isdir(pngdir):
+            shutil.rmtree(pngdir)
         if not no3d:
-            eng_files = ['core/three-bundle.min.js',
-                         'core/vendor/three/build/chunks/9d717bc0/36411d0a880f.js',
-                         'core/vendor/three/build/chunks/9d717bc0/1aa613ec934b.js',
-                         'core/vendor/three/build/chunks/9d717bc0/8e2ad10c77b4.js']
-            for f in eng_files:
-                raw = io.open(os.path.join(ROOT, f), 'rb').read()
-                engines[os.path.basename(f)] = base64.b64encode(
-                    _gz.compress(raw, 9, mtime=0)).decode('ascii')
             pdir = os.path.join(ROOT, 'core/res/data/st/v1')
             embed_zhou = os.environ.get('ROMA_EMBED_ZHOU', '0') == '1'
-            for fn2 in sorted(os.listdir(pdir)):
-                if fn2 == 'zhou.dat' and not embed_zhou:
-                    continue      # 标准版不嵌中原包（13.56MB）；完全版 ROMA_EMBED_ZHOU=1
-                if fn2.endswith('.dat'):
+            pack_files = [fn2 for fn2 in sorted(os.listdir(pdir))
+                          if fn2.endswith('.dat') and (fn2 != 'zhou.dat' or embed_zhou)]
+            if png_assets:
+                # 写侧车目录：文件名里的 / 记作 @@，由 stpng 原样折回块名
+                os.makedirs(pngdir)
+                for f in ENG_FILES:
+                    raw = io.open(os.path.join(ROOT, f), 'rb').read()
+                    io.open(os.path.join(pngdir, 'eng@@%s.gz' % os.path.basename(f)),
+                            'wb').write(_gz.compress(raw, 9, mtime=0))
+                for fn2 in pack_files:
+                    shutil.copyfile(os.path.join(pdir, fn2),
+                                    os.path.join(pngdir, 'pack@@' + fn2))
+            else:
+                for f in ENG_FILES:
+                    raw = io.open(os.path.join(ROOT, f), 'rb').read()
+                    engines[os.path.basename(f)] = base64.b64encode(
+                        _gz.compress(raw, 9, mtime=0)).decode('ascii')
+                for fn2 in pack_files:
                     packs[fn2] = base64.b64encode(
                         io.open(os.path.join(pdir, fn2), 'rb').read()).decode('ascii')
         doc_b64 = base64.b64encode(_gz.compress(full_doc.encode('utf-8'), 9, mtime=0)).decode('ascii')
         ext['roma_assets'] = {'v': 1, 'doc': doc_b64, 'engines': engines, 'packs': packs}
-        _t = sum(len(v) for v in engines.values()) + sum(len(v) for v in packs.values())
-        print('卡内嵌入      引擎 %d 支 + 资材 %d 包，base64 共 %.2f MB%s'
-              % (len(engines), len(packs), _t / 1048576.0,
-                 '（超低配：纯文字无三维）' if no3d else '（自包含，无 CDN 也出三维）'))
+        if png_assets:
+            _n = len(os.listdir(pngdir)) if os.path.isdir(pngdir) else 0
+            _t = sum(os.path.getsize(os.path.join(pngdir, x)) for x in os.listdir(pngdir)) if _n else 0
+            print('PNG 块侧车    %d 项 %.2f MB（零 base64 税，由 stpng 写入 roMa 块）'
+                  % (_n, _t / 1048576.0))
+        else:
+            _t = sum(len(v) for v in engines.values()) + sum(len(v) for v in packs.values())
+            print('卡内嵌入      引擎 %d 支 + 资材 %d 包，base64 共 %.2f MB%s'
+                  % (len(engines), len(packs), _t / 1048576.0,
+                     '（超低配：纯文字无三维）' if no3d else '（自包含，无 CDN 也出三维）'))
 
     io.open(card_fn, 'w', encoding='utf-8').write(json.dumps(card, ensure_ascii=False, separators=(',', ':')))
     print('卡内正则      %d 条（启动器 %.1f KB；本体 gzip 进 extensions）'

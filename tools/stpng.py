@@ -7,11 +7,14 @@ base64(JSON)——新版酒馆读 ccv3，旧版与各家分叉读 chara，两边
 封面里原有的一切文本类块（tEXt/zTXt/iTXt/eXIf）一律剥除，不留任何生成器痕迹。
 打包前后各做一次禁字扫描与回读比对，任何一步不过直接拒绝产出。
 """
-import base64, io, json, re, struct, sys, zlib
+import base64, io, json, os, re, struct, sys, zlib
 
 ART  = sys.argv[1] if len(sys.argv) > 1 else '/Users/han/Downloads/1370D2F9-AE77-43C4-8F25-E1EA6D7430D1.png'
 CARD = sys.argv[2] if len(sys.argv) > 2 else 'st/roma.card.json'
 OUT  = sys.argv[3] if len(sys.argv) > 3 else 'st/roma.card.png'
+# PNG 块直供：目录里每个文件成为一个 roMa 私有 ancillary 块（名里 @@ 折回 /），
+# 载荷 'RMA1'+uint16 名长+名+数据。私有块阅览器一律无视，封面显示不受影响。
+PNGD = os.environ.get('ROMA_PNG_DIR', '')
 
 FORBID = re.compile(r'claude|anthropic|yenwa', re.I)
 
@@ -62,6 +65,12 @@ def main():
             out.append(chunk(b'tEXt', b'chara\x00' + b64_stub))
             out.append(chunk(b'tEXt', b'ccv3\x00'  + b64))
             inserted = True
+        if typ == b'IEND' and PNGD and os.path.isdir(PNGD):
+            # roMa 数据块排在 IEND 之前：二进制原样上车，零 base64 税
+            for fn in sorted(os.listdir(PNGD)):
+                data = io.open(os.path.join(PNGD, fn), 'rb').read()
+                nm = fn.replace('@@', '/').encode('utf-8')
+                out.append(chunk(b'roMa', b'RMA1' + struct.pack('<H', len(nm)) + nm + data))
         out.append(raw[i:i+12+ln])
         i += 12 + ln
         if typ == b'IEND':
@@ -73,6 +82,7 @@ def main():
 
     # —— 回读自证：两个键都解出，且与源 JSON 逐字节一致 ——
     got = {}
+    roma_got = {}
     j = 8
     while j < len(blob):
         ln  = struct.unpack('>I', blob[j:j+4])[0]
@@ -80,15 +90,32 @@ def main():
         if typ == b'tEXt':
             k, _, v = blob[j+8:j+8+ln].partition(b'\x00')
             got[k.decode()] = base64.b64decode(v)
+        elif typ == b'roMa':
+            d = blob[j+8:j+8+ln]
+            assert d[:4] == b'RMA1'
+            nl = struct.unpack('<H', d[4:6])[0]
+            roma_got[d[6:6+nl].decode()] = d[6+nl:]
         j += 12 + ln
         if typ == b'IEND':
             break
     ok = got.get('ccv3') == payload and b'v3' in (got.get('chara') or b'')
+    rok = True
+    rbytes = 0
+    if PNGD and os.path.isdir(PNGD):
+        for fn in sorted(os.listdir(PNGD)):
+            want = io.open(os.path.join(PNGD, fn), 'rb').read()
+            nm = fn.replace('@@', '/')
+            rbytes += len(want)
+            if roma_got.get(nm) != want:
+                rok = False
     print('封面        %s (%.2f MB)' % (ART.split('/')[-1], len(raw)/1048576))
-    print('卡数据      %.2f MB → base64 %.2f MB ×2 键' % (len(payload)/1048576, len(b64)/1048576))
+    print('卡数据      %.2f MB → base64 %.2f MB' % (len(payload)/1048576, len(b64)/1048576))
+    if rbytes:
+        print('roMa 块     %d 项 %.2f MB（零税直载）%s'
+              % (len(roma_got), rbytes/1048576, '回读一致' if rok else '回读不符'))
     print('成品        %s (%.2f MB)' % (OUT, len(blob)/1048576))
-    print('回读自证    %s' % ('PASS 两键均与源逐字节一致' if ok else 'FAIL'))
-    if not ok:
+    print('回读自证    %s' % ('PASS' if (ok and rok) else 'FAIL'))
+    if not (ok and rok):
         raise SystemExit(1)
 
 if __name__ == '__main__':

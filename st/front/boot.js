@@ -80,6 +80,76 @@
   }
   var log = function () { try { console.log.apply(console, ['[roma·st]'].concat([].slice.call(arguments))); } catch (_) { } };
 
+  /* --------------------------------------------- PNG 数据块直供（v0.0.8） ---
+     二进制资材塞进 JSON 要连过两层 base64，白付 78% 的编码税。改为把它们作为
+     roMa 私有 ancillary 块附在角色卡 PNG 本体里（PNG 阅览器一律无视私有块，
+     封面显示不受影响），运行时把这张卡自己的头像文件取回来按块拆开。
+     块载荷：'RMA1' + uint16 名长 + 名(utf8) + 数据。
+     遇到会剥私有块的酒馆分叉：取不到就静默落回 CDN——行为等同标准版，不黑屏。 */
+  var PNGA = null;                     /* false=不可用；Promise/对象={名:Uint8Array} */
+  function avatarUrl() {
+    try {
+      var top = window, i = 0;
+      for (; i < 8 && top.parent && top.parent !== top; i++) top = top.parent;
+      var ctx = top.SillyTavern && top.SillyTavern.getContext && top.SillyTavern.getContext();
+      if (!ctx || !ctx.characters) return null;
+      var byId = ctx.characterId != null ? ctx.characters[ctx.characterId] : null;
+      var cand = [byId].concat(ctx.characters).filter(Boolean);
+      /* 文档头上有 <base href=CDN>，根相对路径会被解析到 CDN 去——
+         必须拼酒馆主窗的绝对 origin。 */
+      var org = '';
+      try { org = top.location.origin || ''; } catch (_) { }
+      if (!/^http/.test(org)) return null;
+      for (var j = 0; j < cand.length; j++) {
+        var c = cand[j], d = c && c.data;
+        if (d && d.extensions && d.extensions.roma_assets && c.avatar)
+          return org + '/characters/' + String(c.avatar).split('/').map(encodeURIComponent).join('/');
+      }
+    } catch (_) { }
+    return null;
+  }
+  function parsePngChunks(ab) {
+    var u = new Uint8Array(ab), dv = new DataView(ab);
+    if (u.length < 8 || u[0] !== 0x89 || u[1] !== 0x50) return null;   /* 非 PNG */
+    var off = 8, map = {}, dec = new TextDecoder(), hit = 0;
+    while (off + 12 <= u.length) {
+      var len = dv.getUint32(off), typ = dec.decode(u.subarray(off + 4, off + 8));
+      var data = u.subarray(off + 8, off + 8 + len);
+      if (typ === 'roMa' && len > 10 &&
+          data[0] === 82 && data[1] === 77 && data[2] === 65 && data[3] === 49) { /* RMA1 */
+        var nl = data[4] | (data[5] << 8);
+        var name = dec.decode(data.subarray(6, 6 + nl));
+        map[name] = data.subarray(6 + nl);
+        hit++;
+      }
+      off += 12 + len;
+      if (typ === 'IEND') break;
+    }
+    return hit ? map : null;
+  }
+  function pngAssets() {
+    if (PNGA === false) return Promise.resolve(false);
+    if (PNGA) return PNGA.then ? PNGA : Promise.resolve(PNGA);
+    if (!CFG.pngAssets) { PNGA = false; return Promise.resolve(false); }
+    var url = avatarUrl();
+    if (!url) { PNGA = false; return Promise.resolve(false); }
+    PNGA = fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('avatar HTTP ' + r.status);
+      return r.arrayBuffer();
+    }).then(function (ab) {
+      var m = parsePngChunks(ab);
+      PNGA = m || false;
+      log(m ? ('PNG 数据块已接上：' + Object.keys(m).length + ' 项')
+            : 'PNG 数据块缺席（可能被导入端剥除），转 CDN 兜底');
+      return PNGA;
+    }).catch(function (e) { log('PNG 数据块取数失败', String(e)); PNGA = false; return false; });
+    return PNGA;
+  }
+  function gunzipBytes(u8) {
+    return new Response(new Blob([u8]).stream()
+      .pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  }
+
   /* ---------------------------------------------------------------- 资材 --- */
   function xor(u8) {
     var kl = KEY.length;
@@ -116,6 +186,23 @@
     pairs.forEach(function (p) { out.set(p[1], o); o += p[1].length; });
     return out;
   }
+  /* 网络兜底要限时：墙内对 jsDelivr 常常是「连上了不回包」，
+     不设超时就永远转圈，玩家只看到三维加载不动。15 秒放弃并报清楚。 */
+  function netChunk(name, file) {
+    var ac = window.AbortController ? new AbortController() : null;
+    var tm = ac ? setTimeout(function () { ac.abort(); }, 15000) : null;
+    return fetch(BASE + PACKS.dir + file, ac ? { signal: ac.signal } : {})
+      .then(function (r) {
+        if (tm) clearTimeout(tm);
+        if (!r.ok) throw new Error('chunk ' + name + ' HTTP ' + r.status);
+        return r.arrayBuffer();
+      }, function (err) {
+        if (tm) clearTimeout(tm);
+        throw new Error('资材 ' + file + ' 网络取数失败（' +
+          (err && err.name === 'AbortError' ? '15 秒超时，可能被墙' : String(err && err.message || err)) +
+          '）。此部分三维需要能访问 cdn.jsdelivr.net，或改用完全版角色卡。');
+      });
+  }
   /* 一块压缩包 → 明文条目。去异或 → gunzip → unpack */
   function takeChunk(name) {
     var file = PACKS.chunks[name].file;
@@ -123,22 +210,14 @@
     var got;
     if (e && e.packs && e.packs[file]) {
       got = b64bytes(e.packs[file]);
+    } else if (CFG.pngAssets) {
+      /* PNG 块优先；块被剥了再走下面的 CDN 路（把自己重新调一遍，此时 PNGA=false） */
+      got = pngAssets().then(function (m) {
+        if (m && m['pack/' + file]) { var u = m['pack/' + file]; return u.slice().buffer; }
+        return netChunk(name, file);
+      });
     } else {
-      /* 网络兜底要限时：墙内对 jsDelivr 常常是「连上了不回包」，
-         不设超时就永远转圈，玩家只看到三维加载不动。15 秒放弃并报清楚。 */
-      var ac = window.AbortController ? new AbortController() : null;
-      var tm = ac ? setTimeout(function () { ac.abort(); }, 15000) : null;
-      got = fetch(BASE + PACKS.dir + file, ac ? { signal: ac.signal } : {})
-        .then(function (r) {
-          if (tm) clearTimeout(tm);
-          if (!r.ok) throw new Error('chunk ' + name + ' HTTP ' + r.status);
-          return r.arrayBuffer();
-        }, function (err) {
-          if (tm) clearTimeout(tm);
-          throw new Error('资材 ' + file + ' 网络取数失败（' +
-            (err && err.name === 'AbortError' ? '15 秒超时，可能被墙' : String(err && err.message || err)) +
-            '）。此部分三维需要能访问 cdn.jsdelivr.net，或改用完全版角色卡。');
-        });
+      got = netChunk(name, file);
     }
     return got.then(function (ab) {
       var plain = xor(new Uint8Array(ab));
@@ -167,19 +246,40 @@
     var MAP = {};        /* basename -> blob URL（就绪后填入） */
     var READY = false, QUEUE = [];
     function base(u) { return String(u || '').split('?')[0].split('/').pop(); }
+    function engNames() {
+      var e = embed();
+      if (e && e.engines && Object.keys(e.engines).length) return Object.keys(e.engines);
+      if (CFG.pngAssets && CFG.engs) return CFG.engs.slice();
+      return [];
+    }
+    function toBlobUrl(ab) {
+      return new Response(new Blob([ab]).stream()
+        .pipeThrough(new DecompressionStream('gzip'))).blob().then(function (bl) {
+          return URL.createObjectURL(new Blob([bl], { type: 'text/javascript' }));
+        });
+    }
     function prep() {
       var e = embed();
-      if (!e || !e.engines || !Object.keys(e.engines).length) { READY = true; flush(); return; }
-      var names = Object.keys(e.engines);
-      Promise.all(names.map(function (n) {
-        return b64bytes(e.engines[n]).then(function (ab) {
-          return new Response(new Blob([ab]).stream()
-            .pipeThrough(new DecompressionStream('gzip'))).blob();
-        }).then(function (bl) {
-          MAP[n] = URL.createObjectURL(new Blob([bl], { type: 'text/javascript' }));
-        });
-      })).then(function () { READY = true; log('引擎已从卡内就位', names); flush(); })
-        .catch(function (err) { log('嵌入引擎解压失败，回退 CDN', String(err)); READY = true; flush(); });
+      if (e && e.engines && Object.keys(e.engines).length) {
+        var names = Object.keys(e.engines);
+        Promise.all(names.map(function (n) {
+          return b64bytes(e.engines[n]).then(toBlobUrl).then(function (u) { MAP[n] = u; });
+        })).then(function () { READY = true; log('引擎已从卡内就位', names); flush(); })
+          .catch(function (err) { log('嵌入引擎解压失败，回退 CDN', String(err)); READY = true; flush(); });
+        return;
+      }
+      if (CFG.pngAssets && CFG.engs) {
+        pngAssets().then(function (m) {
+          if (!m) { READY = true; flush(); return; }        /* 块被剥：原样放行走 CDN */
+          return Promise.all(CFG.engs.map(function (n) {
+            var d = m['eng/' + n + '.gz'];
+            if (!d) return null;
+            return toBlobUrl(d.slice().buffer).then(function (u) { MAP[n] = u; });
+          })).then(function () { READY = true; log('引擎已从 PNG 块就位', CFG.engs); flush(); });
+        }).catch(function (err) { log('PNG 块引擎解压失败，回退 CDN', String(err)); READY = true; flush(); });
+        return;
+      }
+      READY = true; flush();
     }
     function flush() {
       while (QUEUE.length) {
@@ -207,8 +307,7 @@
               node.src = emptyJs();
               return orig.apply(this, args);
             }
-            var e = embed();
-            if (e && e.engines && (b in e.engines)) {
+            if (engNames().indexOf(b) >= 0) {
               if (!READY) {
                 var self = this;
                 QUEUE.push({ node: node, insert: function () { orig.apply(self, args); } });
