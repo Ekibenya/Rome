@@ -4642,7 +4642,8 @@ function styleSpec(){
     +'同样的分节法（场景推进或转镜头时用 **壹/贰… · 小题** 起新节，短回合可不分节）；'
     +'同样的第二人称现在时，贴着'+heroName()+'的视线走；'
     +'同样一段一个镜头、镜头里有一件具体的东西；'
-    +'同样在把场面推到她面前时收笔，不加总结句。'
+    +'同样在把场面推到她面前时收笔，不加总结句；'
+    +'篇幅也向范本看齐——正常回合写足开场白一到两节的分量，短的是句子，不是场面。'
     +'写完自问一句：把这一轮塞回开场白里违和吗？违和就照范本改。\n'
     +'──范本节选──\n'+cut+'\n──范本节选完──';
 }
@@ -4730,9 +4731,12 @@ function sysPrompt(){
     if(p.on===false)return;(p.pos===1?preEnd:preFront).push(p.text);});
   var mems=(typeof SET!=='undefined')?(SET.mems||[]).filter(function(m){return m.on!==false;})
     .map(function(m){return m.text;}):[];
-  /* 篇幅默认值：未设定时给 500 字下限——否则模型常常两三句就收笔 */
-  var _minc=(typeof SET!=='undefined'&&SET.samp.minc)?SET.samp.minc:500;
-  var minc='【篇幅】本回正文不少于'+_minc+'字（状态栏不计入字数）。'
+  /* 篇幅默认值：原 500 字在开场白（单节就三五百字）面前太寒酸，玩家体感「每轮好短」。
+     提到 1000，并且光给字数不够——模型对「不少于X字」经常装聋，配上结构要求才站得住。 */
+  var _minc=(typeof SET!=='undefined'&&SET.samp.minc)?SET.samp.minc:1000;
+  var minc='【篇幅·硬要求】本回正文不少于'+_minc+'字（状态栏不计入字数），按 2-4 节组织（**壹/贰… · 小题**），'
+    +'每节 2-4 段，一段一个镜头。篇幅靠镜头与事件堆：多写一处动静、一个在场者的小动作、一件被她注意到的具体东西，'
+    +'而不是靠形容词注水。反装腔铁则管的是台词与姿态，不是篇幅——话要短，场面要足。'
   return [preFront.join('\n'),
     heroRebind(G.system_prompt||''),
     /* 只给罗马卡注入：这是罗马线的文体规范，里面写着贝罗娜的名字。
