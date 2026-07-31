@@ -760,6 +760,10 @@ canvas{display:block}
    html 高度即视口（overflow hidden），filter 形成的包含块不影响 fixed 布局。 */
 html.lux{filter:invert(1) hue-rotate(180deg);color-scheme:light}
 html.lux #zjScene3D canvas,html.lux #mdScene3D canvas,html.lux img{filter:invert(1) hue-rotate(180deg)}
+/* 反色出来的近纯白太刺眼：正片叠底罩一层暖纸色，白压成米黄羊皮纸面，
+   深色文字几乎不动（对比度不丢）；压在一切弹窗之上，全站统一。 */
+html.lux::after{content:'';position:fixed;inset:0;z-index:2147483647;pointer-events:none;
+  background:#efe6d0;mix-blend-mode:multiply}
 #luxTg{position:absolute;top:16px;right:18px;z-index:60;cursor:pointer;font-size:16px;line-height:1;
   padding:8px 11px;border:1px solid rgba(236,236,232,.28);color:var(--gold);
   background:rgba(6,6,6,.4);user-select:none;transition:border-color 160ms var(--e-out)}
