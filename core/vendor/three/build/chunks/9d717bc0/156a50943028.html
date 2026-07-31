@@ -4051,6 +4051,7 @@ invRender();
 var TURNS=[],TURNI=0,BUSY=false;
 var CFGS={velo:1,font:1,preset:''};
 try{Object.assign(CFGS,JSON.parse(localStorage.getItem('rome_cfg')||'{}'));}catch(_){}
+delete CFGS.lux;   /* 白昼不持久：清掉旧版可能落盘的键 */
 function cfgStore(){lsSet('rome_cfg',JSON.stringify(CFGS))}
 var VELOMAP=[26,13,4,0],FONTMAP=['11.5px','13px','14.5px','16.5px'];
 /* 界面缩放：一根拉杆放大缩小全部文字层（正文／情报台／顶栏／输入区／所有弹窗）。
@@ -4089,19 +4090,18 @@ function uiScaleApply(q){
   try{cfgStore();}catch(_){}
   try{if(GAME.on)setTimeout(gmapSize,60);}catch(_){}
 }
+var LUX=0;   /* 白昼是会话级可选项：不落盘，每次打开一律黑夜起步 */
 function luxApply(on){
-  CFGS.lux=on?1:0;
+  LUX=on?1:0;
   document.documentElement.classList.toggle('lux',!!on);
   var cb=$('#cfgLux');if(cb)cb.checked=!!on;
   var tg=$('#luxTg');if(tg)tg.textContent=on?'☾':'☀';
-  try{cfgStore();}catch(_){}
 }
 function setSeg(sel,idx){var ch=$(sel).children;for(var i=0;i<ch.length;i++)ch[i].classList.toggle('on',i===idx);}
 function applyCfg(){
   $('#gNarr').style.fontSize=FONTMAP[CFGS.font]||'13px';
   setSeg('#sgVelo',CFGS.velo);
   uiScaleApply(uiScaleGet());
-  luxApply(CFGS.lux?1:0);
   if(CFGS.motus){                       /* 动效档位随设置恢复；没设过就跟随系统 */
     document.documentElement.setAttribute('data-motion',CFGS.motus);
     REDUCED=(CFGS.motus==='soft');
@@ -5510,7 +5510,7 @@ try{bgmPlay(0);}catch(_){}
   });
 })();
 (function(){
-  var tg=$('#luxTg');if(tg)tg.addEventListener('click',function(){luxApply(CFGS.lux?0:1);});
+  var tg=$('#luxTg');if(tg)tg.addEventListener('click',function(){luxApply(LUX?0:1);});
   var cb=$('#cfgLux');if(cb)cb.addEventListener('change',function(){luxApply(this.checked?1:0);});
 })();
 $('#gtFull').addEventListener('click',function(){
