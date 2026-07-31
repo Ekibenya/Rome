@@ -3529,10 +3529,12 @@ function gameEnter(lineOverride){
       el._raf=requestAnimationFrame(function(){
         el._raf=0;
         if(!el.parentNode)return;
+        /* 粘性滚动：玩家贴着底才跟进；往上翻了就别打扰人家看前文，翻回来自动恢复跟随 */
+        var n2=$('#gNarr');var _stk=n2.scrollHeight-n2.scrollTop-n2.clientHeight<90;
         el.innerHTML=el._pend.split(/\n{2,}/).map(function(par){
           return /^【/.test(par.trim())?('<p class="sys">'+fmtBody(par)+'</p>'):('<p>'+fmtBody(par)+'</p>');
         }).join('');
-        var n2=$('#gNarr');n2.scrollTop=n2.scrollHeight;
+        if(_stk)n2.scrollTop=n2.scrollHeight;
       });
     }
   }
@@ -4089,8 +4091,9 @@ function narrAdd(cls,html,tIdx){
   if(cls)p.className=cls;
   if(tIdx!=null)p.setAttribute('data-t',tIdx);
   p.innerHTML=html;
+  var _stk=nr.scrollHeight-nr.scrollTop-nr.clientHeight<90;
   nr.insertBefore(p,nr.querySelector('.gEot'));
-  nr.scrollTop=nr.scrollHeight;
+  if(_stk)nr.scrollTop=nr.scrollHeight;
   return p;
 }
 function fmtBody(par){
@@ -4114,7 +4117,7 @@ function typeParas(paras,tIdx,done,instant){
     if(i>=txt.length){p.innerHTML=html;typeParas(paras,tIdx,done,instant);return;}
     i+=1+(speed<8?2:0);
     p.textContent=txt.slice(0,i);
-    if((sc++%3)===0)nr.scrollTop=nr.scrollHeight;
+    if((sc++%3)===0&&nr.scrollHeight-nr.scrollTop-nr.clientHeight<120)nr.scrollTop=nr.scrollHeight;
     setTimeout(tick,speed);
   })();
 }
@@ -4217,7 +4220,7 @@ function genOpen(mode){
   d.querySelector('.gbStop').addEventListener('click',function(){
     try{if(GENAC)GENAC.abort();}catch(_){}
   });
-  nr.scrollTop=nr.scrollHeight;
+  if(nr.scrollHeight-nr.scrollTop-nr.clientHeight<90)nr.scrollTop=nr.scrollHeight;
   genPulse();
 }
 function genPulse(){
@@ -5013,10 +5016,11 @@ function askOracleSend(msgs){
       el._raf=requestAnimationFrame(function(){
         el._raf=0;
         if(!el.parentNode)return;                    /* 已收尾移除：这一帧直接丢弃 */
+        var nr2=$('#gNarr');var _stk=nr2.scrollHeight-nr2.scrollTop-nr2.clientHeight<90;
         el.innerHTML=el._pend.split(/\n{2,}/).map(function(par){
           return /^【/.test(par.trim())?('<p class="sys">'+fmtBody(par)+'</p>'):('<p>'+fmtBody(par)+'</p>');
         }).join('');
-        var nr2=$('#gNarr');nr2.scrollTop=nr2.scrollHeight;
+        if(_stk)nr2.scrollTop=nr2.scrollHeight;
       });
     }
   }
