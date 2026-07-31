@@ -1125,7 +1125,7 @@ button:focus-visible,.go:focus-visible{outline:1px solid var(--gold);outline-off
       <div class="sRow"><span>MVSICA&nbsp;·&nbsp;配乐</span><input type="range" id="cfgBgm" min="0" max="100" value="55"></div>
       <div class="sRow"><span>MOTVS&nbsp;·&nbsp;动效</span><span class="sSeg" id="sgMotus"><span class="on">全开</span><span>减弱（低配）</span></span></div>
       <div class="sRow"><span>VELOCITAS&nbsp;·&nbsp;文字速度</span><span class="sSeg" id="sgVelo"><span>缓</span><span class="on">中</span><span>疾</span><span>瞬</span></span></div>
-      <div class="sRow"><span>LITTERAE&nbsp;·&nbsp;字号</span><span style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end"><input type="range" id="cfgUi" min="0" max="100" step="1" value="22" style="max-width:220px"><b id="cfgUiVal" style="font-weight:400;font-size:10px;letter-spacing:.1em;color:var(--gold-hi);min-width:3.2em;text-align:right">22%</b></span></div><div class="sub">字号拉杆整体缩放界面——正文、情报台状态栏、顶栏、输入区与全部弹窗（含本设置与世界书）一同放大缩小；三维场景不受影响。刻度 0＝最小、100＝最大，可 1% 一格微调；22% 是原始尺寸。</div><div class="sRow"><span>CONSILIVM&nbsp;·&nbsp;参谋四策</span><span style="flex:1;text-align:right"><input type="checkbox" id="cfgSugg" checked style="accent-color:var(--gold);width:15px;height:15px;cursor:pointer"></span></div><div class="sub">开启后，每一幕落定就由参谋按当下局势拟四条可点选的下一步，点哪条便照哪条发出（并自动切到对应的输入模式）；第四条恒为冒险策。输入区上方那枚「参谋四策」也能随时开关，两处同步。未接 AI 时给的是本地拟的朴素四条。</div>
+      <div class="sRow"><span>LITTERAE&nbsp;·&nbsp;字号</span><span style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end"><input type="number" id="cfgUi" min="0" max="100" step="1" value="22" inputmode="numeric" style="width:84px;text-align:right;background:rgba(236,236,232,.04);border:1px solid rgba(236,236,232,.25);color:var(--ink);padding:6px 8px;font-family:var(--mono);font-size:13px"><b id="cfgUiVal" style="font-weight:400;font-size:10px;letter-spacing:.1em;color:var(--gold-hi);min-width:3.2em;text-align:right">22%</b></span></div><div class="sub">填 0-100 的整数整体缩放界面——正文、情报台状态栏、顶栏、输入区与全部弹窗（含本设置与世界书）一同放大缩小；三维场景不受影响。0 最小、100 最大，22 为原始尺寸；输入后回车或点开生效，上下箭头可 1% 微调。</div><div class="sRow"><span>CONSILIVM&nbsp;·&nbsp;参谋四策</span><span style="flex:1;text-align:right"><input type="checkbox" id="cfgSugg" checked style="accent-color:var(--gold);width:15px;height:15px;cursor:pointer"></span></div><div class="sub">开启后，每一幕落定就由参谋按当下局势拟四条可点选的下一步，点哪条便照哪条发出（并自动切到对应的输入模式）；第四条恒为冒险策。输入区上方那枚「参谋四策」也能随时开关，两处同步。未接 AI 时给的是本地拟的朴素四条。</div>
       <div class="sub">透明度：拖动即时生效——拉到最左＝完全透明（直接看穿到后面的动态背景）；拉到最右＝完全不透明（纯色纸底，彻底看不穿）。开低配模式时模糊被关闭。版式：自动依屏幕宽窄选择版式，也可强制使用电脑或手机布局。</div>
       <div class="sRow"><span>OBSCVRITAS&nbsp;·&nbsp;面板透明度</span><input type="range" id="cfgGlass" min="0" max="100" value="80"></div>
       <div class="sRow"><span>FORMA&nbsp;·&nbsp;版式</span><span class="sSeg" id="sgForma"><span class="on">自动</span><span>桌面</span><span>手机</span></span></div>
@@ -4070,7 +4070,7 @@ function uiScaleApply(q){
   CFGS.ui=Math.round(pct);                              /* 兼容旧键，别的地方可能还在读 */
   document.documentElement.style.setProperty('--ui',(pct/100).toFixed(4));
   var lab=$('#cfgUiVal');if(lab)lab.textContent=q+'%';
-  var sl=$('#cfgUi');if(sl&&+sl.value!==q)sl.value=q;
+  var sl=$('#cfgUi');if(sl&&+sl.value!==q&&document.activeElement!==sl)sl.value=q;
   try{cfgStore();}catch(_){}
   try{if(GAME.on)setTimeout(gmapSize,60);}catch(_){}
 }
@@ -5474,7 +5474,17 @@ try{bgmPlay(0);}catch(_){}
   if(CFGS.sugg!==false){try{suggGen();}catch(_){}}
 });})();
 (function(){var sl=$('#cfgUi');if(!sl)return;
-  sl.addEventListener('input',function(){uiScaleApply(this.value);});
+  /* 输入式：上下箭头（step）点一下即时生效；手打数字则等回车/失焦再生效，
+     不然打「3」「5」想要 35 的瞬间界面先跳到 3%，很吓人。 */
+  sl.addEventListener('input',function(e){
+    if(e.inputType&&/insert|delete/.test(e.inputType))return;   /* 键入中：先不动 */
+    var v=parseInt(this.value,10);
+    if(!isNaN(v))uiScaleApply(v);
+  });
+  sl.addEventListener('change',function(){uiScaleApply(this.value);});
+  sl.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();this.blur();}        /* blur 触发 change */
+  });
 })();
 $('#gtFull').addEventListener('click',function(){
   if(document.fullscreenElement)document.exitFullscreen();
