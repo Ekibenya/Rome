@@ -10,7 +10,7 @@ OSM Overpass 原始件（建筑 out center / 干道·铁路 out geom / 车站节
 import io, os, re, sys, json, gzip, math, struct, random, hashlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW  = os.environ.get('MODCITY_RAW', '/private/tmp/claude-501/-Users-han-Control/2bf65fb1-de78-4105-bc60-433a30a7eb7b/scratchpad/modcity')
+RAW  = os.environ.get('MODCITY_RAW', '/tmp/modcity')
 OUT  = os.path.join(ROOT, 'core/res/data/st/v1')
 ENG  = os.path.join(ROOT, 'core/vendor/three/build/chunks/9d717bc0/8e2ad10c77b4.js')
 
