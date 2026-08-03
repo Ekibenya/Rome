@@ -63,7 +63,8 @@
 
   /* ---------------- asset loading ---------------- */
   var MANI = [
-    ['ancient', 'ancient.glb'], ['historic', 'historic.glb'], ['interior', 'interior.glb'], ['nature', 'nature.glb']
+    ['ancient', 'ancient.glb'], ['historic', 'historic.glb'], ['interior', 'interior.glb'], ['nature', 'nature.glb'],
+    ['desert', 'desert.glb']   /* 沙漠资材（缺件时装载器自动跳过，旧包不崩） */
   ];
   var TEXES = ['LowpolyChineseBuilding_Texture_01.png', 'LowpolyChineseBuilding_Texture_02.png', 'LowpolyChineseBuilding_Texture_03.png', 'LowpolyChineseBuilding_Texture_04.png', 'LowpolyChineseBuilding_Texture_05.png',
     'Ancient_Tex_Zhao.png', 'Ancient_Tex_Wei.png',
@@ -180,17 +181,31 @@
   function info(pack, name) {
     var k = pack + '/' + name;
     if (tinfo[k]) return tinfo[k];
-    var n = Z.packs[pack].lib[name];
+    var _P = Z.packs && Z.packs[pack];
+    if (!_P || !_P.lib) { return null; }        /* 整包缺席：与缺模型同等对待 */
+    var n = _P.lib[name];
     if (!n) { console.warn('missing model', k); return null; }
     var bb = new T.Box3().setFromObject(n);
     var s = new T.Vector3(), c = new T.Vector3(); bb.getSize(s); bb.getCenter(c);
     return tinfo[k] = { size: s, center: c, minY: bb.min.y, name: name, pack: pack };
   }
 
-  var USED = { ancient: {}, historic: {}, interior: {}, nature: {}, pawn: {} };
+  var USED = { ancient: {}, historic: {}, interior: {}, nature: {}, pawn: {}, desert: {} };
+  var _packWarned = {};
   function spawn(pack, name, texName, opts) {
     opts = opts || {};
-    var lib = Z.packs[pack].lib;
+    /* 整包缺席要当场认怂，不能硬取。资材包是一个一个异步解出来的，容器里少了
+       哪一项只 warn 一声就跳过（见 loadAll），而 Z.ready 照样置真——于是
+       Z.packs['desert'] 这类可能永远是 undefined。原先这里直接 .lib，
+       一个缺包就抛异常，异常从 medBuild 冲出去把整次建城打断在半路：
+       城建了一半、Z.inRecipe 卡在 true，画面就那么僵住——玩家看到的
+       「选开局有概率卡死」正是这个。少一套模型可以，整局崩不行。 */
+    var P = Z.packs && Z.packs[pack];
+    if (!P || !P.lib) {
+      if (!_packWarned[pack]) { _packWarned[pack] = 1; console.warn('pack absent', pack, '— 该包的模型本局不出现'); }
+      return null;
+    }
+    var lib = P.lib;
     var tpl = lib[name];
     if (!tpl) { console.warn('no model', pack, name); return null; }
     var seq = 0;
@@ -198,11 +213,12 @@
       seq = ++Z.spawnSeq;
       if (razedOf(Z.cityKey).indexOf(seq) >= 0) return null; // 已被拆毁：不再落成
     }
-    USED[pack][name] = 1;
+    (USED[pack] || (USED[pack] = {}))[name] = 1;
     var inf = info(pack, name);
     var o = tpl.clone(true);
-    var mat = matFor(texName);
-    o.traverse(function (ch) { if (ch.isMesh) { ch.material = mat; ch.castShadow = !!opts.shadow; ch.receiveShadow = true; } });
+    /* texName 为空＝保留模型自带材质（沙漠资材包自带体素贴图，不吃风格重染） */
+    var mat = texName ? matFor(texName) : null;
+    o.traverse(function (ch) { if (ch.isMesh) { if (mat) ch.material = mat; ch.castShadow = !!opts.shadow; ch.receiveShadow = true; } });
     var g = new T.Group();
     g.add(o);
     o.position.y = -inf.minY + 0.018; // pivot to ground（微抬 1.8cm 脱离地面共面，防底面 Z-fighting 闪烁；视角无关，不会抽搐）
@@ -278,6 +294,7 @@
     var sh = !(isTouch() && PERF.low);
     if (Z.rnd.shadowMap.enabled !== sh) {
       Z.rnd.shadowMap.enabled = sh;
+      Z.rnd.shadowMap.needsUpdate = true;
       if (Z.scene) Z.scene.traverse(function (o) { if (o.isMesh && o.material) o.material.needsUpdate = true; });
     }
   }
@@ -767,6 +784,8 @@
 
   /* ---------------- scene bootstrap ---------------- */
   function newScene(skyC, fogC, fogNear, fogFar, night) {
+    /* 换了场就得重烘一次阴影——autoUpdate 已关，不主动刷会留着上一座城的影子 */
+    try { if (Z.rnd && Z.rnd.shadowMap) Z.rnd.shadowMap.needsUpdate = true; } catch (_) { }
     disposeScene();
     var sc = new T.Scene();
     sc.background = new T.Color(night ? 0x141b2e : skyC);
@@ -1075,6 +1094,16 @@
       Private: '引水道', Parlor: '坡屋', Foundry: '铁工坊', Eternal: '神庙', Main: '元老院', Palace: '殿宇',
       Gazeebo: '喷泉', Tathed: '兽栏'
     };
+    var SD = {
+      SD_Tiny: '陋居', SD_Small: '邸舍', SD_Large: '大宅', SD_Tall: '塔楼', SD_House: '土坯民居',
+      SD_Bazaar: '市集', SD_Monument: '尖碑', SD_Well: '水井',
+      /* 这件资材原名「礼拜寺」——伊斯兰建筑，比本纪晚七百年。它不会被任何
+         城池蓝图生成，但躺在建造栏里，玩家一按就能在前 30 年的埃及盖一座清真寺。
+         模型本身只是个土坯穹顶建筑，按年代改叫穹顶祠，名实相符。 */
+      SD_Mosque: '穹顶祠',
+      SD_Palm: '棕榈', SD_Tree: '旱树', SD_Hill: '沙丘', SD_Plateau: '台地', SD_Mt: '沙山'
+    };
+    for (var kd in SD) if (name.indexOf(kd) === 0) return SD[kd];
     for (var k in L) if (name.indexOf(k) >= 0) return L[k];
     return '屋舍';
   }
@@ -1809,7 +1838,8 @@
   };
   function medSt(k) {
     var p = MEDPAL[k] || MEDPAL.latium;
-    return { name: p.name, city: '', anc: MTEX, his: MTEX, grass: p.grass, accent: p.accent };
+    return { name: p.name, city: '', anc: MTEX, his: MTEX, grass: p.grass, accent: p.accent,
+             sand: (k === 'aegypt' || k === 'africa' || k === 'levant') };
   }
 
   /* 通用件：市集摊列 / 神域列像 / 橄榄园 / 松柏 */
@@ -2136,6 +2166,10 @@
     palmRow(74, 102, 12, -3, 5, seed + 'p2');
     oliveGrove(90, -46, 36, 14, seed + 'o', ['palm', 'olive', 'palm2']);
     mput('warElephant', -70, 74, 0.8, { autodoor: false });
+    /* 麦加拉园圃区：布匿人的土坯民居与椰枣丛 */
+    sdBlock(84, 30, 2, 2, 12, 11, seed + 'mg');
+    sd('SD_Well', 76, 12, 0, { solid: false });
+    sdPalms(96, -8, 13, 8, seed + 'sp');
     placePlayer(0, 56, Math.PI);
     hudCity(st, 'CARTHAGO');
   }
@@ -2203,6 +2237,11 @@
     palmRow(30, 98, 13, 2, 8, seed + 'p2');
     palmRow(-40, -100, 15, 0, 7, seed + 'p3');
     oliveGrove(100, 70, 34, 12, seed + 'o', ['palm', 'palm2']);
+    /* 拉科蒂斯区（埃及土著坊）：土坯民居 + 巴扎 + 水井——希腊城墙外的另一半城 */
+    sdBlock(-96, -44, 2, 3, 12, 11, seed + 'rk');
+    sd('SD_Bazaar', -78, -20, Math.PI / 2, { shadow: true });
+    sd('SD_Well', -86, -6, 0, { solid: false });
+    sdPalms(-108, 20, 15, 9, seed + 'sp');
     placePlayer(-6, 46, Math.PI);
     hudCity(st, 'ALEXANDRIA');
   }
@@ -3155,6 +3194,539 @@
     hudCity(st, 'ROMA');
   }
 
+
+  /* ═════════ 沙漠营造 · 程序件（金字塔/方尖碑/塔门） ═════════ */
+  function sdMat(c){ return new T.MeshLambertMaterial({ color: c, flatShading: true }); }
+  function pyramid(cx, cz, base, h, c) {
+    var g = new T.Mesh(new T.ConeGeometry(base * 0.7071, h, 4, 1), sdMat(c || 0xd9c28c));
+    g.rotation.y = Math.PI / 4; g.position.set(cx, h / 2, cz);
+    g.castShadow = true; g.receiveShadow = true; Z.scene.add(g); return g;
+  }
+  function obelisk(cx, cz, h, c) {
+    var grp = new T.Group();
+    var shaft = new T.Mesh(new T.CylinderGeometry(h * .045, h * .075, h * .86, 4, 1), sdMat(c || 0xdcc48f));
+    shaft.rotation.y = Math.PI / 4; shaft.position.y = h * .43; grp.add(shaft);
+    var tip = new T.Mesh(new T.ConeGeometry(h * .045 * 1.42, h * .14, 4, 1), sdMat(0xc9a227));
+    tip.rotation.y = Math.PI / 4; tip.position.y = h * .93; grp.add(tip);
+    grp.position.set(cx, 0, cz); grp.traverse(function (o) { o.castShadow = true; });
+    Z.scene.add(grp); return grp;
+  }
+  function pylonGate(cx, cz, w, h, ry, c) {
+    var grp = new T.Group(), mm = sdMat(c || 0xd3b57e);
+    function tower(off) {
+      var geo = new T.CylinderGeometry(w * .16, w * .22, h, 4, 1);
+      var m = new T.Mesh(geo, mm); m.rotation.y = Math.PI / 4;
+      m.scale.z = 0.55; m.position.set(off, h / 2, 0); grp.add(m);
+    }
+    tower(-w / 2); tower(w / 2);
+    var lin = new T.Mesh(new T.BoxGeometry(w * .58, h * .16, w * .12), mm);
+    lin.position.y = h * .8; grp.add(lin);
+    grp.position.set(cx, 0, cz); grp.rotation.y = ry || 0;
+    grp.traverse(function (o) { o.castShadow = true; o.receiveShadow = true; });
+    Z.scene.add(grp); return grp;
+  }
+  function sd(nm, x, z, ry, opts) {
+    opts = opts || {}; opts.x = x; opts.z = z; opts.ry = ry || 0;
+    return spawn('desert', nm, null, opts);
+  }
+  function sdRing(R, seed) {  /* 沙丘围场 + 远山背幕 */
+    var r = rng('sr' + seed);
+    for (var a = 0; a < Math.PI * 2; a += .5 + r() * .35) {
+      var d = R * (0.94 + r() * .1);
+      /* 沙丘定标：以棕榈（高 5）与民居（宽 4.2、高 13）为尺。原倍率 0.8~1.7 出来是
+         宽 35~71、高 10——一道沙丘比整个街区还宽、跟房子一样高，站在城里像被土墙围住。
+         降到 0.30~0.62：宽 13~26、高约 4，比棕榈略矮、几栋房子那么宽，才是沙丘该有的样子。 */
+      sd('SD_Hill_0' + (1 + (r() * 5 | 0)), Math.cos(a) * d, Math.sin(a) * d, r() * 6.28, { solid: false, autodoor: false, s: .16 + r() * .17 });
+    }
+    for (var i = 0; i < 10; i++) {
+      /* 远山：原先倍率 1.5~2.8 又摆在 R*1.15~1.45，等于把 26 米高的山头堆在城墙外一步，
+         抬头全是山。改为缩到 0.80~1.45 并推到 R*1.55~2.05——山还在，但退成地平线上的一道脊，
+         视觉上给城池让出天空。 */
+      var aa = Math.PI * (.62 + i * .09 + r() * .05), dd = R * (1.55 + r() * .5);
+      var big = (r() < .4 ? 'SD_Plateau_0' + (1 + (r() * 5 | 0)) : ('SD_Mt_' + ('0' + (1 + (r() * 10 | 0))).slice(-2)));
+      sd(big, Math.cos(aa) * dd, Math.sin(aa) * dd, r() * 6.28, { solid: false, autodoor: false, s: .53 + r() * .43 });
+    }
+  }
+  function sdPalms(cx, cz, rad, n, seed) {
+    var r = rng('sp' + seed);
+    for (var i = 0; i < n; i++) {
+      var a = r() * 6.28, d = Math.sqrt(r()) * rad;
+      sd(r() < .8 ? 'SD_Palm' : 'SD_Tree', cx + Math.cos(a) * d, cz + Math.sin(a) * d, r() * 6.28, { solid: false, autodoor: false, s: .8 + r() * .5 });
+    }
+  }
+  var SD_HOUSES = ['SD_House_01','SD_House_02','SD_House_03','SD_House_04','SD_House_05','SD_House_06','SD_House_07','SD_House_08','SD_Small_01','SD_Small_02','SD_Small_03','SD_Small_04','SD_Tiny_01'];
+  function sdBlock(cx, cz, cols, rows, dx, dz, seed) {
+    var r = rng('sb' + seed);
+    for (var j = 0; j < rows; j++) for (var i = 0; i < cols; i++) {
+      var nm = SD_HOUSES[(r() * SD_HOUSES.length) | 0];
+      sd(nm, cx + i * dx + (r() - .5) * 2.5, cz + j * dz + (r() - .5) * 2.5, ((r() * 4) | 0) * Math.PI / 2 + (r() - .5) * .2, { shadow: true });
+    }
+  }
+  /* 通用：沙漠城邦（尼罗河镇/绿洲市集/荒漠隘口通用） */
+  function medDesert(locName, palKey, seedKey) {
+    var st = medSt(palKey || 'aegypt'), R = 118, seed = seedKey || locName;
+    var r = rng('sd' + seed);
+    newScene(0xcfe2ec, 0xead9a8, 150, 620, Z.night);
+    var paths = [
+      { w: 6, pts: [[0, R * .8], [-3, 26], [2, -12], [0, -R * .7]] },
+      { w: 4, pts: [[-R * .68, 8], [0, 4], [R * .68, 12]] }
+    ];
+    addGround(st, R, paths, [{ x: 0, z: 6, rx: 16, rz: 12, stone: true }], []);
+    sdRing(R, seed);
+    /* 市集心脏：巴扎 + 水井 + 摊列 */
+    sd('SD_Bazaar', 0, -8, Math.PI, { shadow: true, s: 1.15 });
+    sd('SD_Well', 7, 8, 0, { solid: false });
+    agoraStalls(0, 10, 13, 12, seed + 'ag');
+    sd('SD_Monument', -14, -2, 0, { shadow: true, s: .9 });
+    /* 民居坊 ×3 + 地标塔楼/大宅 */
+    sdBlock(-46, 30, 3, 2, 13, 12, seed + 'b1');
+    sdBlock(20, 44, 3, 2, 13, 12, seed + 'b2');
+    sdBlock(-38, -66, 3, 2, 13, 12, seed + 'b3');
+    sd('SD_Large_01', 34, -30, -Math.PI / 2, { shadow: true });
+    sd('SD_Tall_0' + (1 + (r() * 3 | 0)), 44, -46, Math.PI, { shadow: true });
+    /* 绿洲与椰枣园 */
+    sdPalms(-6, 66, 16, 12, seed + 'p1');
+    sdPalms(36, -70, 13, 8, seed + 'p2');
+    palmRow(-58, -20, 10, 0, 5, seed + 'pr');
+    if (palKey === 'aegypt') { obelisk(0, -30, 9); pylonGate(0, -44, 16, 9, 0); }
+    mput('cart', 10, 16, 0.5, { solid: false, autodoor: false });
+    placePlayer(0, 38, Math.PI);
+    hudCity(st, locName);
+  }
+  /* MEMPHIS：白墙之城 · 卜塔神庙塔门 · 萨卡拉金字塔天际线 */
+  function medMemphis() {
+    var st = medSt('aegypt'), R = 132, seed = 'mem';
+    var r = rng(seed);
+    newScene(0xd2e4ee, 0xead9a8, 150, 660, Z.night);
+    var paths = [
+      { w: 7, pts: [[0, R * .8], [0, 20], [0, -R * .75]] },
+      { w: 4, pts: [[-R * .7, 0], [0, 8], [R * .7, 6]] }
+    ];
+    addGround(st, R, paths, [{ x: 0, z: -6, rx: 18, rz: 13, stone: true }], []);
+    sdRing(R, seed);
+    /* 萨卡拉方向：地平线金字塔群（西南） */
+    pyramid(-108, -96, 40, 26); pyramid(-84, -116, 26, 17); pyramid(-128, -70, 20, 13);
+    /* 白墙围城（内城） */
+    cityWall([[-56, -52], [56, -52], [56, 52], [-56, 52]], { h: 6, th: 2.2, towerEvery: 26, gateS: .85, gateGap: 7 });
+    /* 卜塔大神庙轴线 */
+    pylonGate(0, -46, 20, 11, 0);
+    obelisk(-7, -38, 8); obelisk(7, -38, 8);
+    mcol('colCor', -10, -28, 10, -28, 5, { solid: false, autodoor: false });
+    mput('temple', 0, -18, 0, { s: 1.15, shadow: true });
+    /* 城内坊市 */
+    sd('SD_Bazaar', 16, 18, Math.PI / 2, { shadow: true });
+    sd('SD_Well', 6, 26, 0, { solid: false });
+    agoraStalls(12, 24, 11, 10, seed + 'ag');
+    sdBlock(-44, 8, 3, 2, 12, 11, seed + 'h1');
+    sdBlock(-44, -34, 3, 2, 12, 11, seed + 'h2');
+    sdBlock(26, -20, 2, 3, 12, 11, seed + 'h3');
+    sd('SD_Large_01', 36, 40, Math.PI, { shadow: true });
+    /* 城外椰枣园（尼罗河谷侧＝东） */
+    sdPalms(84, 24, 20, 14, seed + 'p1');
+    sdPalms(78, -40, 16, 10, seed + 'p2');
+    placePlayer(0, 40, Math.PI);
+    hudCity(st, 'MEMPHIS');
+  }
+  /* 「开罗」建于公元 969 年，比艳后晚整整一千年，本线不该出现这个名字。
+     但 AI 偶尔会顺手写今名，那时与其落回拉丁模板，不如落到这块地界上真正的古城——
+     孟菲斯。所以别名留着兜底，城名牌一律显示 MEMPHIS，玩家看不到今名。 */
+  function medCairo() { medMemphis(); }
+  /* ══════════ 托勒密埃及诸城（艳后在世的前 69–前 30 年实景） ══════════
+     旧名录是罗马线的地中海城表，埃及只有孟菲斯/底比斯两座，还混着一个开罗——
+     开罗建于公元 969 年，比艳后晚一千年。这一段按考古与斯特拉波的记载补齐
+     艳后治下真正存在的城池；凡罗马时期才有的东西（菲莱的图拉真亭、哈德良门，
+     贝鲁西亚的六世纪大堡与剧场，贝勒尼基的罗马街网）一律不建。 */
+
+  /* PHILAE 菲莱：整座花岗岩岛被一座神庙填满，从空中看像一条石船。
+     南端登岸 → 前庭双列柱（东西不等长）→ 一塔门（前有双方尖碑，浮雕刻的正是
+     艳后之父托勒密十二世）→ 内院（西为诞生殿）→ 二塔门（刻意与一塔门不平行，
+     这道歪轴是菲莱最好认的特征）→ 多柱厅 → 圣殿。前 30 年它是个新工地：
+     三分之二以上的石头是托勒密朝新凿的，漆色未褪。 */
+  function medPhilae() {
+    var st = medSt('aegypt'), R = 120, seed = 'phl';
+    var r = rng(seed);
+    newScene(0xc9e2f0, 0xe7d9a6, 140, 620, Z.night);
+    var paths = [{ w: 6, pts: [[0, 86], [0, 10], [-4, -70]] }];
+    addGround(st, R, paths, [{ x: 0, z: 22, rx: 13, rz: 9, stone: true }], []);
+    /* 河水绕岛：这里是第一瀑布上缘，水面碎石嶙峋 */
+    seaField(0, 150, 460, 190, 0x2f7fa8); seaField(0, -170, 460, 180, 0x2f7fa8);
+    seaField(-190, 0, 170, 360, 0x2f7fa8); seaField(190, 0, 170, 360, 0x2f7fa8);
+    shoreLine(96, -96, 96, seed + 'a');
+    for (var i = 0; i < 16; i++) {           /* 瀑布区的黑花岗巨砾 */
+      var a = r() * 6.28, d = 132 + r() * 54;
+      rock(Math.cos(a) * d, Math.sin(a) * d, 1.6 + r() * 2.6, seed + 'bo' + i);
+    }
+    /* 岸壁与登岸石阶（岛缘是砌起来的码头墙） */
+    for (i = -5; i <= 5; i++) mput('stairs', i * 9, 88, 0, { s: .8, solid: false, autodoor: false });
+    mput('temple3', 0, 74, Math.PI, { s: .8, shadow: true });     /* 涅克塔内布前亭 */
+    /* 前庭：东列柱长、西列柱短——两侧本就不等，别对称 */
+    mcol('colCor', -13, 66, -13, 26, 7, { solid: false, autodoor: false });
+    mcol('colCor', 14, 62, 14, 26, 6, { solid: false, autodoor: false });
+    mput('temple2', 26, 52, -1.5, { s: .62, shadow: true });      /* 阿伦斯努菲斯庙 */
+    mput('temple2', 27, 34, -1.5, { s: .5, shadow: true });       /* 曼杜利斯小祠 */
+    /* 一塔门：宽 45.5m 高 18m，门前双方尖碑各高约 13m */
+    pylonGate(0, 18, 22, 12, 0);
+    obelisk(-8, 27, 9); obelisk(8, 27, 9);
+    /* 内院：西侧诞生殿（哈托尔柱头），东侧列柱带小室（藏书室、香料房） */
+    mput('temple2', -16, 2, 0.1, { s: .78, shadow: true });
+    mcol('colCor', 13, 10, 13, -8, 4, { solid: false, autodoor: false });
+    /* 二塔门：刻意偏轴——菲莱的两道塔门在实地就不平行 */
+    pylonGate(-3, -12, 18, 11, 0.17);
+    mput('temple', -4, -34, 0.17, { s: 1.05, shadow: true, door: { side: 0, dist: 12, interior: 'temple', label: 'ISIS 伊西斯圣殿' } });
+    mput('temple3', 22, -46, -0.5, { s: .66, shadow: true });     /* 哈托尔庙（东北缘） */
+    /* 西邻比加岛：更陡更荒，奥西里斯之墓所在，不可登 */
+    rockTerrace(-150, -24, 60, 46, 3, 4.2, seed + 'bg');
+    mput('colossus', -138, -18, 0.7, { y: 8, s: .12, autodoor: false });
+    sdPalms(56, 62, 14, 8, seed + 'p');
+    placePlayer(0, 78, Math.PI);
+    hudCity(st, 'PHILAE');
+  }
+
+  /* EDFV 埃德富：荷鲁斯大庙。前 57 年刚刚竣工——艳后登基前六年的新建筑，
+     是全埃及保存最好的一座。形制单纯：塔门 → 柱廊庭院 → 两进多柱厅 → 圣殿，
+     外面一圈厚砖围墙把神庙整个箍住，门前一对花岗岩隼鹰。 */
+  function medEdfu() {
+    var st = medSt('aegypt'), R = 126, seed = 'edf';
+    newScene(0xd4e6ef, 0xecdaa8, 150, 640, Z.night);
+    var paths = [
+      { w: 7, pts: [[0, R * .8], [0, 4], [0, -R * .6]] },
+      { w: 4, pts: [[-R * .62, 30], [0, 26], [R * .62, 30]] }
+    ];
+    addGround(st, R, paths, [{ x: 0, z: 30, rx: 16, rz: 11, stone: true }], []);
+    sdRing(R, seed);
+    /* 神庙围墙：埃德富的围墙几乎贴着庙身，是它最醒目的轮廓 */
+    cityWall([[-46, -58], [46, -58], [46, 24], [-46, 24]], { h: 7, th: 2.4, towerEvery: 30, gateS: .9, gateGap: 7 });
+    pylonGate(0, 20, 21, 13, 0);
+    mput('statue', -8, 30, 0, { s: 1.1, solid: false, autodoor: false });   /* 隼鹰像 */
+    mput('statue', 8, 30, 0, { s: 1.1, solid: false, autodoor: false });
+    mcol('colCor', -15, 10, -15, -12, 5, { solid: false, autodoor: false });
+    mcol('colCor', 15, 10, 15, -12, 5, { solid: false, autodoor: false });
+    mput('temple', 0, -22, 0, { s: 1.2, shadow: true, door: { side: 0, dist: 12, interior: 'temple', label: 'HORVS 荷鲁斯圣殿' } });
+    mput('temple2', 0, -44, 0, { s: .72, shadow: true });
+    /* 庙外市镇：泥砖民居与作坊压在旧丘上 */
+    sdBlock(-70, 44, 3, 3, 12, 11, seed + 'h1');
+    sdBlock(62, 40, 3, 2, 12, 11, seed + 'h2');
+    sd('SD_Bazaar', -18, 56, Math.PI / 2, { shadow: true });
+    sd('SD_Well', 14, 58, 0, { solid: false });
+    agoraStalls(-14, 62, 10, 9, seed + 'ag');
+    sdPalms(84, -20, 18, 12, seed + 'p1');
+    placePlayer(0, 74, Math.PI);
+    hudCity(st, 'EDFV');
+  }
+
+  /* DENDERA 丹达腊：哈托尔神庙。前 54 年动工，艳后本人与凯撒里昂的浮雕就刻在
+     神殿后墙外壁上——全埃及唯一一处艳后本人的大型神庙浮雕。庙区有围墙、
+     诞生殿、圣湖（方形石砌水池，四角有梯）。 */
+  function medDendera() {
+    var st = medSt('aegypt'), R = 124, seed = 'dnd';
+    newScene(0xd6e7f0, 0xebd8a6, 150, 640, Z.night);
+    var paths = [{ w: 7, pts: [[0, R * .78], [0, 6], [0, -R * .55]] },
+                 { w: 4, pts: [[-R * .6, 34], [R * .6, 30]] }];
+    addGround(st, R, paths, [{ x: 0, z: 34, rx: 15, rz: 10, stone: true }], []);
+    sdRing(R, seed);
+    cityWall([[-54, -50], [54, -50], [54, 30], [-54, 30]], { h: 6.5, th: 2.6, towerEvery: 32, gateS: .9, gateGap: 7 });
+    pylonGate(0, 26, 20, 12, 0);
+    mput('temple', 0, -10, 0, { s: 1.3, shadow: true, door: { side: 0, dist: 13, interior: 'temple', label: 'HATHOR 哈托尔圣殿' } });
+    /* 后墙外壁：艳后与凯撒里昂的浮雕就在这一面 */
+    mput('colossus', -7, -30, 0, { y: 1.2, s: .11, autodoor: false });
+    mput('colossus', 7, -30, 0, { y: 1.2, s: .11, autodoor: false });
+    mput('temple2', -30, 8, 0.2, { s: .7, shadow: true });        /* 诞生殿 */
+    /* 圣湖：方池，四角石阶 */
+    seaField(34, 6, 30, 26, 0x2f6f8c);
+    for (var q = 0; q < 4; q++)
+      mput('stairs', 34 + (q < 2 ? -13 : 13), 6 + (q % 2 ? -11 : 11), q * 1.57, { s: .7, solid: false, autodoor: false });
+    sdBlock(-74, 50, 3, 2, 12, 11, seed + 'h1');
+    sd('SD_Bazaar', 22, 54, Math.PI / 2, { shadow: true });
+    sdPalms(80, 30, 16, 10, seed + 'p');
+    placePlayer(0, 70, Math.PI);
+    hudCity(st, 'DENDERA');
+  }
+
+  /* PELVSIVM 贝鲁西亚：埃及东北门户，不是神庙城而是泥泞里的要塞港。
+     名字本义就是「泥」。两条尼罗河汊夹着它，四周盐沼，港口正在淤死。
+     标志物是一座直径约 35 米的圆形礼水池，池心方台立着城神像（前 2 世纪起启用）。
+     庞培就是在这里的沙滩上被杀的（前 48 年）。六世纪那座三十六塔大堡与罗马剧场
+     都不属于这个年代，不建。 */
+  function medPelusium() {
+    var st = medSt('aegypt'), R = 132, seed = 'pls';
+    var r = rng(seed);
+    newScene(0xc6dae4, 0xdfd6b4, 130, 600, Z.night);
+    var paths = [
+      { w: 8, pts: [[-R * .9, -18], [0, -14], [R * .9, -22]] },   /* 西赴三角洲 / 东走西奈海岸道 */
+      { w: 5, pts: [[-10, R * .8], [-6, -14], [0, -R * .6]] }
+    ];
+    addGround(st, R, paths, [{ x: -6, z: -14, rx: 15, rz: 10 }], []);
+    /* 泻湖与河汊：城被水包着，地是软盐泥 */
+    seaField(0, 150, 420, 160, 0x3d7f92);
+    seaField(-150, -10, 120, 300, 0x3d7f92);
+    seaField(150, 20, 110, 300, 0x3d7f92);
+    shoreLine(92, -140, 140, seed + 's');
+    /* 泥砖城圈：这个年代只有朴素的砖墙与方塔，没有石构大堡 */
+    cityWall([[-72, -56], [72, -56], [80, 20], [56, 62], [-56, 62], [-80, 20]], { h: 5.5, th: 2.8, towerEvery: 22, gateS: .8, gateGap: 6.5 });
+    /* 圆形礼水池：直径约 35m，池心方台供城神佩鲁西乌斯像 */
+    seaField(26, 18, 34, 34, 0x37718a);
+    mput('base2', 26, 18, 0, { s: 1.5, solid: false, autodoor: false });
+    mput('statue', 26, 18, 0, { y: 2.2, s: 1.15, solid: false, autodoor: false });
+    for (var q = 0; q < 6; q++) {
+      var qa = q * 1.047;
+      mput('colPlain', 26 + Math.cos(qa) * 21, 18 + Math.sin(qa) * 21, 0, { s: .8, solid: false, autodoor: false });
+    }
+    /* 驻军与关卡：这里是王国收关税、扣商队的地方 */
+    mput('barracks', -44, -34, 0, { s: 1.2, shadow: true });
+    mput('barracks2', -20, -38, 0, { s: 1.1, shadow: true });
+    mput('watchtower', 66, -46, 0, { s: 1.1 });
+    mput('gate', -6, -55, 0, { s: 1, autodoor: false });
+    /* 河港：仓房、双耳瓶堆、系泊小船——是个杂乱的实用港，没有石构天际线 */
+    mput('granary', -34, 44, 0, { s: 1.15, shadow: true });
+    mput('granary', -12, 48, 0, { s: 1.05, shadow: true });
+    mput('silo', 8, 46, 0, { s: 1 });
+    for (var i = 0; i < 14; i++) mput('jar', -30 + i * 5.5, 58 + (i % 3) * 3.5, r() * 6.28, { s: .9, solid: false, autodoor: false });
+    mput('dock', -20, 74, 0, { autodoor: false }); mput('dock', 16, 76, 0, { autodoor: false });
+    shipRoute('fishboat', [[-90, 96], [-10, 88], [70, 94], [0, 108]], 1.8);
+    shipRoute('sail2', [[110, 100], [10, 92], [-110, 100], [0, 118]], 2.4);
+    sdBlock(-60, 30, 3, 2, 12, 11, seed + 'h1');
+    sdBlock(40, -20, 2, 3, 12, 11, seed + 'h2');
+    sd('SD_Bazaar', 4, 34, Math.PI / 2, { shadow: true });
+    /* 东望卡西乌斯山：地平线上一道苍白的沙脊，塞尔波尼斯湖在其北 */
+    for (i = 0; i < 7; i++)
+      sd('SD_Hill_0' + (1 + (i % 5)), R * 1.5 + i * 12, -70 + i * 22, r() * 6.28, { solid: false, autodoor: false, s: .3 + r() * .2 });
+    placePlayer(-6, 54, Math.PI);
+    hudCity(st, 'PELVSIVM');
+  }
+
+  /* PTOLEMAIS 托勒密城：托勒密一世按亚历山卓的样子建在上埃及，是全埃及仅三座
+     希腊城邦之一。斯特拉波说它「与孟菲斯等大」，是底比斯被劫（前 88 年）之后
+     整个上埃及最兴旺的城。特征是希腊正交街网 + 石砌剧场 + 议事厅，
+     旁边留着原来的埃及村子（普索伊）当本地人街区——跟亚历山卓的拉科蒂斯一个道理。
+     实地只剩土丘和一截码头，所以这座是有据可依的复原，不是实测。 */
+  function medPtolemais() {
+    var st = medSt('aegypt'), R = 148, seed = 'ptl';
+    newScene(0xcfe3ef, 0xe8dcb0, 150, 660, Z.night);
+    /* 希腊棋盘：主街东西向，纵街等距——与埃及城的自由生长形成对照 */
+    var paths = [
+      { w: 10, pts: [[-R * .9, -6], [R * .9, -6]] },
+      { w: 6, pts: [[-56, -R * .8], [-56, R * .75]] },
+      { w: 6, pts: [[0, -R * .8], [0, R * .75]] },
+      { w: 6, pts: [[56, -R * .8], [56, R * .75]] },
+      { w: 4, pts: [[-R * .85, 44], [R * .85, 44]] },
+      { w: 4, pts: [[-R * .85, -52], [R * .85, -52]] }
+    ];
+    addGround(st, R, paths, [{ x: 0, z: -6, rx: 24, rz: 15, stone: true }], []);
+    sdRing(R, seed);
+    cityWall([[-104, -70], [104, -70], [116, -6], [104, 62], [-104, 62], [-116, -6]], { h: 6, th: 2.4, towerEvery: 30, gateS: .85, gateGap: 7 });
+    /* 阿哥拉：议事厅（布勒）、集会场、王朝崇拜坛 */
+    mput('senate', -22, -26, 0, { s: 1.25, shadow: true, door: { side: 0, dist: 12, interior: 'study', label: 'BOVLE 议事厅' } });
+    mput('altarStone', 0, -20, 0, { s: 1.1, solid: false, autodoor: false });
+    agoraStalls(6, 4, 16, 14, seed + 'ag');
+    godRow(['zeusSeat', 'hermes', 'athena'], -14, 12, 14, 0, Math.PI);
+    /* 石砌剧场：上埃及出现一座希腊剧场，是这座城最扎眼的东西 */
+    mput('amphi', 58, -34, Math.PI, { s: 1.3, shadow: true });
+    /* 希腊神庙：宙斯与狄俄尼索斯 */
+    mput('parthenon', -60, -30, 0, { s: .95, shadow: true, door: { side: 0, dist: 12, interior: 'temple', label: 'ZEVS 宙斯庙' } });
+    mput('temple2', -62, 20, 0, { s: .9, shadow: true });
+    /* 伊西斯庙：有庙无庇护权——托勒密城的伊西斯庙不享避难特权 */
+    mput('temple3', 40, 26, 0, { s: .85, shadow: true });
+    /* 西岸尼罗河：石砌码头是这里唯一留到今天的实物 */
+    seaField(0, 150, 460, 150, 0x2f7fa8);
+    shoreLine(98, -130, 130, seed + 'q');
+    for (var i = -4; i <= 4; i++) mput('stairs', i * 16, 96, 0, { s: .85, solid: false, autodoor: false });
+    mput('dock', -40, 112, 0, { autodoor: false }); mput('dock', 34, 114, 0, { autodoor: false });
+    shipRoute('sail2', [[-140, 128], [0, 120], [140, 130], [0, 142]], 2.6);
+    /* 普索伊：原来的埃及村子，街是弯的，房是泥砖的 */
+    sdBlock(-88, 34, 3, 3, 11, 10, seed + 'e1');
+    sdBlock(-64, 48, 2, 2, 11, 10, seed + 'e2');
+    sd('SD_Bazaar', -74, 12, Math.PI / 2, { shadow: true });
+    sd('SD_Well', -56, 30, 0, { solid: false });
+    sdPalms(96, 46, 18, 12, seed + 'p');
+    placePlayer(0, 70, Math.PI);
+    hudCity(st, 'PTOLEMAIS');
+  }
+
+  /* SYENE·ELEPHANTINE 阿斯旺与象岛：王国的南界，第一瀑布的咽喉。
+     河在这里被黑花岗巨砾劈成几股；象岛南端是克努姆神庙区（涅克塔内布二世
+     大加扩建的那一版），岛缘切进河岸的石阶竖井是尼罗水尺——量水位、定税额。
+     东岸的塞伊尼此时才是行政与驻军所在，岛上反而在慢慢缩。
+     东南的采石场里躺着那根未完成的方尖碑：长约 42 米，三面还连着基岩。 */
+  function medSyene() {
+    var st = medSt('aegypt'), R = 134, seed = 'syn';
+    var r = rng(seed);
+    newScene(0xcfe4f1, 0xe9d7a2, 145, 640, Z.night);
+    var paths = [
+      { w: 7, pts: [[52, R * .8], [56, 0], [50, -R * .7]] },      /* 东岸塞伊尼的主街 */
+      { w: 4, pts: [[10, 34], [56, 30]] }
+    ];
+    addGround(st, R, paths, [{ x: 56, z: 12, rx: 14, rz: 10, stone: true }], []);
+    /* 河与瀑布：巨砾满河，水分成几股 */
+    seaField(-14, 0, 120, 420, 0x2f7fa8);
+    for (var i = 0; i < 26; i++) {
+      var bx = -70 + r() * 116, bz = -190 + r() * 380;
+      rock(bx, bz, 1.4 + r() * 2.8, seed + 'bo' + i);
+    }
+    shoreLine(0, 30, 40, seed + 'sh');
+    /* 象岛：南端庙区 + 高台上的旧庙 + 两处尼罗水尺石阶 */
+    mput('temple', -46, -40, 0.1, { s: 1.15, shadow: true, door: { side: 0, dist: 12, interior: 'temple', label: 'KHNVM 克努姆圣殿' } });
+    pylonGate(-46, -18, 17, 10, 0.1);
+    mput('temple3', -58, -66, 0.2, { s: .7, shadow: true });      /* 高台上的萨蒂特庙 */
+    rockTerrace(-58, -66, 26, 20, 2, 3.2, seed + 'tr');
+    for (i = 0; i < 6; i++) mput('stairs', -32 - i * 1.6, -58 + i * 5, 1.6, { s: .8, solid: false, autodoor: false });  /* 水尺竖井 */
+    for (i = 0; i < 5; i++) mput('stairs', -34 - i * 1.4, -6 + i * 4.5, 1.6, { s: .75, solid: false, autodoor: false });
+    pyramid(-64, -96, 9, 7);                                       /* 三王朝小阶梯金字塔残迹 */
+    sdBlock(-52, -8, 2, 2, 11, 10, seed + 'i1');
+    /* 东岸塞伊尼：驻军、关卡、伊西斯小庙——努比亚商路的收税口 */
+    mput('barracks', 70, -22, 0, { s: 1.15, shadow: true });
+    mput('watchtower', 84, -44, 0, { s: 1.05 });
+    mput('temple2', 44, -14, -0.2, { s: .72, shadow: true });
+    sd('SD_Bazaar', 62, 26, Math.PI / 2, { shadow: true });
+    sd('SD_Well', 48, 36, 0, { solid: false });
+    agoraStalls(60, 34, 11, 10, seed + 'ag');
+    sdBlock(74, 14, 3, 2, 12, 11, seed + 'h1');
+    sdBlock(70, 52, 3, 2, 12, 11, seed + 'h2');
+    mput('dock', 34, 56, 0, { autodoor: false }); mput('dock', 30, -54, 0, { autodoor: false });
+    shipRoute('fishboat', [[-10, 120], [-20, 20], [-10, -120], [10, 0]], 1.7);
+    /* 东南采石场：开凿面、碎石堆、下河的滑道，还有那根躺着的未完成方尖碑 */
+    rockTerrace(112, 74, 54, 40, 3, 4.6, seed + 'qa');
+    var unf = new T.Mesh(new T.BoxGeometry(4.2, 3.4, 40), sdMat(0xb5896a));
+    unf.position.set(104, 1.7, 60); unf.rotation.y = 0.5; unf.castShadow = true; Z.scene.add(unf);
+    natReg(unf, '未竟方尖碑');
+    for (i = 0; i < 9; i++) rock(120 + r() * 40, 50 + r() * 54, 0.8 + r() * 1.5, seed + 'qr' + i);
+    sdPalms(20, 78, 14, 8, seed + 'p');
+    placePlayer(58, 46, Math.PI);
+    hudCity(st, 'SYENE');
+  }
+
+  /* NAVCRATIS 瑙克拉提斯：埃及仅三座希腊城邦之一，但生意早被亚历山卓抢光。
+     最强的形状是南边那圈巨大的泥砖大围场（约 480×390 米，阿蒙拉圣域），
+     北边则挤着一堆小小的希腊神庙与「希腊人之家」——九个东希腊城邦合建的会馆。
+     活水在西边（卡诺珀斯河汊此时已移到城西），码头也在西。 */
+  function medNaukratis() {
+    var st = medSt('aegypt'), R = 138, seed = 'nkr';
+    newScene(0xd0e4ee, 0xe6dcb2, 145, 640, Z.night);
+    var paths = [
+      { w: 8, pts: [[-72, R * .78], [-64, 0], [-58, -R * .7]] },
+      { w: 5, pts: [[-R * .8, -30], [R * .7, -34]] }
+    ];
+    addGround(st, R, paths, [{ x: -30, z: -32, rx: 15, rz: 10, stone: true }], []);
+    sdRing(R, seed);
+    /* 南部大围场：泥砖墙圈住整片圣域，中央一座巨大方台（「大丘」） */
+    cityWall([[-40, 10], [72, 10], [72, 96], [-40, 96]], { h: 8, th: 3.4, towerEvery: 40, gateS: .9, gateGap: 7 });
+    mput('base2', 20, 56, 0, { s: 3.2, solid: false, autodoor: false });
+    mput('temple', 20, 40, Math.PI, { s: 1.1, shadow: true, door: { side: 0, dist: 12, interior: 'temple', label: 'AMVN-RA 阿蒙拉圣域' } });
+    mput('granary', 56, 78, 0, { s: 1.2, shadow: true });          /* 埃及式府库 */
+    mput('temple3', -22, 68, 0, { s: .5, shadow: true });          /* 泥砖的阿佛洛狄忒小庙（约 14×8 米） */
+    mput('potter', -26, 84, 0, { s: 1 });                          /* 圣甲虫釉陶作坊 */
+    /* 北部希腊区：几座小石庙，坡屋顶，混在泥砖城里格外扎眼 */
+    mput('parthenon', -30, -62, 0, { s: .66, shadow: true });      /* 阿波罗庙 */
+    mput('temple2', 6, -70, 0, { s: .66, shadow: true });          /* 赫拉庙 */
+    mput('temple3', 42, -60, 0, { s: .58, shadow: true });         /* 狄俄斯库里庙 */
+    cityWall([[-4, -44], [46, -44], [46, -14], [-4, -14]], { h: 4.5, th: 1.8, towerEvery: 26, gateS: .8, gateGap: 6 });
+    mput('senate', 22, -30, 0, { s: 1.05, shadow: true, door: { side: 0, dist: 11, interior: 'study', label: 'HELLENION 希腊人会馆' } });
+    mput('forge', -46, -34, 0, { s: 1 });                          /* 窑场 */
+    mput('forge', -50, -18, 0.4, { s: .95 });
+    /* 西侧河岸与仓埠 */
+    seaField(-150, 0, 130, 400, 0x2f7fa8);
+    shoreLine(0, -132, -96, seed + 'sh');
+    mput('dock', -104, 22, 1.57, { autodoor: false }); mput('dock', -106, -26, 1.57, { autodoor: false });
+    mput('granary', -86, 0, 1.57, { s: 1.1, shadow: true });
+    shipRoute('sail2', [[-150, 120], [-120, 0], [-150, -120], [-176, 0]], 2.3);
+    sdBlock(-24, -8, 3, 2, 11, 10, seed + 'h1');
+    sdBlock(52, -6, 2, 2, 11, 10, seed + 'h2');
+    sd('SD_Bazaar', -8, 24, Math.PI / 2, { shadow: true });
+    sdPalms(96, 30, 16, 10, seed + 'p');
+    placePlayer(-40, -20, Math.PI);
+    hudCity(st, 'NAVCRATIS');
+  }
+
+  /* ARSINOE·CROCODILOPOLIS 鳄鱼城：不在尼罗河边，而在法尤姆洼地里——
+     托勒密朝把美里斯湖放干了约 1200 平方公里造田，这一带是全埃及最「新建」的地方。
+     斯特拉波留下最好用的一句白描：「巴赫尔约瑟夫渠穿城而过，两岸都是房子，
+     河上有两座桥。」城中还有那个著名的佩特苏霍斯池——养着戴金饰宝石的圣鳄，
+     游客花钱喂它。 */
+  function medArsinoe() {
+    var st = medSt('aegypt'), R = 136, seed = 'ars';
+    newScene(0xd2e6ee, 0xe7dcae, 150, 640, Z.night);
+    var paths = [
+      { w: 6, pts: [[-R * .85, -34], [0, -30], [R * .85, -26]] },
+      { w: 5, pts: [[-R * .8, 40], [0, 44], [R * .8, 40]] },
+      { w: 5, pts: [[-40, -R * .7], [-36, R * .7]] }
+    ];
+    addGround(st, R, paths, [{ x: -8, z: -30, rx: 15, rz: 10, stone: true }], []);
+    sdRing(R, seed);
+    /* 渠穿城而过：水在城中间，两岸贴着房子，两座桥 */
+    seaField(0, 6, 330, 17, 0x3d86a0);
+    mput('bridge', -34, 6, 0, { s: 1.1, solid: false });
+    mput('bridge', 44, 6, 0, { s: 1.1, solid: false });
+    sdBlock(-70, -12, 3, 1, 12, 11, seed + 'n1');
+    sdBlock(-22, -12, 3, 1, 12, 11, seed + 'n2');
+    sdBlock(26, -12, 3, 1, 12, 11, seed + 'n3');
+    sdBlock(-70, 24, 3, 1, 12, 11, seed + 's1');
+    sdBlock(-22, 24, 3, 1, 12, 11, seed + 's2');
+    sdBlock(26, 24, 3, 1, 12, 11, seed + 's3');
+    /* 索贝克大庙：托勒密朝把中王国那座拆了重建，所以是新庙压旧基 */
+    mput('temple', -6, -56, 0, { s: 1.3, shadow: true, door: { side: 0, dist: 13, interior: 'temple', label: 'SOBEK 索贝克圣殿' } });
+    pylonGate(-6, -36, 20, 12, 0);
+    obelisk(-16, -30, 7); obelisk(4, -30, 7);
+    /* 佩特苏霍斯池：围墙、沙地、喂食小池与遮阳棚，圣鳄住在里面 */
+    seaField(62, -44, 24, 20, 0x37718a);
+    cityWall([[44, -60], [82, -60], [82, -28], [44, -28]], { h: 3.2, th: 1.4, towerEvery: 40, gateS: .7, gateGap: 5.5 });
+    mput('tentOpen', 74, -52, 0, { s: 1.1, solid: false });
+    mput('altarStone', 50, -34, 0, { s: .9, solid: false, autodoor: false });
+    /* 灌溉扇：城外一格一格的新垦田与支渠，是这一带最特别的地貌 */
+    for (var gx = -3; gx <= 3; gx++) {
+      seaField(gx * 44, 96, 6, 120, 0x3d86a0);
+      mput('farm', gx * 44 + 18, 108, 0, { s: 1, shadow: true });
+    }
+    seaField(0, 168, 400, 46, 0x3d86a0);
+    sd('SD_Bazaar', 12, 40, Math.PI / 2, { shadow: true });
+    sd('SD_Well', -46, 44, 0, { solid: false });
+    agoraStalls(8, 46, 12, 11, seed + 'ag');
+    mput('granary', -84, 44, 0, { s: 1.1, shadow: true });
+    /* 东南哈瓦拉：阿蒙涅姆赫特三世的金字塔与那座著名的「迷宫」，
+       此时已是残迹——希腊罗马游客专程来看的一处名胜，不是活建筑。 */
+    pyramid(116, -104, 26, 18);
+    for (var i = 0; i < 8; i++) mput('colRuin', 92 + i * 7, -78 + (i % 3) * 6, i * .7, { s: .9, solid: false, autodoor: false });
+    sdPalms(-96, 62, 18, 12, seed + 'p');
+    placePlayer(-8, 40, Math.PI);
+    hudCity(st, 'ARSINOE');
+  }
+
+  /* THEBAE：卡纳克塔门轴线 · 双方尖碑 · 多柱厅 · 西岸崖壁 */
+  function medThebes() {
+    var st = medSt('aegypt'), R = 138, seed = 'thb';
+    var r = rng(seed);
+    newScene(0xd6e6ef, 0xe9d6a4, 150, 660, Z.night);
+    var paths = [
+      { w: 7, pts: [[0, R * .82], [0, 30], [0, -R * .6]] },
+      { w: 4, pts: [[-R * .6, 20], [0, 14], [R * .6, 10]] }
+    ];
+    addGround(st, R, paths, [{ x: 0, z: 24, rx: 15, rz: 12, stone: true }], []);
+    /* 西岸崖壁（帝王谷方向）：整排沙山 */
+    for (var zz = -R; zz <= R; zz += 22 + r() * 10)
+      sd('SD_Mt_' + ('0' + (1 + (r() * 10 | 0))).slice(-2), -R * 1.28 - r() * 22, zz, r() * 6.28, { solid: false, autodoor: false, s: .42 + r() * .22 });
+    sdRing(R, seed);
+    /* 卡纳克轴线：南进北庙 */
+    pylonGate(0, -22, 22, 12, 0);
+    obelisk(-8, -12, 11); obelisk(8, -12, 11);
+    pylonGate(0, -52, 18, 10, 0);
+    /* 多柱厅：4×4 柱阵 */
+    mcol('colCor', -12, -66, 12, -66, 5.2, { solid: false, autodoor: false });
+    mcol('colCor', -12, -74, 12, -74, 5.2, { solid: false, autodoor: false });
+    mcol('colCor', -12, -82, 12, -82, 5.2, { solid: false, autodoor: false });
+    mput('temple', 0, -94, 0, { s: 1.2, shadow: true });
+    /* 圣湖 */
+    seaField(34, -70, 26, 18, 0x2f8fae);
+    /* 河东市镇 */
+    sd('SD_Bazaar', 14, 34, Math.PI / 2, { shadow: true });
+    sd('SD_Well', 4, 42, 0, { solid: false });
+    agoraStalls(10, 40, 12, 11, seed + 'ag');
+    sdBlock(-40, 44, 3, 2, 12, 11, seed + 'h1');
+    sdBlock(30, 56, 3, 2, 12, 11, seed + 'h2');
+    sd('SD_Monument', -16, 28, 0, { shadow: true, s: .85 });
+    sdPalms(52, 20, 18, 12, seed + 'p1');
+    palmRow(-24, 66, 11, 2, 6, seed + 'pr');
+    placePlayer(0, 52, Math.PI);
+    hudCity(st, 'THEBAE');
+  }
+
   /* ---------------- 地点 → 蓝图 ---------------- */
   var MEDCITY = {
     '罗马': medRomaF, 'ROMA': medRomaF,
@@ -3162,6 +3734,18 @@
     '斯巴达': medSparta, 'SPARTA': medSparta,
     '迦太基': medCarthago, 'CARTHAGO': medCarthago,
     '亚历山卓': medAlexandria, 'ALEXANDRIA': medAlexandria,
+    '亚历山大': medAlexandria, '亚历山大港': medAlexandria, '亚历山大里亚': medAlexandria,
+    '孟菲斯': medMemphis, 'MEMPHIS': medMemphis,
+    '开罗': medCairo, 'CAIRO': medCairo,
+    '菲莱': medPhilae, 'PHILAE': medPhilae, '菲莱岛': medPhilae,
+    '埃德富': medEdfu, 'EDFV': medEdfu, 'EDFU': medEdfu, '埃德夫': medEdfu,
+    '丹达腊': medDendera, 'DENDERA': medDendera, '丹德拉': medDendera, '登德拉': medDendera,
+    '贝鲁西亚': medPelusium, 'PELVSIVM': medPelusium, 'PELUSIUM': medPelusium, '佩鲁西乌姆': medPelusium,
+    '托勒密城': medPtolemais, 'PTOLEMAIS': medPtolemais, '托勒密埃尔米乌': medPtolemais,
+    '阿斯旺': medSyene, 'SYENE': medSyene, '塞伊尼': medSyene, '象岛': medSyene, '象牙岛': medSyene,
+    '瑙克拉提斯': medNaukratis, 'NAVCRATIS': medNaukratis, 'NAUKRATIS': medNaukratis,
+    '鳄鱼城': medArsinoe, 'ARSINOE': medArsinoe, '阿尔西诺伊': medArsinoe, '克罗科迪洛波利斯': medArsinoe,
+    '埃及底比斯': medThebes, 'THEBAE': medThebes,
     '拜占庭': medByzantium, 'BYZANTIVM': medByzantium, '君士坦丁堡': medByzantium,
     '科林斯': medCorinth, 'CORINTHVS': medCorinth,
     '叙拉古': medSyracusae, 'SYRACVSAE': medSyracusae,
@@ -3172,21 +3756,64 @@
     '塔兰托': ['port', 'graecia'], '推罗': ['port', 'levant'], '西顿': ['port', 'levant'],
     '以弗所': ['port', 'graecia'], '帕加马': ['port', 'graecia'], '佩拉': ['colonia', 'graecia'],
     '卢泰西亚': ['colonia', 'gallia'], '伦丁尼恩': ['colonia', 'gallia'], '特里尔': ['colonia', 'gallia'],
-    '阿奎莱亚': ['colonia', 'latium'], '昔兰尼': ['rock', 'africa'], '佩特拉': ['rock', 'levant'],
-    '耶路撒冷': ['rock', 'levant'], '孟菲斯': ['rock', 'aegypt'], '底比斯': ['rock', 'aegypt'],
-    '埃及底比斯': ['rock', 'aegypt'], '麦罗埃': ['rock', 'aegypt'], '马里卜': ['rock', 'levant'],
-    '安条克': ['colonia', 'levant'], '巴比伦': ['rock', 'levant'], '波斯波利斯': ['rock', 'levant'],
-    '泰西封': ['rock', 'levant'], '苏萨': ['rock', 'levant'], '苏萨': ['rock', 'levant'],
-    '埃克巴坦那': ['rock', 'levant'], '塞琉西亚': ['colonia', 'levant'],
+    '阿奎莱亚': ['colonia', 'latium'], '昔兰尼': ['desert', 'africa'], '佩特拉': ['desert', 'levant'],
+    '耶路撒冷': ['desert', 'levant'], '孟菲斯': ['desert', 'aegypt'], '底比斯': ['desert', 'aegypt'],
+    '埃及底比斯': ['desert', 'aegypt'], '麦罗埃': ['desert', 'aegypt'], '马里卜': ['desert', 'levant'],
+    /* 托勒密埃及其余城邑：都真实存在于前 69–前 30 年，按性质各择形制 */
+    '赫尔莫波利斯': ['desert', 'aegypt'], '俄克喜林库斯': ['desert', 'aegypt'],
+    '科普托斯': ['desert', 'aegypt'], '考姆翁布': ['desert', 'aegypt'],
+    '艾尔曼特': ['desert', 'aegypt'], '阿拜多斯': ['desert', 'aegypt'],
+    '塞易斯': ['desert', 'aegypt'], '布巴斯提斯': ['desert', 'aegypt'],
+    '塔尼斯': ['desert', 'aegypt'], '门德斯': ['desert', 'aegypt'],
+    '克诺珀斯': ['port', 'aegypt'], '塔波西里斯': ['port', 'aegypt'],
+    '马特鲁港': ['port', 'aegypt'], '帕莱托尼乌姆': ['port', 'aegypt'],
+    '贝勒尼基': ['port', 'aegypt'], '米奥斯霍尔莫斯': ['port', 'aegypt'],
+    '锡瓦绿洲': ['desert', 'africa'], '锡瓦': ['desert', 'africa'],
+    '哈尔加绿洲': ['desert', 'africa'], '达赫拉绿洲': ['desert', 'africa'],
+    '安条克': ['colonia', 'levant'], '巴比伦': ['desert', 'levant'], '波斯波利斯': ['desert', 'levant'],
+    '泰西封': ['desert', 'levant'], '苏萨': ['desert', 'levant'],
+    '埃克巴坦那': ['desert', 'levant'], '塞琉西亚': ['colonia', 'levant'],
     '潘提卡派翁': ['port', 'pontus'], '奥尔比亚': ['port', 'pontus'],
-    '塔拉科': ['port', 'hispania'], '瑙克拉提斯': ['port', 'aegypt'],
-    '赛伊斯': ['colonia', 'aegypt'], '布巴斯提斯': ['colonia', 'aegypt'],
-    '赛伊尼·阿斯旺': ['rock', 'aegypt'], '赛伊尼': ['rock', 'aegypt'],
+    '塔拉科': ['port', 'hispania'], '瑙克拉提斯': ['desert', 'aegypt'],
+    '赛伊斯': ['desert', 'aegypt'], '布巴斯提斯': ['desert', 'aegypt'],
+    '赛伊尼·阿斯旺': ['desert', 'aegypt'], '赛伊尼': ['desert', 'aegypt'],
     '努曼西亚': ['oppidum', 'hispania'], '比布拉克特': ['oppidum', 'gallia'],
     '阿莱西亚': ['oppidum', 'gallia'], '卡姆罗敦': ['oppidum', 'gallia'],
-    '巴克特拉': ['orient', 'levant'], '撒马尔罕': ['orient', 'hispania'],
-    '塔克西拉': ['orient', 'graecia'], '华氏城': ['orient', 'gallia']
+    '巴克特拉': ['desert', 'levant'], '撒马尔罕': ['desert', 'levant'],
+    '塔克西拉': ['orient', 'graecia'], '华氏城': ['orient', 'gallia'],
+    /* 今名——AI 正文常用现代地名指古城，不入表就会落回拉丁 fallback */
+    '吉萨': ['desert', 'aegypt'], '卢克索': ['desert', 'aegypt'],
+    '阿斯旺': ['desert', 'aegypt'],
+    '大马士革': ['desert', 'levant'], '巴格达': ['desert', 'levant'],
+    '突尼斯': ['desert', 'africa'], '的黎波里': ['desert', 'africa'],
+    '斐斯': ['desert', 'africa'], '加沙': ['desert', 'levant']
   };
+  /* 城名→调色板：途中/城未建时四野也要认得目的地的水土（开罗途中不能是绿地） */
+  var MEDCITYPAL = {
+    '罗马': 'latium', 'ROMA': 'latium',
+    '雅典': 'graecia', 'ATHENAE': 'graecia', '斯巴达': 'graecia', 'SPARTA': 'graecia',
+    '科林斯': 'graecia', 'CORINTHVS': 'graecia', '叙拉古': 'graecia', 'SYRACVSAE': 'graecia',
+    '德尔斐': 'graecia', 'DELPHI': 'graecia',
+    '拜占庭': 'graecia', 'BYZANTIVM': 'graecia', '君士坦丁堡': 'graecia',
+    '迦太基': 'africa', 'CARTHAGO': 'africa',
+    '亚历山卓': 'aegypt', 'ALEXANDRIA': 'aegypt', '亚历山大': 'aegypt',
+    '亚历山大港': 'aegypt', '亚历山大里亚': 'aegypt',
+    '孟菲斯': 'aegypt', 'MEMPHIS': 'aegypt', '开罗': 'aegypt', 'CAIRO': 'aegypt',
+    '埃及底比斯': 'aegypt', 'THEBAE': 'aegypt',
+    '菲莱': 'aegypt', '埃德富': 'aegypt', '丹达腊': 'aegypt', '贝鲁西亚': 'aegypt',
+    '托勒密城': 'aegypt', '阿斯旺': 'aegypt', '塞伊尼': 'aegypt', '象岛': 'aegypt',
+    '瑙克拉提斯': 'aegypt', '鳄鱼城': 'aegypt', '阿尔西诺伊': 'aegypt'
+  };
+  function medPalKey(nm) {
+    if (!nm) return null;
+    if (MEDCITYPAL[nm]) return MEDCITYPAL[nm];
+    var g = MEDGEN[nm];
+    if (g) return g[1];
+    if (/尼罗|埃及|西奈|努比亚|苏丹|法老|金字塔|亚历山卓|亚历山大|孟菲斯|底比斯|开罗|吉萨|卢克索|阿斯旺|菲莱|法尤姆|三角洲|菲莱|埃德富|丹达腊|贝鲁西亚|托勒密城|阿斯旺|塞伊尼|象岛|瑙克拉提斯|鳄鱼城|阿尔西诺伊|科普托斯|赫尔莫波利斯|俄克喜林库斯|考姆翁布|阿拜多斯|塞易斯|布巴斯提斯|塔尼斯|克诺珀斯|贝勒尼基|锡瓦/.test(nm)) return 'aegypt';   /* 城名子串也认：剧情常写「亚历山卓·王宫」这类复合地名 */
+    if (/利比亚|撒哈拉|柏柏|努米底亚|毛里塔尼亚|摩洛哥|阿尔及|北非/.test(nm)) return 'africa';
+    if (/阿拉伯|叙利亚|美索不达米亚|波斯|帕提亚|沙漠|绿洲|贝都因/.test(nm)) return 'levant';
+    return null;
+  }
   function medBuild(locName) {
     SEA = null; SHIPS = []; RIVER = null; AQUA = [];
     var f = MEDCITY[locName];
@@ -3197,10 +3824,16 @@
       else if (g[0] === 'colonia') medColonia(locName, g[1], locName);
       else if (g[0] === 'oppidum') medOppidum(locName, g[1], locName);
       else if (g[0] === 'orient') medOrient(locName, g[1], locName);
+      else if (g[0] === 'desert') medDesert(locName, g[1], locName);
       else medRock(locName, g[1], locName);
       return true;
     }
-    /* 未列名地点：按名相择形——带村庄字样即田舍，靠海词即港市，余者行省城 */
+    /* 未列名地点：先辨沙域——埃及/北非/西亚字样一律沙漠城，不能落回拉丁样式 */
+    var sandPal = /尼罗|埃及|西奈|努比亚|苏丹|法老|金字塔|亚历山卓|亚历山大|孟菲斯|底比斯|开罗|吉萨|卢克索|阿斯旺|菲莱|法尤姆|三角洲|菲莱|埃德富|丹达腊|贝鲁西亚|托勒密城|阿斯旺|塞伊尼|象岛|瑙克拉提斯|鳄鱼城|阿尔西诺伊|科普托斯|赫尔莫波利斯|俄克喜林库斯|考姆翁布|阿拜多斯|塞易斯|布巴斯提斯|塔尼斯|克诺珀斯|贝勒尼基|锡瓦/.test(locName) ? 'aegypt'
+      : /利比亚|撒哈拉|柏柏|努米底亚|毛里塔尼亚|摩洛哥|阿尔及|北非/.test(locName) ? 'africa'
+      : /阿拉伯|叙利亚|美索不达米亚|波斯|帕提亚|沙漠|绿洲|贝都因|绿洲/.test(locName) ? 'levant' : null;
+    if (sandPal) { medDesert(locName, sandPal, locName); return true; }
+    /* 再按名相择形——带村庄字样即田舍，靠海词即港市，余者行省城 */
     if (/村|庄|庄|乡|乡|田|农|农|VICVS/i.test(locName)) medVicus(locName, 'latium', locName);
     else if (/港|海|岛|岛|滨|滨/.test(locName)) medPort(locName, 'graecia', locName);
     else medColonia(locName, 'latium', locName);
@@ -3209,18 +3842,30 @@
 
   /* ---------------- location routing ---------------- */
   function buildFor(locName) {
+    /* 资材没到位就别开工：packs 是异步一包一包填的，抢跑就会撞上 undefined。
+       showLocation 本来就有这道守卫，但 debugCity、敕令重建、昼夜切换那几条
+       路径是直接进来的，一样得挡。 */
+    if (!Z.packs) { Z.pending = [locName, Z.night]; return; }
     Z.cityKey = locName;
     if (Z.B) cancelGhost();
     Z.sel = null;
     var cfg = LOC2[locName] || { st: 'zhou', flavor: 'luoyi' };
     chunkReset();
     Z.spawnSeq = 0; Z.natSeq = 0; Z.inRecipe = true;
-    if (!medBuild(locName)) {
-      if (cfg.flavor === 'luoyi') buildLuoyi();
-      else if (cfg.flavor === 'pass') buildPass(locName);
-      else buildTown(cfg.st, locName, cfg.flavor);
+    /* 蓝图里任何一步出岔子都不许把 inRecipe 撂在 true——那会让此后每一次
+       落件都以为自己还在「配方」里，编号错位、拆毁记录错杀，越用越乱。
+       一座城建坏了是残缺，引擎状态坏了是全盘。 */
+    try {
+      if (!medBuild(locName)) {
+        if (cfg.flavor === 'luoyi') buildLuoyi();
+        else if (cfg.flavor === 'pass') buildPass(locName);
+        else buildTown(cfg.st, locName, cfg.flavor);
+      }
+    } catch (e) {
+      console.warn('city build failed', locName, e && e.message || e);
+    } finally {
+      Z.inRecipe = false;
     }
-    Z.inRecipe = false;
     ensureChunks(0, 0);
     applyBuilds();
     spawnAmbient(locName);
@@ -3243,8 +3888,13 @@
     cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none';
     var rnd = new T.WebGLRenderer({ canvas: cv, antialias: true });
     rnd.setPixelRatio(Math.min(isTouch() ? (PERF.low ? 1.25 : 1.5) : 2, window.devicePixelRatio || 1));
-    if (isTouch() && PERF.low) rnd.shadowMap.enabled = false;
-    rnd.shadowMap.enabled = true; rnd.shadowMap.type = T.PCFShadowMap;
+    /* 低配开关别再被下一行抹掉：原先这两句一前一后，手机上存过「低画质」也照样开阴影。 */
+    rnd.shadowMap.enabled = !(isTouch() && PERF.low);
+    rnd.shadowMap.type = T.PCFShadowMap;
+    /* 太阳不动、城池静止，阴影图却每帧重算一遍全场深度，等于把 draw call 翻一倍。
+       改为手动刷新：建城、换天气、开关夜晚时各刷一次就够。 */
+    rnd.shadowMap.autoUpdate = false;
+    rnd.shadowMap.needsUpdate = true;
     Z.cv = cv; Z.rnd = rnd;
     Z.cam = new T.PerspectiveCamera(55, 2, 0.3, 700); // near 抬高换取远处深度精度，防近平面岩席闪抖
     bindInput(cv);
@@ -3523,6 +4173,9 @@
   /* ---------------- movement + camera ---------------- */
   var clock = new T.Clock();
   var _ray = new T.Raycaster();
+  /* 帧循环里复用的临时向量：原先每帧 new 三个 Vector3，稳定的 GC 压力，
+     在手机上表现为周期性的一顿一顿。 */
+  var _headV = new T.Vector3(), _dirV = new T.Vector3(), _tgtV = new T.Vector3();
   function tick() {
     requestAnimationFrame(tick);
     if (Z.asleep) { /* 收起即休眠：停渲染停演算；久睡释放场景显存，唤醒自动重建 */
@@ -3605,20 +4258,31 @@
     } else if (Z.expanded && Z.player) {
       var py = Z.mode === 'interior' ? 1.6 : 2.2;
       var cd = Z.camDist;
-      var head = new T.Vector3(Z.player.position.x, py, Z.player.position.z);
-      var dir = new T.Vector3(Math.sin(Z.camYaw) * Math.cos(Z.camPitch), Math.sin(Z.camPitch), Math.cos(Z.camYaw) * Math.cos(Z.camPitch));
+      var head = _headV.set(Z.player.position.x, py, Z.player.position.z);
+      var dir = _dirV.set(Math.sin(Z.camYaw) * Math.cos(Z.camPitch), Math.sin(Z.camPitch), Math.cos(Z.camYaw) * Math.cos(Z.camPitch));
       // occlusion: pull camera in front of anything blocking the line of sight
       if (Z.camSnap) Z.scene.updateMatrixWorld(true); // fresh scene: matrices not yet computed
-      _ray.set(head, dir); _ray.far = cd;
-      var hits = _ray.intersectObjects(Z.scene.children, true);
-      for (var hi = 0; hi < hits.length; hi++) {
-        var isPl = false, oo = hits[hi].object;
-        while (oo) { if (oo.userData && oo.userData.isPlayer) { isPl = true; break; } oo = oo.parent; }
-        if (isPl) continue;
-        cd = Math.max(2.4, hits[hi].distance * 0.92);
-        break;
+      /* 遮挡射线原先每帧对整棵场景树递归求交——地面大板、山体、几百栋房、上百个
+         棋子全都要过一遍包围球，还要逐三角扫，是漫游模式下最贵的一笔。
+         镜头拉近这件事根本不需要 60Hz：改为每 4 帧算一次，中间沿用上次结果。
+         另：head/dir 两个向量原先每帧新建，这里改成复用。 */
+      if (Z.camSnap) tick._rc = 99;
+      if ((tick._rc = (tick._rc || 0) + 1) >= 4) {
+        tick._rc = 0;
+        _ray.set(head, dir); _ray.far = cd;
+        var hits = _ray.intersectObjects(Z.scene.children, true);
+        var cdHit = cd;
+        for (var hi = 0; hi < hits.length; hi++) {
+          var isPl = false, oo = hits[hi].object;
+          while (oo) { if (oo.userData && oo.userData.isPlayer) { isPl = true; break; } oo = oo.parent; }
+          if (isPl) continue;
+          cdHit = Math.max(2.4, hits[hi].distance * 0.92);
+          break;
+        }
+        tick._cd = cdHit;
       }
-      var tgt = head.clone().addScaledVector(dir, cd);
+      if (tick._cd != null) cd = Math.min(cd, tick._cd);
+      var tgt = _tgtV.copy(head).addScaledVector(dir, cd);
       if (Z.camSnap) { cam.position.copy(tgt); Z.camSnap = false; }
       else cam.position.lerp(tgt, 0.2);
       cam.lookAt(head);
@@ -3694,7 +4358,19 @@
     return CH.mats;
   }
   function chunkReset() {
-    CH.map = {}; CH.mats = null; CH.lastKey = '';
+    CH.map = {}; CH.mats = null; CH.rm = null; CH.lastKey = '';
+  }
+  /* 沙域四野单株：棕榈与沙漠资材件，走 tree() 同款注册回收 */
+  function palmOne(x, z, seed) {
+    var r = rng('pm' + seed + x + z);
+    var nm = NATPALM[hash('pk' + seed + x + z) % NATPALM.length];
+    var g = spawn('nature', nm, natTex(nm), { x: x, z: z, ry: r() * 6.28, s: 0.8 + r() * 0.5, solid: false, autodoor: false, shadow: true });
+    return g ? natReg(g, '棕榈') : null;
+  }
+  function sdOne(nm, x, z, r) {
+    /* 旷野散件同尺：沙丘那一档原本一颗就盖住半个地块 */
+    var g = spawn('desert', nm, null, { x: x, z: z, ry: r() * 6.28, s: (/^SD_Hill/.test(nm) ? 0.17 + r() * 0.14 : 0.8 + r() * 0.6), solid: false, autodoor: false, shadow: true });
+    return g ? natReg(g, '沙物') : null;
   }
   function makeChunk(kx, kz, st) {
     var g = new T.Group();
@@ -3714,7 +4390,7 @@
     // 御道向南北无限延伸
     if (Math.abs(x0) < CHUNK / 2 + 5 && !inWater(0, z0 - CHUNK / 2) && !inWater(0, z0 + CHUNK / 2)) {
       if (!CH.rg) CH.rg = new T.PlaneGeometry(9, CHUNK + 0.5);
-      if (!CH.rm) CH.rm = new T.MeshLambertMaterial({ color: 0xd9c69a });
+      if (!CH.rm) CH.rm = new T.MeshLambertMaterial({ color: st.sand ? 0xe6d4a4 : 0xd9c69a });
       var road = new T.Mesh(CH.rg, CH.rm);
       road.rotation.x = -Math.PI / 2;
       road.position.set(0, -0.04, z0); // 抬离地皮最高层 3cm，远景不打架
@@ -3732,7 +4408,15 @@
       if (Math.abs(px) < 8) continue; // 御道净空
       if (inWater(px, pz)) continue; // 水面不生草木
       var t0 = r(), obj = null;
-      if (t0 < 0.48) obj = tree(px, pz, ['green', 'green', 'pink', 'autumn', 'pine'][Math.floor(r() * 5)], 'ck' + key + i);
+      if (st.sand) {
+        /* 沙域四野：棕榈、旱树、岩石、沙丘——不长温带阔叶林 */
+        if (t0 < 0.3) obj = palmOne(px, pz, 'ck' + key + i);
+        else if (t0 < 0.52) obj = rock(px, pz, 0.5 + r() * 1.4, 'ck' + key + i);
+        else if (t0 < 0.72) obj = outcrop(px, pz, 'cko' + key + i);
+        else if (t0 < 0.88) obj = sdOne('SD_Tree', px, pz, r);
+        else obj = sdOne('SD_Hill', px, pz, r);
+      }
+      else if (t0 < 0.48) obj = tree(px, pz, ['green', 'green', 'pink', 'autumn', 'pine'][Math.floor(r() * 5)], 'ck' + key + i);
       else if (t0 < 0.64) obj = tree(px, pz, 'pine', 'ckb' + key + i);
       else if (t0 < 0.78) obj = rock(px, pz, 0.5 + r() * 1.4, 'ck' + key + i);
       else if (t0 < 0.9) obj = outcrop(px, pz, 'cko' + key + i);
@@ -3748,16 +4432,29 @@
         var mw = 10 + r() * 20, mh = 8 + r() * (distC > R * 2 ? 40 : 22);
         var px2 = x0 + (r() - .5) * (CHUNK - mw), pz2 = z0 + (r() - .5) * (CHUNK - mw);
         if (Math.abs(px2) > mw + 10 && !inWater(px2, pz2)) {
-          var mg = massif(mw, mh, 'ck' + key);
-          mg.position.set(px2, 0, pz2);
-          g.add(mg);
-          aprons.push({ x: px2, z: pz2, w: mw });
-          // 山脚乱石
-          var nsc = 6 + (hash('sc' + key) % 5);
-          for (var s3 = 0; s3 < nsc; s3++) {
-            var sa = r() * 6.28, sd = mw * (0.85 + r() * 0.8);
-            var ro = rock(px2 + Math.sin(sa) * sd, pz2 + Math.cos(sa) * sd, 0.25 + r() * 0.8, 'sc' + key + s3);
-            if (ro) { if (ro.parent) ro.parent.remove(ro); g.add(ro); }
+          if (st.sand) {
+            /* 沙域远山：直接上沙漠山体资材（SD_Mt/SD_Plateau 成组连脉），不用程序灰岩 */
+            var mtn = 1 + (hash('mtn' + key) % 3);
+            for (var mi = 0; mi < mtn; mi++) {
+              var mnm = r() < 0.3 ? ('SD_Plateau_0' + (1 + (r() * 5 | 0)))
+                                  : ('SD_Mt_' + ('0' + (1 + (r() * 10 | 0))).slice(-2));
+              var mx2 = px2 + (r() - .5) * mw * 1.8, mz2 = pz2 + (r() - .5) * mw * 1.8;
+              var mg2 = spawn('desert', mnm, null, { x: mx2, z: mz2, ry: r() * 6.28, s: (0.34 + r() * 0.46) * Math.max(1, mh / 26), solid: false, autodoor: false, shadow: true });
+              if (mg2) { natReg(mg2, '沙山'); if (mg2.parent) mg2.parent.remove(mg2); g.add(mg2); }
+            }
+            aprons.push({ x: px2, z: pz2, w: mw });
+          } else {
+            var mg = massif(mw, mh, 'ck' + key);
+            mg.position.set(px2, 0, pz2);
+            g.add(mg);
+            aprons.push({ x: px2, z: pz2, w: mw });
+            // 山脚乱石
+            var nsc = 6 + (hash('sc' + key) % 5);
+            for (var s3 = 0; s3 < nsc; s3++) {
+              var sa = r() * 6.28, sd = mw * (0.85 + r() * 0.8);
+              var ro = rock(px2 + Math.sin(sa) * sd, pz2 + Math.cos(sa) * sd, 0.25 + r() * 0.8, 'sc' + key + s3);
+              if (ro) { if (ro.parent) ro.parent.remove(ro); g.add(ro); }
+            }
           }
           Z.colliders.push({ x: px2, z: pz2, hw: mw * 0.55, hd: mw * 0.55, ry: 0, cx: 0, cz: 0, chunk: key });
           nColl++;
@@ -3812,7 +4509,7 @@
     var key0 = Math.round(fx / CHUNK) + '_' + Math.round(fz / CHUNK);
     if (key0 === CH.lastKey && Object.keys(CH.map).length) return;
     CH.lastKey = key0;
-    var st = Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
+    var st = (function () { var pk = medPalKey(Z.cityKey); return pk ? medSt(pk) : null; })() || Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
     var ccx = Math.round(fx / CHUNK), ccz = Math.round(fz / CHUNK), RAD = 3;
     var want = {};
     for (var dx = -RAD; dx <= RAD; dx++) for (var dz = -RAD; dz <= RAD; dz++) {
@@ -4062,6 +4759,7 @@
       { tab: '市井', lab: 'VICVS·民居', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') < 0 || /_Env_Stall_/.test(n); }) },
       { tab: '王室', lab: 'REGIA·宫殿', items: pack2items('historic', function (n) { return n.indexOf('_Env_') < 0; }) },
       { tab: '家具', lab: 'SVPELLEX·家具', items: pack2items('interior', function () { return true; }) },
+      { tab: '沙漠', lab: 'DESERTVM·沙漠', items: (Z.packs.desert && Z.packs.desert.names && Z.packs.desert.names.length) ? pack2items('desert', function () { return true; }) : [] },
       {
         tab: '构件', lab: 'OPVS·构件', items: pack2items('ancient', function (n) { return n.indexOf('_Env_') >= 0 && !/_Env_Stall_/.test(n); })
           .concat(pack2items('historic', function (n) { return n.indexOf('_Env_') >= 0; }))
@@ -4185,7 +4883,7 @@
   function ghostMat(pack, ok) {
     var key = pack + (ok ? 'g' : 'r');
     if (GHOSTMAT[key]) return GHOSTMAT[key];
-    var st = Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
+    var st = (function () { var pk = medPalKey(Z.cityKey); return pk ? medSt(pk) : null; })() || Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
     var tex = pack === 'ancient' ? Z.tex[st.anc] : pack === 'historic' ? Z.tex[st.his] : Z.tex['LowpolyHistoricInterior_Texture_01.png'];
     var m = new T.MeshLambertMaterial({ map: tex, transparent: true, opacity: 0.62, color: ok ? 0x9fe89f : 0xe89a9a, depthWrite: false });
     GHOSTMAT[key] = m; return m;
@@ -4208,7 +4906,8 @@
       return p;
     }
     if (item.kind === 'model') {
-      var tpl = Z.packs[item.pack].lib[item.name];
+      var _pk = Z.packs && Z.packs[item.pack];
+      var tpl = _pk && _pk.lib && _pk.lib[item.name];
       var inf = info(item.pack, item.name);
       var o = tpl.clone(true);
       o.position.y = -inf.minY;
@@ -4317,7 +5016,7 @@
       if (pr) { pr.userData.buildId = rec.id; Z.placedRoots.push(pr); }
       return pr;
     }
-    var st = Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
+    var st = (function () { var pk = medPalKey(Z.cityKey); return pk ? medSt(pk) : null; })() || Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
     var root = null;
     if (rec.kind === 'model') {
       var tex = rec.pack === 'ancient' ? st.anc : rec.pack === 'historic' ? st.his : rec.pack === 'nature' ? natTex(rec.name) : 'LowpolyHistoricInterior_Texture_01.png';
@@ -4919,9 +5618,11 @@
       }
       var obj;
       if (item.kind === 'model') {
-        var st = Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
+        var st = (function () { var pk = medPalKey(Z.cityKey); return pk ? medSt(pk) : null; })() || Z.medStCur || STATES[(LOC2[Z.cityKey] || { st: 'zhou' }).st];
         var tex = item.pack === 'ancient' ? Z.tex[st.anc] : item.pack === 'historic' ? Z.tex[st.his] : Z.tex['LowpolyHistoricInterior_Texture_01.png'];
-        obj = Z.packs[item.pack].lib[item.name].clone(true);
+        var _pk2 = Z.packs && Z.packs[item.pack];
+        if (!_pk2 || !_pk2.lib || !_pk2.lib[item.name]) return null;
+        obj = _pk2.lib[item.name].clone(true);
         var mm = new T.MeshLambertMaterial({ map: tex });
         obj.traverse(function (m) { if (m.isMesh) m.material = mm; });
       } else if (item.kind === 'npc') {
@@ -6517,6 +7218,31 @@
   /* 读档：宿主把存档里的三维状态写回 localStorage 之后调这一下。
      没有它的话，引擎闭包里那份页面加载时读进来的旧副本会在下一次保存时
      把刚回档的名录整份覆盖回去——存档回到过去，城市却停在未来。 */
+  /* 退场清算：被文档实例守卫调用。旧文档一旦被换下，它那份场景、几何、贴图、
+     渲染器与 WebGL 上下文若不主动放掉，整份死文档就在内存里赖着不走——
+     一回合一份，正是「内存无上限」的另一半账。 */
+  Z.dispose = function () {
+    try { if (Z.raf) cancelAnimationFrame(Z.raf); } catch (_) { }
+    try { disposeScene(); } catch (_) { }
+    try {
+      if (Z.scene) Z.scene.traverse(function (o) {
+        if (!o.isMesh) return;
+        try { if (o.geometry) o.geometry.dispose(); } catch (_) { }
+        var ms = Array.isArray(o.material) ? o.material : [o.material];
+        ms.forEach(function (m) {
+          if (!m) return;
+          ['map', 'normalMap', 'roughnessMap', 'emissiveMap', 'alphaMap', 'aoMap'].forEach(function (k) {
+            try { if (m[k] && m[k].dispose) m[k].dispose(); } catch (_) { }
+          });
+          try { m.dispose(); } catch (_) { }
+        });
+      });
+    } catch (_) { }
+    try { if (Z.rnd) { Z.rnd.dispose(); Z.rnd.forceContextLoss && Z.rnd.forceContextLoss(); } } catch (_) { }
+    Z.rnd = null; Z.scene = null; Z.cv = null; Z.ready = false;
+    Z.packs = null; Z.tex = null; Z.mats = null;
+    Z.pawns = []; Z.colliders = []; Z.cityRoots = []; Z.placedRoots = [];
+  };
   Z.reloadStore = function () {
     try { BUILDS = JSON.parse(localStorage.getItem(BK) || '{}') || {}; } catch (e) { }
     try { RAZED = JSON.parse(localStorage.getItem(RK) || '{}') || {}; } catch (e) { }
@@ -6615,6 +7341,7 @@
   };
   Z.debugCity = function (locName, night) {
     Z.night = !!night; Z.mode = 'city'; Z.cityKey = '';
+    if (!Z.ready) { Z.pending = [locName, night]; loadAll(); return; }
     buildFor(locName); Z.cityKey = locName;
   };
   Z.debugPawns = function () {
@@ -6647,7 +7374,7 @@
   Z.coverage = function () {
     var out = {};
     ['ancient', 'historic', 'interior', 'nature'].forEach(function (pk) {
-      var un = Z.packs[pk].names.filter(function (n) { return !USED[pk][n]; });
+      var un = Z.packs[pk].names.filter(function (n) { return !(USED[pk] || {})[n]; });
       out[pk] = { total: Z.packs[pk].names.length, used: Z.packs[pk].names.length - un.length, unused: un };
     });
     return out;

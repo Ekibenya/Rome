@@ -26,7 +26,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOC  = os.path.join(ROOT, 'core/vendor/three/build/chunks/9d717bc0/156a50943028.html')
 OUT  = os.path.join(ROOT, 'st')
 
-LINES = [('roma', 'cardRoma')]          # 只出罗马
+_LN = os.environ.get('ROMA_LINE', 'roma')
+LINES = {'roma': [('roma', 'cardRoma')],
+         'cleo': [('cleo', 'cardCleo')],
+         'zhou': [('zhou', 'cardZhou')]}[_LN]
+_NAME = os.environ.get('ROMA_NAME', '').strip()   # 覆盖卡名（独立卡用）
 
 
 def grab(html, script_id):
@@ -97,7 +101,7 @@ def build(line, src):
         'spec': 'chara_card_v3',
         'spec_version': '3.0',
         'data': {
-            'name': src.get('name', '') + ((' v' + ver) if ver else ''),
+            'name': (_NAME or src.get('name', '')) + ((' v' + ver) if ver else ''),
             'description': src.get('description', ''),
             'personality': src.get('personality', ''),
             'scenario': src.get('scenario', ''),
@@ -144,8 +148,8 @@ def check(line, card, src):
     for f in ['name', 'description', 'personality', 'scenario',
               'system_prompt', 'post_history_instructions', 'mes_example']:
         want = src.get(f, '')
-        if f == 'name' and ver:
-            want = want + ' v' + ver
+        if f == 'name':
+            want = (_NAME or want) + ((' v' + ver) if ver else '')
         if d[f] != want:
             bad.append('字段 %s 与源不符' % f)
     if len(d['alternate_greetings']) != len(ops) - 1:

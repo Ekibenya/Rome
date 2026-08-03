@@ -23,7 +23,7 @@ CDN = os.environ.get('ROMA_CDN', 'https://cdn.jsdelivr.net/gh/ekibenya/rome@main
 # order 必须与原档里的条目顺序一致，拼出来才逐字节相同。
 PACKMAP = {
     'idx/v1/cdcf9bb63a.dat': {
-        'chunks': ['ancient', 'historic', 'interior', 'core'],
+        'chunks': ['ancient', 'historic', 'interior', 'core', 'desert'],
         'order': None,        # 运行时由本脚本按原档顺序填好
     },
     'idx/v1/ceb0dfcfec.dat': {'chunks': ['pawn'], 'order': None},
@@ -60,10 +60,15 @@ def main():
     pm = {}
     for frag, spec in PACKMAP.items():
         src = os.path.join(ROOT, 'core/res/data', frag)
-        pm[frag] = {'chunks': spec['chunks'], 'order': pack_order(src, K)}
+        # 只留 manifest 里真实存在的块（desert 等可选块未构建时自动剔除）
+        cks = [c for c in spec['chunks'] if c in mani['chunks']]
+        pm[frag] = {'chunks': cks, 'order': pack_order(src, K)}
 
     cfg = {
         'base': CDN,
+        # 线号（roma／cleo／zhou）。boot 拿它在酒馆的角色列表里认出「本卡」——
+        # 同时装着好几张本系列卡时，认错人就会去别家的头像里翻资材块。
+        'line': os.environ.get('ROMA_LINE', 'roma'),
         'key': K,
         'packs': {
             'dir': 'core/res/data/st/v1/',
@@ -218,11 +223,23 @@ def main():
         '  }\n'
         '  function kick(){ put(); fit(); try{ window.dispatchEvent(new Event("resize")); }catch(_){} }\n'
         '  put();\n'
-        '  /* 父窗尺寸变了（转屏、酒馆自己调布局）要跟上 */\n'
+        '  /* 父窗尺寸变了（转屏、酒馆自己调布局）要跟上。\n'
+        '     摘钩子这件事是性命攸关的：put 闭包着整份游戏文档，而酒馆主窗永不销毁——\n'
+        '     挂上不摘，每渲一回合就把一份死文档永久钉在内存里，几百回合能吃到十几个 G。\n'
+        '     所以主窗那只钩子必须留着句柄，退场时摘干净。 */\n'
+        '  var TOPW=null,KT=[];\n'
         '  try{ window.addEventListener("resize",put); }catch(_){}\n'
-        '  try{ (window.top||window).addEventListener("resize",put); }catch(_){}\n'
+        '  try{ TOPW=window.top||window; if(TOPW!==window) TOPW.addEventListener("resize",put); }catch(_){}\n'
+        '  function fitClean(){\n'
+        '    try{ window.removeEventListener("resize",put); }catch(_){}\n'
+        '    try{ if(TOPW&&TOPW!==window) TOPW.removeEventListener("resize",put); }catch(_){}\n'
+        '    for(var i=0;i<KT.length;i++){ try{ clearTimeout(KT[i]); }catch(_){} }\n'
+        '    KT=[]; TOPW=null;\n'
+        '  }\n'
+        '  try{ window.__ROMA_FITCLEAN__=fitClean; }catch(_){}\n'
+        '  try{ addEventListener("pagehide",fitClean); addEventListener("unload",fitClean); }catch(_){}\n'
         '  document.addEventListener("DOMContentLoaded",kick);\n'
-        '  setTimeout(kick,60); setTimeout(kick,300); setTimeout(kick,1200);\n'
+        '  KT.push(setTimeout(kick,60),setTimeout(kick,300),setTimeout(kick,1200));\n'
         '})();</script>\n'
     )
     inner = inner.replace(m.group(0), m.group(0) + '\n' + fit, 1)
@@ -237,7 +254,8 @@ def main():
         '<!--<body>-->\n'
         '<div id="romaBoot" style="font:12px/1.8 -apple-system,\'PingFang SC\',system-ui,sans-serif;'
         'color:#8b8b93;background:#0b0b0c;border:1px solid #26262b;padding:12px 15px">'
-        '<span style="letter-spacing:.26em;color:#c99b3f">SPQR&nbsp;·&nbsp;罗马纪</span>'
+        '<span style="letter-spacing:.26em;color:#c99b3f">'
+        + os.environ.get('ROMA_TITLE', '罗马纪') + '</span>'
         '<span id="romaBootMsg">&nbsp;·&nbsp;展开中…</span></div>\n'
         '<script>\n'
         '(function(){\n'
@@ -249,6 +267,10 @@ def main():
         '    var A=null,cs=(ctx&&ctx.characters)||[];\n'
         '    var by=(ctx&&ctx.characterId!=null)?cs[ctx.characterId]:null;\n'
         '    var cand=[by].concat([].slice.call(cs)).filter(Boolean);\n'
+        '    var LINE=' + json.dumps(os.environ.get('ROMA_LINE', 'roma')) + ';\n'
+        # 线号对得上的排在最前：一台酒馆里装着好几张本系列卡时，
+        # 光看「有没有 roma_assets」会开错本体。
+        '    cand.sort(function(a,b){function s(c){try{return c.data.extensions.roma.line===LINE?0:1;}catch(_){return 1;}}return s(a)-s(b);});\n'
         '    for(var j=0;j<cand.length;j++){var d=cand[j]&&cand[j].data;\n'
         '      if(d&&d.extensions&&d.extensions.roma_assets&&d.extensions.roma_assets.doc){A=d.extensions.roma_assets;break;}}\n'
         '    var got=A?fetch("data:application/octet-stream;base64,"+A.doc)\n'
@@ -269,7 +291,9 @@ def main():
     )
     block = boot_block
 
-    card_fn = os.path.join(ROOT, 'st/roma.card.json')
+    _base = os.environ.get('ROMA_CARD_BASE', 'roma')
+    _title = os.environ.get('ROMA_TITLE', '罗马纪')
+    card_fn = os.path.join(ROOT, 'st/%s.card.json' % _base)
     card = json.load(io.open(card_fn, encoding='utf-8'))
     d = card['data']
 
@@ -306,13 +330,13 @@ def main():
         # maxDepth=1：任一时刻只有最新的 AI 楼层渲染游戏。没有这一条，
         # 玩家若在酒馆输入框发过话，每条 AI 回复都会孵化一个完整的 three.js
         # 游戏实例，两三个就把手机拖死。
-        rx('罗马纪 · 前端界面', ALL, block, 'ui.v4',
+        rx(_title + ' · 前端界面', ALL, block, 'ui.v4',
            placement=[2], markdownOnly=True, maxDepth=1),
         # 远楼层收纳：只作用于第 6 层以外的旧楼层（minDepth=6），把它们清空——
         # 既省提示词，也免得每条旧消息都重渲一份 1.5MB 的前端。
         # 关键是**带深度限制**，所以碰不到当前这条；我一开始误以为它是「抹提示词」，
         # 写成无深度限制的 promptOnly，那会把界面自己也抹掉。
-        rx('罗马纪 · 远楼层不渲染', '/.*/s', '', 'strip.v5',
+        rx(_title + ' · 远楼层不渲染', '/.*/s', '', 'strip.v5',
            placement=[1, 2], markdownOnly=True, promptOnly=True, minDepth=2),
     ]
 
@@ -330,11 +354,21 @@ def main():
         if not no3d:
             pdir = os.path.join(ROOT, 'core/res/data/st/v1')
             embed_zhou = os.environ.get('ROMA_EMBED_ZHOU', '0') == '1'
+            # modern.dat（三城粒子沙盘 8.8MB）与中原包同级：完全版全嵌，
+            # 标准版走 CDN 兜底（boot 剥块/缺失时落网），超低配根本无三维。
+            # modern.dat 一律随卡：CDN 兜底自本地化开发期起已不可用（仓库未推送），
+            # 手机版不嵌等于现代城直接判死。只有中原包仍按版位分级。
             pack_files = [fn2 for fn2 in sorted(os.listdir(pdir))
-                          if fn2.endswith('.dat') and (fn2 != 'zhou.dat' or embed_zhou)]
+                          if fn2.endswith('.dat')
+                          and (fn2 != 'zhou.dat' or embed_zhou)]
             if png_assets:
                 # 写侧车目录：文件名里的 / 记作 @@，由 stpng 原样折回块名
                 os.makedirs(pngdir)
+                # 线号造牌：boot 验卡时据此拒收「另一条线的原卡」——两线引擎文件名
+                # 相同，罗马线清单又是埃及线的子集，光验「块都在」会单向漏认。
+                io.open(os.path.join(pngdir, 'meta@@card'), 'w', encoding='utf-8').write(
+                    json.dumps({'line': os.environ.get('ROMA_LINE', 'roma'),
+                                'v': os.environ.get('ROMA_VER', '')}))
                 for f in ENG_FILES:
                     raw = io.open(os.path.join(ROOT, f), 'rb').read()
                     io.open(os.path.join(pngdir, 'eng@@%s.gz' % os.path.basename(f)),

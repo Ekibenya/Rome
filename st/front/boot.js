@@ -49,26 +49,57 @@
   }
   var PACKS = CFG.packs || null;                   /* 压缩块清单，没有就走原档 */
   var KEY = CFG.key || '';                         /* 资材异或密钥 */
+  /* CDN 上只发布了罗马仓。罗马线兜底取到的与卡配套同版，放行；其他线（埃及等）
+     从那里拿到的是同名旧文件——旧引擎配新正文，选开局就炸、沙盘必 404。
+     宁可干净地降级纯文字，也绝不放行走这条毒路。 */
+  var NET = (CFG.line || 'roma') === 'roma';
 
   /* ------------------------------------------------- 卡内嵌入资材（自包含） ---
      资材与三维引擎以 base64 存在角色卡 data.extensions.roma_assets 里
      （ST 对不认识的 extensions 字段原样保留、也不入提示词）。
      取数路径：先嵌入、后网络——墙内玩家没有 jsDelivr 也能出三维。 */
+  /* 一台酒馆里往往同时装着本系列的好几张卡（罗马、埃及、新旧版本各一张）。
+     原先「取第一张带 roma_assets 的」认得不准，认错了就去别家的头像里找资材块——
+     本线独有的那几块（desert、modern）在别家卡里当然没有，于是一路跌到 CDN 兜底，
+     而 CDN 上只发布了罗马仓，埃及仓压根没有，兜底必 404。
+     认卡顺序改为：线号精确匹配 → 当前对话的角色 → 首张带资材的。 */
+  function stCtx() {
+    var t = window, i = 0;
+    for (; i < 8 && t.parent && t.parent !== t; i++) t = t.parent;
+    try {
+      var ctx = t.SillyTavern && t.SillyTavern.getContext && t.SillyTavern.getContext();
+      return (ctx && ctx.characters) ? { top: t, ctx: ctx } : null;
+    } catch (_) { return null; }
+  }
+  var MYC;                                         /* undefined=还没认过 */
+  function myChar() {
+    if (MYC !== undefined) return MYC;
+    MYC = null;
+    var s = stCtx();
+    if (!s) return MYC;
+    var cs = [].slice.call(s.ctx.characters);
+    function has(c) { var d = c && c.data; return !!(d && d.extensions && d.extensions.roma_assets); }
+    function line(c) { try { return c.data.extensions.roma.line; } catch (_) { return null; } }
+    /* 正在对话的这张就是本卡，先认它——同一条线的新旧两版同时装着时，
+       只按线号挑会挑到列表里靠前的那张旧卡，资材便从旧卡的头像里取。
+       characterId 取不到（酒馆还没落定）时才退回线号，最后才是「随便一张带资材的」。 */
+    var pick = null, j;
+    if (s.ctx.characterId != null && has(cs[s.ctx.characterId])) pick = cs[s.ctx.characterId];
+    if (!pick && CFG.line)
+      for (j = 0; j < cs.length; j++) if (has(cs[j]) && line(cs[j]) === CFG.line) { pick = cs[j]; break; }
+    if (!pick) for (j = 0; j < cs.length; j++) if (has(cs[j])) { pick = cs[j]; break; }
+    MYC = pick;
+    if (pick) log('认卡', pick.name, '·', pick.avatar);
+    else log('认卡失败：酒馆里没找到带资材的本卡');
+    return MYC;
+  }
   var EMB = null;
   function embed() {
     if (EMB !== null) return EMB;
     EMB = false;
     try {
-      var top = window, i = 0;
-      for (; i < 8 && top.parent && top.parent !== top; i++) top = top.parent;
-      var ctx = top.SillyTavern && top.SillyTavern.getContext && top.SillyTavern.getContext();
-      if (!ctx || !ctx.characters) return EMB;
-      var byId = ctx.characterId != null ? ctx.characters[ctx.characterId] : null;
-      var cand = [byId].concat(ctx.characters).filter(Boolean);
-      for (var j = 0; j < cand.length; j++) {
-        var d = cand[j] && cand[j].data;
-        if (d && d.extensions && d.extensions.roma_assets) { EMB = d.extensions.roma_assets; break; }
-      }
+      var c = myChar();
+      if (c) EMB = c.data.extensions.roma_assets;
     } catch (_) { }
     if (EMB) log('卡内嵌入资材已接上', Object.keys(EMB.packs || {}).length + ' 包 / '
                  + Object.keys(EMB.engines || {}).length + ' 引擎');
@@ -87,26 +118,25 @@
      块载荷：'RMA1' + uint16 名长 + 名(utf8) + 数据。
      遇到会剥私有块的酒馆分叉：取不到就静默落回 CDN——行为等同标准版，不黑屏。 */
   var PNGA = null;                     /* false=不可用；Promise/对象={名:Uint8Array} */
-  function avatarUrl() {
-    try {
-      var top = window, i = 0;
-      for (; i < 8 && top.parent && top.parent !== top; i++) top = top.parent;
-      var ctx = top.SillyTavern && top.SillyTavern.getContext && top.SillyTavern.getContext();
-      if (!ctx || !ctx.characters) return null;
-      var byId = ctx.characterId != null ? ctx.characters[ctx.characterId] : null;
-      var cand = [byId].concat(ctx.characters).filter(Boolean);
-      /* 文档头上有 <base href=CDN>，根相对路径会被解析到 CDN 去——
-         必须拼酒馆主窗的绝对 origin。 */
-      var org = '';
-      try { org = top.location.origin || ''; } catch (_) { }
-      if (!/^http/.test(org)) return null;
-      for (var j = 0; j < cand.length; j++) {
-        var c = cand[j], d = c && c.data;
-        if (d && d.extensions && d.extensions.roma_assets && c.avatar)
-          return org + '/characters/' + String(c.avatar).split('/').map(encodeURIComponent).join('/');
-      }
-    } catch (_) { }
-    return null;
+  function avatarUrls() {
+    var s = stCtx(), c = myChar();
+    if (!s || !c || !c.avatar) return [];
+    var enc = String(c.avatar).split('/').map(encodeURIComponent).join('/');
+    var href = '', org = '', out = [];
+    try { href = s.top.location.href || ''; } catch (_) { }
+    try { org = s.top.location.origin || ''; } catch (_) { }
+    /* 文档头上有 <base href=CDN>，根相对路径会被解析到 CDN 去，必须拼绝对地址。
+       又：反向代理常把酒馆挂在子路径下（…/tavern/），只拼 origin 会指到站点根、
+       必然 404。所以先按主窗当前地址解析一次相对路径，再退回 origin 的老拼法。
+       再又：Tauri 壳（TauriTavern 等）的页面挂在 tauri://localhost 这类自定义
+       协议上——不是 http 也可能照常吐文件，凡解析得出的候选都排上，
+       全都取不到再落「资材恢复」面板，不亏。 */
+    try { if (href) out.push(new URL('characters/' + enc, href).href); } catch (_) { }
+    try { if (href) out.push(new URL('/characters/' + enc, href).href); } catch (_) { }
+    if (/^http/.test(org)) out.push(org + '/characters/' + enc);
+    var seen = {}, uniq = [];
+    out.forEach(function (u) { if (!seen[u]) { seen[u] = 1; uniq.push(u); } });
+    return uniq;
   }
   function parsePngChunks(ab) {
     var u = new Uint8Array(ab), dv = new DataView(ab);
@@ -114,6 +144,7 @@
     var off = 8, map = {}, dec = new TextDecoder(), hit = 0;
     while (off + 12 <= u.length) {
       var len = dv.getUint32(off), typ = dec.decode(u.subarray(off + 4, off + 8));
+      if (off + 12 + len > u.length) break;          /* 尾块被截断：宁缺毋滥，不收残数据 */
       var data = u.subarray(off + 8, off + 8 + len);
       if (typ === 'roMa' && len > 10 &&
           data[0] === 82 && data[1] === 77 && data[2] === 65 && data[3] === 49) { /* RMA1 */
@@ -127,22 +158,180 @@
     }
     return hit ? map : null;
   }
+  /* --------------------------------------------- 资材自恢复（v0.0.9） ---
+     官方酒馆导入 PNG 卡时会把头像整图解码重编码（Jimp），roMa 私有块无一幸存、
+     且无配置可关——「转 CDN 兜底」在私有仓上等于判死。于是给玩家留一条自救路：
+     头像上取不到块时先查 IndexedDB，再不行就弹一次面板，让玩家把手里那张
+     原版卡 PNG 重选一次，就地解出 roMa 块入库。一次恢复、永久离线，卡体积不变。 */
+  /* 一份块表「够不够本卡用」的唯一标准——头像取到的、本地库存的、玩家选的，
+     三条路进来的表都过同一道闸：引擎齐、清单资材齐（中原包只随完全版，豁免）、
+     线号造牌对得上（老卡没有 meta 牌，宽免）。不齐宁可不用——半套表会让
+     个别引擎漏去 CDN 拉同名旧文件，正是闸门要防的事故。 */
+  function mapOk(m) {
+    if (!m) return false;
+    try {
+      if (m['meta/card']) {
+        var meta = JSON.parse(new TextDecoder().decode(m['meta/card']));
+        if (meta.line && CFG.line && meta.line !== CFG.line) return false;
+      }
+    } catch (_) { }
+    if (CFG.engs && !CFG.engs.every(function (n) { return m['eng/' + n + '.gz']; })) return false;
+    if (PACKS && PACKS.chunks && !Object.keys(PACKS.chunks).every(function (k) {
+      return k === 'zhou' || m['pack/' + PACKS.chunks[k].file]; })) return false;
+    return true;
+  }
+  function cardKey() {
+    var c = myChar();
+    return (c && c.avatar) ? String(c.avatar) : 'roma-line';
+  }
+  function idbOpen() {
+    return new Promise(function (res, rej) {
+      var rq = indexedDB.open('roma-assets-db', 1);
+      rq.onupgradeneeded = function () { rq.result.createObjectStore('cards'); };
+      rq.onsuccess = function () { res(rq.result); };
+      rq.onerror = function () { rej(rq.error); };
+    });
+  }
+  function idbLoad(key) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (res) {
+        var rq = db.transaction('cards').objectStore('cards').get(key);
+        rq.onsuccess = function () {
+          var v = rq.result;
+          if (!v) return res(null);
+          var m = {};
+          Object.keys(v).forEach(function (n) { m[n] = new Uint8Array(v[n]); });
+          res(m);
+        };
+        rq.onerror = function () { res(null); };
+      });
+    }).catch(function () { return null; });
+  }
+  function idbSave(key, map) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (res) {
+        var v = {};
+        /* 存拷贝：map 里的视图都指向同一块整卡大缓冲，直接存会把 17MB 全克隆进去 */
+        Object.keys(map).forEach(function (n) { v[n] = map[n].slice().buffer; });
+        var tx = db.transaction('cards', 'readwrite');
+        tx.objectStore('cards').put(v, key);
+        tx.oncomplete = function () { res(true); };
+        tx.onerror = function () { res(false); };
+      });
+    }).catch(function () { return false; });
+  }
+  function waitBody() {
+    return new Promise(function (res) {
+      (function poll() { if (document.body) res(); else setTimeout(poll, 60); })();
+    });
+  }
+  /* 面板：与游戏同一副深色等宽脸。跳过后本会话不再纠缠。 */
+  function pickOverlay() {
+    return waitBody().then(function () {
+      return new Promise(function (res) {
+        var ov = document.createElement('div');
+        ov.id = 'romaPick';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:2147483005;background:rgba(6,6,6,.93);'
+          + 'display:flex;align-items:center;justify-content:center;padding:20px';
+        var bx = document.createElement('div');
+        bx.style.cssText = 'max-width:360px;border:1px solid #26262b;background:#0b0b0c;'
+          + 'padding:20px 22px;font:12px/1.9 ui-monospace,Menlo,monospace;color:#8b8b93';
+        bx.innerHTML =
+          '<div style="letter-spacing:.26em;color:#c99b3f;margin-bottom:10px">ARCA · 资材恢复</div>'
+          + '<div>导入端在保存这张卡时重编码了 PNG，随卡携带的三维资材块被剥掉了。'
+          + '选择你手里的<b style="color:#ececec">原版卡 PNG 文件</b>即可一次性恢复：'
+          + '资材会存入浏览器本地库，此后离线可用。跳过则本次以纯文字模式进行。</div>'
+          + '<div id="romaPickMsg" style="color:#c0553c;margin-top:8px"></div>'
+          + '<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">'
+          + '<label style="border:1px solid rgba(201,155,63,.55);color:#c99b3f;padding:8px 14px;'
+          + 'cursor:pointer;letter-spacing:.12em">选择卡 PNG'
+          + '<input id="romaPickFile" type="file" accept=".png,image/png" style="display:none"></label>'
+          + '<button id="romaPickSkip" style="border:1px solid #26262b;background:none;color:#8b8b93;'
+          + 'padding:8px 14px;cursor:pointer;font:inherit;letter-spacing:.12em">跳过</button></div>';
+        ov.appendChild(bx);
+        document.body.appendChild(ov);
+        function bye(v) { try { ov.remove(); } catch (_) { } res(v); }
+        bx.querySelector('#romaPickSkip').onclick = function () { bye(false); };
+        bx.querySelector('#romaPickFile').onchange = function () {
+          var f = this.files && this.files[0];
+          if (!f) return;
+          var say = bx.querySelector('#romaPickMsg');
+          say.textContent = '解析中…'; say.style.color = '#8b8b93';
+          f.arrayBuffer().then(function (ab) {
+            var m = parsePngChunks(ab);
+            /* 引擎文件名两条线相同——只验引擎会把罗马卡认成埃及资材，旧引擎照样
+               混进来（选开局就炸）。mapOk 连清单资材与线号造牌一起验。 */
+            if (!m || !mapOk(m)) {
+              say.style.color = '#c0553c';
+              say.textContent = m ? '这张 PNG 不带「本卡」的全套资材块——两条线的卡不通用，请选本卡的标准版或完全版原文件。'
+                                  : '这张 PNG 里没有资材块（可能是超低配卡或普通图片）。';
+              return;
+            }
+            /* map 的视图指向 ab；ab 是本函数私有的完整拷贝，可长期持有 */
+            bye(m);
+          }).catch(function (e) { say.style.color = '#c0553c'; say.textContent = '读文件失败：' + e; });
+        };
+      });
+    });
+  }
+  function pickFlow() {
+    var skip = false;
+    try { skip = sessionStorage.getItem('roma_pick_skip') === '1'; } catch (_) { }
+    if (skip) { PNGA = false; return Promise.resolve(false); }
+    return pickOverlay().then(function (m) {
+      if (m) {
+        idbSave(cardKey(), m).then(function (ok) { log(ok ? '资材已入本地库，下次直接取用' : '本地库写入失败（本次仍可用）'); });
+        log('资材已从玩家所选 PNG 恢复：' + Object.keys(m).length + ' 项');
+        PNGA = m; return m;
+      }
+      try { sessionStorage.setItem('roma_pick_skip', '1'); } catch (_) { }
+      log('玩家跳过资材恢复，本次纯文字');
+      PNGA = false; return false;
+    });
+  }
+  var PNGERR = '';                     /* 最后一次取块失败的实话，报错时带出去 */
   function pngAssets() {
     if (PNGA === false) return Promise.resolve(false);
     if (PNGA) return PNGA.then ? PNGA : Promise.resolve(PNGA);
     if (!CFG.pngAssets) { PNGA = false; return Promise.resolve(false); }
-    var url = avatarUrl();
-    if (!url) { PNGA = false; return Promise.resolve(false); }
-    PNGA = fetch(url).then(function (r) {
-      if (!r.ok) throw new Error('avatar HTTP ' + r.status);
-      return r.arrayBuffer();
-    }).then(function (ab) {
-      var m = parsePngChunks(ab);
-      PNGA = m || false;
-      log(m ? ('PNG 数据块已接上：' + Object.keys(m).length + ' 项')
-            : 'PNG 数据块缺席（可能被导入端剥除），转 CDN 兜底');
-      return PNGA;
-    }).catch(function (e) { log('PNG 数据块取数失败', String(e)); PNGA = false; return false; });
+    var urls = avatarUrls();
+    /* 本文档是 srcdoc，它的 location.origin 报的是 null；从这里发往酒馆的请求
+       浏览器按跨源处理，cookie 不带、CORS 也可能拦——带密码的酒馆会把
+       /characters/ 挡在 401 外面，块就取不到了。改用主窗自己的 fetch：
+       那边是货真价实的同源，凭据照常带上。主窗够不着时退回本窗。 */
+    var s = stCtx(), F = fetch;
+    try { if (s && s.top.fetch) F = s.top.fetch.bind(s.top); } catch (_) { }
+    var errs = urls.length ? [] : ['认不出本卡在酒馆里的头像文件'];
+    function step(i) {
+      if (i >= urls.length) {
+        PNGERR = errs.join('；');
+        log('PNG 数据块取数失败：' + PNGERR);
+        /* 头像上拿不到（官方酒馆导入必然重编码剥块）：先查本地库，再请玩家自救 */
+        return idbLoad(cardKey()).then(function (saved) {
+          if (saved && mapOk(saved)) {
+            log('资材已从本地库接上：' + Object.keys(saved).length + ' 项');
+            PNGA = saved; return saved;
+          }
+          if (saved) log('本地库存的块表与本卡对不上（旧版/残缺），重新请玩家恢复');
+          return pickFlow();
+        });
+      }
+      return F(urls[i], { credentials: 'include' }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.arrayBuffer();
+      }).then(function (ab) {
+        var m = parsePngChunks(ab);
+        if (!m) throw new Error('里面没有 roMa 私有块（导入端可能把它剥了）');
+        if (!mapOk(m)) throw new Error('roMa 块不全（部分被剥或截断），弃用');
+        PNGA = m;
+        log('PNG 数据块已接上：' + Object.keys(m).length + ' 项', urls[i]);
+        return m;
+      }).catch(function (e) {
+        errs.push(urls[i] + ' → ' + String(e && e.message || e));
+        return step(i + 1);
+      });
+    }
+    PNGA = Promise.resolve().then(function () { return step(0); });
     return PNGA;
   }
   function gunzipBytes(u8) {
@@ -189,6 +378,18 @@
   /* 网络兜底要限时：墙内对 jsDelivr 常常是「连上了不回包」，
      不设超时就永远转圈，玩家只看到三维加载不动。15 秒放弃并报清楚。 */
   function netChunk(name, file) {
+    if (!NET) {
+      /* 中原包只随完全版卡走：标准卡缺它是设计使然，不是导入事故，
+         也没有任何「恢复」能把它变出来——照实说，别指错路。 */
+      if (name === 'zhou' || file === 'zhou.dat')
+        return Promise.reject(new Error('中原城池包只随完全版角色卡走，本卡未携带，'
+          + '相关三维在本卡中不可用（不影响本线玩法）。'));
+      return Promise.reject(new Error('资材 ' + file + ' 只随角色卡走（本线未发布 CDN，网上同名文件是旧版罗马货），'
+        + '这次没能从卡里读出来。'
+        + (CFG.pngAssets ? '关闭并重开酒馆页签（或重启酒馆应用）后进入游戏，会再次弹出'
+          + '「资材恢复」面板——把原版卡 PNG 文件选一次即可恢复，无需重新导卡。'
+          : '请重新导入完整的原版角色卡 PNG 文件本体。')));
+    }
     var ac = window.AbortController ? new AbortController() : null;
     var tm = ac ? setTimeout(function () { ac.abort(); }, 15000) : null;
     return fetch(BASE + PACKS.dir + file, ac ? { signal: ac.signal } : {})
@@ -244,7 +445,7 @@
      嵌入缺席时原样放行走 CDN，两条路都通。 */
   (function () {
     var MAP = {};        /* basename -> blob URL（就绪后填入） */
-    var READY = false, QUEUE = [];
+    var READY = false, QUEUE = [], NOENG = false;   /* NOENG=资材没到手且本线无网可兜 */
     function base(u) { return String(u || '').split('?')[0].split('/').pop(); }
     function engNames() {
       var e = embed();
@@ -265,18 +466,31 @@
         Promise.all(names.map(function (n) {
           return b64bytes(e.engines[n]).then(toBlobUrl).then(function (u) { MAP[n] = u; });
         })).then(function () { READY = true; log('引擎已从卡内就位', names); flush(); })
-          .catch(function (err) { log('嵌入引擎解压失败，回退 CDN', String(err)); READY = true; flush(); });
+          .catch(function (err) {
+            if (!NET) { NOENG = true; log('嵌入引擎解压失败，本线无网可兜，纯文字降级', String(err)); }
+            else log('嵌入引擎解压失败，回退 CDN', String(err));
+            READY = true; flush();
+          });
         return;
       }
       if (CFG.pngAssets && CFG.engs) {
         pngAssets().then(function (m) {
-          if (!m) { READY = true; flush(); return; }        /* 块被剥：原样放行走 CDN */
+          if (!m) {
+            /* 块没到手（玩家跳过了恢复，或压根认不出卡）。罗马线放行走 CDN；
+               其他线的 CDN 是同名旧引擎——换成空脚本，干净地按纯文字跑。 */
+            if (!NET) { NOENG = true; log('资材未恢复：引擎以空脚本放行，本次纯文字（三维不加载旧引擎）'); }
+            READY = true; flush(); return;
+          }
           return Promise.all(CFG.engs.map(function (n) {
             var d = m['eng/' + n + '.gz'];
             if (!d) return null;
             return toBlobUrl(d.slice().buffer).then(function (u) { MAP[n] = u; });
           })).then(function () { READY = true; log('引擎已从 PNG 块就位', CFG.engs); flush(); });
-        }).catch(function (err) { log('PNG 块引擎解压失败，回退 CDN', String(err)); READY = true; flush(); });
+        }).catch(function (err) {
+          if (!NET) { NOENG = true; log('PNG 块引擎解压失败，本线无网可兜，纯文字降级', String(err)); }
+          else log('PNG 块引擎解压失败，回退 CDN', String(err));
+          READY = true; flush();
+        });
         return;
       }
       READY = true; flush();
@@ -286,6 +500,7 @@
         var q = QUEUE.shift();
         var b = base(q.node.src);
         if (MAP[b]) q.node.src = MAP[b];
+        else if ((NOENG || !NET) && CFG.engs && CFG.engs.indexOf(b) >= 0) q.node.src = emptyJs();
         q.insert();
       }
     }
@@ -314,6 +529,7 @@
                 return node;
               }
               if (MAP[b]) node.src = MAP[b];
+              else if (NOENG || !NET) node.src = emptyJs();
             }
           }
         } catch (_) { }
@@ -440,6 +656,42 @@
        之前只查裸名，查不到就把三维资材包也当 BGM 给 404 了：三维全灭。 */
     if (mBgm && PACKS && !PACKS.map[mBgm[1]] && !PACKS.map['idx/v1/' + mBgm[1]]) {
       return Promise.resolve(new Response(null, { status: 404, statusText: 'bgm absent in card' }));
+    }
+
+    /* 1.6) 现代城市粒子沙盘（modern.dat，明 gzip 无异或）：嵌入 → PNG 块 → 网络。
+       超低配连三维面板都没有，这里直接 404 断网。 */
+    if (url.indexOf('core/res/data/st/v1/modern.dat') >= 0) {
+      if (CFG.no3d)
+        return Promise.resolve(new Response(null, { status: 404, statusText: 'no3d build' }));
+      var eM = embed();
+      if (eM && eM.packs && eM.packs['modern.dat'])
+        return b64bytes(eM.packs['modern.dat']).then(function (ab) { return new Response(ab); });
+      if (CFG.pngAssets)
+        return pngAssets().then(function (m) {
+          if (m && m['pack/modern.dat'])
+            return new Response(m['pack/modern.dat'].slice().buffer,
+              { status: 200, headers: { 'Content-Type': 'application/octet-stream' } });
+          /* 块没取到就只剩网络，而任何线的 CDN 上都没有这份资材（它只随卡走）。
+             与其让沙盘那边收到一个光秃秃的 404，不如把真正的原因和自救路交出去：
+             艳后线进场第一眼就是现代城沙盘，这里一哑，开局看着就是卡死。 */
+          if (!NET) {
+            throw new Error('粒子沙盘资材（modern.dat）只随角色卡走，这次没能从卡里读出来（'
+              + (PNGERR || '卡内资材块缺席') + '）。'
+              + (CFG.pngAssets ? '关闭并重开酒馆页签（或重启酒馆应用）后进入游戏，会再次弹出'
+                + '「资材恢复」面板——把原版卡 PNG 文件选一次即可恢复；'
+                : '请重新导入完整的原版角色卡 PNG 文件本体；')
+              + '经过压缩、转存或改过格式的图片会丢掉卡内资材。');
+          }
+          return _fetch(input, init).then(function (r) {
+            if (r.ok) return r;
+            throw new Error('粒子沙盘资材（modern.dat）只存在角色卡里，这次没能从卡里读出来（'
+              + (PNGERR || 'HTTP ' + r.status) + '）。请重新导入完整的角色卡 PNG 文件本体——'
+              + '经过压缩、转存或改过格式的图片会丢掉卡内资材。');
+          }, function () {
+            throw new Error('粒子沙盘资材（modern.dat）只存在角色卡里，这次没能从卡里读出来（'
+              + (PNGERR || '网络也取不到') + '）。请重新导入完整的角色卡 PNG 文件本体。');
+          });
+        });
     }
 
     /* 2) 资材整包 → 压缩块拼回 */

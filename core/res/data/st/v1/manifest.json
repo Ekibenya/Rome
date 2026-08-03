@@ -35,7 +35,7 @@
     "tex/T_Tree_tropical.png",
     "tex/T_Trees_temp_climate.png"
    ],
-   "sha": "723994b608f9d9cc"
+   "sha": "b834d34cebd1fa7f"
   },
   "ancient": {
    "file": "ancient.dat",
@@ -44,7 +44,7 @@
    "entries": [
     "ancient.glb"
    ],
-   "sha": "3bf9925993b100be"
+   "sha": "69b6cdc4706865b4"
   },
   "historic": {
    "file": "historic.dat",
@@ -53,7 +53,7 @@
    "entries": [
     "historic.glb"
    ],
-   "sha": "54aa39d7a5fb5c8c"
+   "sha": "21e5dd3761281ebd"
   },
   "interior": {
    "file": "interior.dat",
@@ -62,7 +62,16 @@
    "entries": [
     "interior.glb"
    ],
-   "sha": "757e464e14fd0c8b"
+   "sha": "4531a253f2896d29"
+  },
+  "desert": {
+   "file": "desert.dat",
+   "raw": 1181400,
+   "size": 687370,
+   "entries": [
+    "desert.glb"
+   ],
+   "sha": "0a7551087b4e2a60"
   },
   "pawn": {
    "file": "pawn.dat",
@@ -73,7 +82,7 @@
     "pawn.json",
     "tex/pawnpal.png"
    ],
-   "sha": "1d7b6fbdf9747758"
+   "sha": "61f58900a175fc3a"
   },
   "zhou": {
    "file": "zhou.dat",
@@ -106,7 +115,7 @@
     "tex/LowpolyHistoric_Texture_04.png",
     "tex/LowpolyHistoric_Texture_05.png"
    ],
-   "sha": "52d66c6aa5518274"
+   "sha": "38534cc85f4e7f32"
   }
  }
 }

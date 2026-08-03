@@ -37,6 +37,10 @@ GROUPS = [
     ('historic', ['historic.glb'], False),
     ('interior', ['interior.glb'], False),
 ]
+# ROMA_ADD_GLB：外来新资材（如沙漠包 desert.glb）注入源包并独立成块
+_ADD = os.environ.get('ROMA_ADD_GLB')
+if _ADD and os.path.isfile(_ADD):
+    GROUPS.append(('desert', ['desert.glb'], False))
 
 
 def xor_key():
@@ -97,6 +101,10 @@ def main():
     raw = open(os.path.join(SRC, MED_PACK), 'rb').read()
     src = unpack(xor(raw, K))
     print('源包 %s  %.2f MB  %d 项' % (MED_PACK, len(raw) / 1048576.0, len(src)))
+
+    if _ADD and os.path.isfile(_ADD):
+        src['desert.glb'] = open(_ADD, 'rb').read()
+        print('  注入 desert.glb  %.2f MB' % (len(src['desert.glb']) / 1048576.0))
 
     # ROMA_GLB_DIR：同名条目用该目录下的文件替换（meshopt 压缩版 GLB 从这里进来）。
     # 只影响 st/v1 卡用产物；idx/v1 与线上照旧不动。
