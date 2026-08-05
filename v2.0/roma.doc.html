@@ -5613,7 +5613,11 @@ function loreFor(text){
   /* 常驻条目原来完全绕开预算：拉到最低的 3000 也压不住，实测一本以常驻为主的世界书
      能一口气塞进八万多字，每回请求直接撑爆上下文（接口 400／超时／天价 token），
      而玩家在界面上只会认为「注入预算这个滑杆不作用」。给它一个独立的、宽一些的桶。 */
-  var cbud=Math.max(1200,Math.round(budget*1.5));
+  /* 1.5 倍では足りない。常驻条目は「每回合都必须在场」的铁则，
+     排在后面的几条一到预算就被 continue 掉，控制台之外没有任何提示——
+     埃及卡实测：新加的八条人际铁则里有六条每回合都没进过提示词。
+     上限本身要留着（防止一本以常驻为主的世界书撑爆上下文），只是把桶做大。 */
+  var cbud=Math.max(4000,Math.round(budget*2.4));
   for(var ci=0;ci<lb.length;ci++){var ce=lb[ci];
     if(!ce||ce.on===false||!ce.constant)continue;
     var cs=loreBind(ce);
