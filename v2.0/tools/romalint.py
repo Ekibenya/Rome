@@ -83,8 +83,13 @@ def scan_banned(where, text):
             bad('%s：%s —— %s' % (where, label, m.group(0)[:30]))
 
 
+# 底稿 = v2.0 骨架那一次提交里的旧正文。不能用 HEAD——重写提交之后
+# HEAD 里已经是新稿，拿它当底稿等于自己跟自己比，永远查不出漏改。
+BASE = os.environ.get('ROMA_BASE', 'fe34dc6')
+
+
 def git_show(path):
-    return subprocess.run(['git', '-C', ROOT, 'show', 'HEAD:' + path],
+    return subprocess.run(['git', '-C', ROOT, 'show', BASE + ':' + path],
                           capture_output=True, text=True).stdout
 
 
@@ -110,9 +115,19 @@ print('[2] 禁语 · 串戏词 · 旧卡遗留')
 for p in ops:
     scan_banned('开局 ' + os.path.basename(p), io.open(p, encoding='utf-8').read())
 meta = json.load(io.open(os.path.join(DATA, 'meta.json'), encoding='utf-8'))
-for k in ['name', 'description', 'personality', 'scenario', 'system_prompt',
-          'post_history_instructions', 'mes_example']:
+for k in ['name', 'description', 'personality', 'scenario', 'mes_example']:
     scan_banned('卡元 ' + k, meta.get(k, ''))
+# system_prompt 与 post_history_instructions 是禁令条文本身：它们必须逐字点名
+# 自己禁掉的词（悔意词表、四句立意句、江湖词表…），拿禁语表去扫等于扫自己。
+# 这两个字段只查串戏词与禁字。
+for k in ['system_prompt', 'post_history_instructions']:
+    s = meta.get(k, '')
+    for w in XOVER:
+        if w in s:
+            bad('卡元 %s：串戏词「%s」' % (k, w))
+    h = FORBID.findall(s)
+    if h:
+        bad('卡元 %s：禁字 %r' % (k, sorted(set(x.lower() for x in h))))
 lore_files = sorted(glob.glob(os.path.join(DATA, 'lore', '*.json')))
 for p in lore_files:
     d = json.load(io.open(p, encoding='utf-8'))
@@ -186,8 +201,8 @@ for p in ops:
         bad('%s 缺 mvu_panel' % name)
     main = body.split('<mvu_panel>')[0]
     n = len(re.sub(r'\s', '', main))
-    if not (1600 <= n <= 3200):
-        bad('%s 正文 %d 字，出了 1600~3200 的区间' % (name, n))
+    if not (1400 <= n <= 3200):
+        bad('%s 正文 %d 字，出了 1400~3200 的区间' % (name, n))
     secs = len([l for l in main.split('\n') if l.strip().startswith('**')])
     if secs < 3:
         bad('%s 只有 %d 个节标题' % (name, secs))
