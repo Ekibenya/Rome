@@ -42,6 +42,17 @@ BANNED = [('网文套语', WANGWEN), ('说书腔', SHUOSHU), ('侠气词', JIANG
           ('装深沉', ZHUANGSHEN), ('暴力成语', VIOLENCE), ('抽象名词', ABSTRACT),
           ('悔意词', REGRET), ('旧卡遗留', LEGACY), ('串戏词', XOVER)]
 
+# 立意句：把引擎写成一句关于人生的话。system_prompt 铁则三⑪ 点名作废的四句，
+# 外加「怕的不是刀，是笔」这一类对句——这是同一个毛病的变体，最容易漏。
+APHORISM = [
+    '只要还被记着', '名字才是真正的性命', '制度就是最锋利的刀', '罗马杀人从来不用剑',
+]
+APHORISM_PAT = [
+    (re.compile(r'怕的(根本)?不是[^，。]{1,6}[，,]\s*是[^。！？]{1,6}[。！]'), '「怕的不是X，是Y」对句'),
+    (re.compile(r'杀人的(根本)?不是[^，。]{1,6}[，,]\s*是[^。！？]{1,6}[。！]'), '「杀人的不是X，是Y」对句'),
+    (re.compile(r'真正的[^，。]{1,8}(不)?是[^。！？]{1,10}[。！]'), '「真正的X是Y」断言'),
+]
+
 # 「话说回来」「把话说完」不是说书腔；只有句首的「话说」才是
 SHUOSHU_EXEMPT = {'话说': re.compile(r'(?:^|[\n。！？…])\s*话说(?!回来)')}
 
@@ -64,6 +75,12 @@ def scan_banned(where, text):
     h = FORBID.findall(text)
     if h:
         bad('%s：禁字 %r' % (where, sorted(set(x.lower() for x in h))))
+    for w in APHORISM:
+        if w in text:
+            bad('%s：立意句「%s」' % (where, w))
+    for pat, label in APHORISM_PAT:
+        for m in pat.finditer(text):
+            bad('%s：%s —— %s' % (where, label, m.group(0)[:30]))
 
 
 def git_show(path):
