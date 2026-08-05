@@ -29,6 +29,15 @@
   --mono:ui-monospace,'SF Mono',Menlo,Consolas,'Cascadia Mono',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box}
+/* 滚动条：浏览器默认那根又粗又白，和这套黑金 UI 完全不搭。全局收成一根细金线，
+   轨槽近乎透明，滑块常态半暗、悬停才亮。下面几处 ::-webkit-scrollbar{display:none}
+   是按 class 写的，比这条裸选择器更具体，照旧生效。 */
+*{scrollbar-width:thin;scrollbar-color:rgba(201,155,63,.42) transparent}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:rgba(236,236,232,.05)}
+::-webkit-scrollbar-thumb{background:rgba(201,155,63,.34);border:0}
+::-webkit-scrollbar-thumb:hover{background:rgba(236,200,120,.66)}
+::-webkit-scrollbar-corner{background:transparent}
 html,body{height:100%;overscroll-behavior:none}
 body{background:var(--ink);color:var(--txt);font-family:var(--mono);overflow:hidden;
      -webkit-user-select:none;user-select:none;cursor:crosshair}
@@ -625,6 +634,7 @@ html.lux::after{content:'';position:fixed;inset:0;z-index:2147483647;pointer-eve
 .mMind.mute{color:var(--mut);font-style:normal;border-left-color:rgba(236,236,232,.18)}
 .mMind.mute b{color:var(--gold);font-weight:400}
 .mNpc .nMind{font-size:10.5px;letter-spacing:.1em;line-height:1.7;color:var(--gold);margin-top:3px;font-style:italic}
+.mNpc .nEye{font-size:9.5px;letter-spacing:.1em;line-height:1.7;color:var(--mut);margin-top:2px;border-left:2px solid rgba(236,200,120,.35);padding-left:6px}
 .mCap{font-size:10px;letter-spacing:.2em;color:var(--gold-hi);margin-top:4px}
 .mGlyph{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--mut);letter-spacing:.12em;margin-top:8px}
 .mGlyph b{font-size:17px;font-weight:400}
@@ -3943,7 +3953,7 @@ function condereOp(line,y,nm,cn){
          :'◆衣冠|玄端深衣\n◆持物|白玉大圭\n◆御体|永生之躯，一切如常\n◆观瞻|无人识得天子微行\n◆神格|50\n')
     +'◆心声|以 ~ 开头发言，你写下的那一句就记在这里\n'
     +'◆史笔|'+yl+'，'+cn+'。'+(scene?scene.replace(/\s+/g,' ').slice(0,60):'此幕自你落脚之刻写起。')+'\n</sec_char>\n<sec_npc>\n'
-    +npcs.map(function(p){return '◈'+p.name+'|初逢|50|（尚未开口）|'+(p.role||'不详')+'|'+cn+'|不详|不详';}).join('\n')
+    +npcs.map(function(p){return '◈'+p.name+'|初逢|50|（尚未开口）|'+(p.role||'不详')+'|'+cn+'|不详|不详|（还没看清是谁）';}).join('\n')
     +'\n<sec_world>\n◇纪年|'+yl+'\n◇时地|'+cn+'\n◇天气|晴\n◇安稳|60\n◇大势|尚未分明\n◇将临|尚未分明\n</sec_world>\n</mvu_panel>';
   return {id:'custom',year:y,era:yl,scene:cn,text:body+'\n\n'+mv};
 }
@@ -5065,14 +5075,14 @@ var GENIVS=(function(){
     });
     if(s)s.pawns.slice(0,6).forEach(function(pw){
       if(seen[pw.name])return;
-      var r=[pw.name,'在场','50','（尚未开口）',pw.cat||'不详',pw.pos||'',' 不详','不详'];
+      var r=[pw.name,'在场','50','（尚未开口）',pw.cat||'不详',pw.pos||'',' 不详','不详','（未估）'];
       seen[pw.name]=r;p.npc.push(r);
     });
-    var DEF=['','在场','50','（尚未开口）','不详','不详','不详','不详'];
+    var DEF=['','在场','50','（尚未开口）','不详','不详','不详','不详','（未估）'];
     p.npc.forEach(function(r){
       var n=String(r[0]||'').trim(),old=null;
       (prev.npc||[]).forEach(function(q){if(String(q[0]||'').trim()===n)old=q;});
-      for(var i=1;i<8;i++)if(r[i]==null||String(r[i]).trim()==='')r[i]=(old&&old[i])||DEF[i];
+      for(var i=1;i<9;i++)if(r[i]==null||String(r[i]).trim()==='')r[i]=(old&&old[i])||DEF[i];
       if(s)for(var j=0;j<s.pawns.length;j++)if(s.pawns[j].name===n){r[5]=s.pawns[j].pos;break;}
     });
 
@@ -7743,11 +7753,12 @@ function renderMvu(panel){
   if(panel.npc.length){
     h+='<div class="mSec"><div class="mHead"><i>◆</i>&nbsp;'+(ACTIVE==='roma'?'PERSONAE&nbsp;·&nbsp;在场':'在场诸人')+'</div>';
     panel.npc.forEach(function(n){
-      var name=n[0]||'',st=n[1]||'',fav=parseInt(n[2],10),mind=n[3]||'',role=n[4]||'',loc=n[5]||'';
+      var name=n[0]||'',st=n[1]||'',fav=parseInt(n[2],10),mind=n[3]||'',role=n[4]||'',loc=n[5]||'',eye=n[8]||'';
       h+='<div class="mNpc"><div class="nHead"><span class="nName">'+esc2(name)+'</span><span class="nRole">'+esc2(role)+(loc?'&nbsp;·&nbsp;'+esc2(loc):'')+'</span></div>';
       if(!isNaN(fav))h+='<div class="mBar" style="margin-top:6px"><i style="width:'+Math.max(0,Math.min(100,fav))+'%"></i></div>';
       if(st)h+='<div class="nLine">'+esc2(st)+'</div>';
       if(mind)h+='<div class="nMind">『'+esc2(mind)+'』</div>';
+      if(eye&&eye!=='不详'&&eye!=='（未估）')h+='<div class="nEye">眼色 · '+esc2(eye)+'</div>';
       h+='</div>';
     });
     h+='</div>';
@@ -8074,12 +8085,17 @@ function gphMark(){ /* 选中态即时刷（fd窗开关/◀▶切换时调用，
   });
 }
 var GZOOM={s:1,vx:0,vy:0};
+/* viewBox 每改一次就是整张 SVG 重栅格化。指针事件一秒能来上百个，
+   逐个同步写等于一秒重画上百遍；合并到每帧最多写一次。 */
+var _gzRaf=0,_gzPend=null;
+function gzFlush(){_gzRaf=0;var q=_gzPend;_gzPend=null;if(q)try{q[0].setAttribute('viewBox',q[1]);}catch(_){}}
 function gzApplyVB(svg,BW,BH){
   if(GZOOM.s<1)GZOOM.s=1;if(GZOOM.s>6)GZOOM.s=6;
   var vw=BW/GZOOM.s,vh=BH/GZOOM.s;
   if(GZOOM.vx>BW-vw)GZOOM.vx=BW-vw;if(GZOOM.vx<0)GZOOM.vx=0;
   if(GZOOM.vy>BH-vh)GZOOM.vy=BH-vh;if(GZOOM.vy<0)GZOOM.vy=0;
-  svg.setAttribute('viewBox',GZOOM.vx.toFixed(1)+' '+GZOOM.vy.toFixed(1)+' '+vw.toFixed(1)+' '+vh.toFixed(1));
+  _gzPend=[svg,GZOOM.vx.toFixed(1)+' '+GZOOM.vy.toFixed(1)+' '+vw.toFixed(1)+' '+vh.toFixed(1)];
+  if(!_gzRaf)_gzRaf=requestAnimationFrame(gzFlush);
 }
 function gzZoom(svg,BW,BH,clientX,clientY,factor){
   var r=svg.getBoundingClientRect();if(!r.width||!r.height)return;
@@ -8165,7 +8181,14 @@ function graphHydrate(){ /* 弹簧物理+拖拽+缩放（节点=g.transform 驱�
   }
   svg.addEventListener('pointerup',gup);
   svg.addEventListener('pointercancel',gup);
-  svg.addEventListener('wheel',function(e){e.preventDefault();gzZoom(svg,BW,BH,e.clientX,e.clientY,e.deltaY<0?1.15:1/1.15);},{passive:false});
+  /* 图谱占满一屏时，无条件 preventDefault 会把面板的滚动全吃掉：
+     用户只能继续空转滚轮；而每一格滚轮都要 getBoundingClientRect 强制回流 + 改 viewBox，
+     把整张 SVG 连同它底下那层全屏毛玻璃一起重栅格化。Windows 上显存就是这么涨起来的。 */
+  svg.addEventListener('wheel',function(e){
+    if(!(e.ctrlKey||e.metaKey))return;                     /* 不按修饰键就放行，交给面板滚 */
+    e.preventDefault();
+    gzZoom(svg,BW,BH,e.clientX,e.clientY,e.deltaY<0?1.15:1/1.15);
+  },{passive:false});
 }
 function graphCardHtml(){ /* 档案窗正文（npcMetaFill 回调仍按 #zjGraphCard 刷新此块——签名/挂点不变） */
   if(!S.memNpc)return '';

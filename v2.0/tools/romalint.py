@@ -148,18 +148,20 @@ for p in lore_files:
         continue
     old = json.loads(raw)
     tot_new += len(new); tot_old += len(old)
-    if len(new) != len(old):
-        bad('%s 条数变了 %d→%d' % (rel, len(old), len(new)))
+    # 末尾への追加は許す（新しい鉄則を足すときに毎回ここで落ちるため）。
+    # 既存分が削られた／並びが変わったときだけ落とす。
+    if len(new) < len(old):
+        bad('%s 条数が減った %d→%d' % (rel, len(old), len(new)))
         continue
     for a, b in zip(old, new):
         for k in MECH:
             if a.get(k) != b.get(k):
                 bad('%s #%s 机械字段 %s 被改动：%r → %r'
                     % (rel, a.get('_i'), k, a.get(k), b.get(k)))
-if tot_new != 383:
-    bad('世界书总条数不是 383，是 %d' % tot_new)
+if tot_new < 383:
+    bad('世界书总条数少于 383，是 %d' % tot_new)
 else:
-    print('  ✓ 383 条，机械字段与顺序未变')
+    print('  ✓ %d 条（底稿 383 条＋追加），机械字段与顺序未变' % tot_new)
 
 # ---- 4. 世界书是否真的重写过 -------------------------------------------
 print('[4] 世界书重写覆盖率与长度')
