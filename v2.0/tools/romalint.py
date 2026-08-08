@@ -64,11 +64,26 @@ def bad(msg):
     print('  ✗ ' + msg)
 
 
+# 禁令清单那类条目必须把禁用词写出来才说得清。带「不许」「禁」「一个都不」这类
+# 字样的句子里出现禁用词，是在讲规矩，不是在用它——不算。
+_RULE_RX = re.compile(r'[^。！？；\n]*(不许|禁|不用|不写|都不|一律不)[^。！？；\n]*')
+
+
+def _all_in_rule_sentences(w, text):
+    spots = [m.start() for m in re.finditer(re.escape(w), text)]
+    if not spots:
+        return False
+    rules = [(m.start(), m.end()) for m in _RULE_RX.finditer(text)]
+    return all(any(a <= i < b for a, b in rules) for i in spots)
+
+
 def scan_banned(where, text):
     for label, words in BANNED:
         for w in words:
             pat = SHUOSHU_EXEMPT.get(w)
             hit = pat.search(text) if pat else (w in text)
+            if hit and _all_in_rule_sentences(w, text):
+                continue
             if hit:
                 n = len(pat.findall(text)) if pat else text.count(w)
                 bad('%s：%s「%s」×%d' % (where, label, w, n))
